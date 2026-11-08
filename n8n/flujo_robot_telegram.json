@@ -1,0 +1,58 @@
+{
+  "name": "Robot Organizador: Notificaciones a Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "robot-task-completed",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Webhook Robot Organizador",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "robot-task-completed"
+    },
+    {
+      "parameters": {
+        "chatId": "7156474626",
+        "text": "={{ $json.body.caption || ('✅ Hito Completado: ' + $json.body.project + '\\n\\nTarea: ' + $json.body.task + '\\n\\nComentario: ' + $json.body.comment) }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "name": "Telegram: Enviar Hito",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        480,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-cred-123",
+          "name": "Bot2_Video_bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Robot Organizador": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Enviar Hito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {}
+}

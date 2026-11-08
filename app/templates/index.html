@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Robot de Gestión de Proyectos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v={{ v }}">
+</head>
+<body>
+  <!-- Header Bar -->
+  <header class="top-nav">
+    <div class="nav-brand">
+      <div class="logo-icon">🤖</div>
+      <div class="brand-text">
+        <h1>Robot de Gestión de Proyectos</h1>
+      </div>
+    </div>
+
+    <!-- Top Action Buttons -->
+    <div class="nav-actions">
+      <button class="btn btn-primary" id="btnOpenAllServices" title="Abrir todas las páginas de servicios activos">
+        <span class="btn-icon">🌐</span> Abrir Todo
+      </button>
+      <button class="btn btn-secondary" id="btnOpenSettings" title="Configuración general, servicios locales y utilidades">
+        <span class="btn-icon">⚙️</span> Configuración
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="app-layout">
+    <!-- Sidebar: Projects List -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Proyectos Activos</h2>
+        <span class="badge badge-counter" id="projectCount">0</span>
+      </div>
+      <div class="search-box">
+        <input type="text" id="projectSearch" placeholder="Buscar proyecto..." autocomplete="off">
+      </div>
+      <div class="projects-list" id="projectsList">
+        <!-- Rendered dynamically -->
+      </div>
+      <div class="sidebar-footer">
+        <div class="agent-status-card" id="agentStatusCard">
+          <div class="agent-status-top">
+            <div class="agent-pulse" id="watchdogPulse"></div>
+            <div class="agent-info">
+              <span class="agent-title">Watchdog Antigravity</span>
+              <span class="agent-state" id="watchdogState">Esperando órdenes</span>
+            </div>
+          </div>
+
+          <div class="quota-meter-box">
+            <div class="quota-meter-header">
+              <span class="quota-model-label" id="watchdogModel">Gemini</span>
+              <span class="quota-pct-badge quota-green" id="watchdogQuotaPct">100%</span>
+            </div>
+            <div class="quota-bar-bg">
+              <div class="quota-bar-fill quota-green" id="watchdogQuotaBar" style="width: 100%;"></div>
+            </div>
+            <div class="quota-reset-row">
+              <span>⏳ <span id="watchdogResetTime">Calculando ciclo...</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="main-content">
+      <!-- Active Project Banner -->
+      <section class="project-banner" id="projectBanner">
+        <div class="banner-left">
+          <div class="project-icon-large" id="bannerIcon">📁</div>
+          <div>
+            <div class="banner-title-row">
+              <h2 id="bannerName">Selecciona un Proyecto</h2>
+              <span class="badge" id="bannerCategory">General</span>
+              <a href="#" id="bannerUrlLink" target="_blank" class="service-link-btn" style="display:none;">
+                🔗 Abrir Servicio
+              </a>
+            </div>
+            <p class="banner-desc" id="bannerDesc">Elige un proyecto del menú lateral para gestionar sus tareas e hitos.</p>
+            <div class="banner-meta">
+              <span id="bannerFolder" class="meta-item">📁 ...</span>
+            </div>
+          </div>
+        </div>
+        <div class="banner-stats">
+          <div class="progress-ring-container">
+            <div class="circular-progress" id="bannerProgressCircle">
+              <span class="progress-value" id="bannerProgressText">0%</span>
+            </div>
+          </div>
+          <div class="stat-counts">
+            <span class="stat-num" id="statCompleted">0</span> / <span class="stat-total" id="statTotal">0</span>
+            <span class="stat-label">Completadas</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- General del Proyecto (Accesos Directos Interactivos) -->
+      <section class="protocol-card" id="protocolCard">
+        <div class="protocol-header">
+          <div class="protocol-title-group">
+            <h3>General del proyecto</h3>
+          </div>
+        </div>
+        <div class="protocol-grid" id="protocolGrid">
+          <div class="protocol-item" onclick="openProjectResource('docs')" title="Abrir la carpeta /docs del proyecto en el Explorador de Windows">
+            <span class="protocol-item-icon">📁</span>
+            <div class="protocol-item-text">
+              <strong>Documentación /docs</strong>
+              <span>Abrir carpeta en Explorer</span>
+            </div>
+          </div>
+          <div class="protocol-item" onclick="openProjectResource('onenote')" title="Abrir el bloc de notas del proyecto en OneNote">
+            <span class="protocol-item-icon">📓</span>
+            <div class="protocol-item-text">
+              <strong>OneNote / Bitácora</strong>
+              <span>Abrir proyecto en OneNote</span>
+            </div>
+          </div>
+          <div class="protocol-item" onclick="openProjectResource('git')" title="Abrir el repositorio del proyecto en GitHub">
+            <span class="protocol-item-icon">🐙</span>
+            <div class="protocol-item-text">
+              <strong>Git Snapshot</strong>
+              <span>Abrir repositorio en GitHub</span>
+            </div>
+          </div>
+          <div class="protocol-item" onclick="openProjectResource('skills')" title="Abrir la carpeta 01_Skills y el fichero índice de Skills">
+            <span class="protocol-item-icon">🧠</span>
+            <div class="protocol-item-text">
+              <strong>Patrones de Skills</strong>
+              <span>Abrir carpeta y guía Skills</span>
+            </div>
+          </div>
+          <div class="protocol-item" onclick="openProjectResource('validation')" title="Abrir carpeta de validación e informe de estado técnico">
+            <span class="protocol-item-icon">🧪</span>
+            <div class="protocol-item-text">
+              <strong>Validación Técnica</strong>
+              <span>Abrir carpeta y estado</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Smart Quick Task Creator -->
+      <section class="quick-task-section">
+        <div class="quick-task-bar">
+          <div class="quick-task-input-wrapper">
+            <span class="ai-sparkle">✨</span>
+            <input type="text" id="smartTaskInput" placeholder="Añade una tarea rápida en lenguaje natural... (Ej: 'Crear exportador de resúmenes en PDF y comprobar que se guarde en /docs')">
+            <button class="btn btn-icon-only btn-mic" id="btnVoiceInput" title="Dictar tarea por voz">🎙️</button>
+          </div>
+          <button class="btn btn-primary" id="btnSmartCreateTask">
+            <span class="btn-icon">⚡</span> Crear con IA
+          </button>
+          <button class="btn btn-secondary" id="btnNewTask" title="Abrir formulario detallado">
+            <span>➕ Formulario</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Task Controls & Filters -->
+      <section class="task-toolbar">
+        <div class="filter-tabs">
+          <button class="tab-btn active" data-filter="all">Todas (<span id="countAll">0</span>)</button>
+          <button class="tab-btn" data-filter="pending">Pendientes (<span id="countPending">0</span>)</button>
+          <button class="tab-btn" data-filter="in_progress">En Progreso (<span id="countInProgress">0</span>)</button>
+          <button class="tab-btn" data-filter="completed">Completadas (<span id="countCompleted">0</span>)</button>
+        </div>
+      </section>
+
+      <!-- Tasks List -->
+      <section class="tasks-container" id="tasksContainer">
+        <!-- Rendered dynamically -->
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal: Crear / Editar Tarea -->
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modalTaskTitle">Nueva Tarea</h3>
+        <button class="modal-close" onclick="closeModal('taskModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="taskForm">
+          <input type="hidden" id="formTaskId">
+          <div class="form-group">
+            <label for="formTitle">Título de la Tarea *</label>
+            <input type="text" id="formTitle" required placeholder="Ej: Integrar feedback de Telegram en el flujo">
+          </div>
+          <div class="form-group">
+            <label for="formDescription">Descripción / Instrucciones</label>
+            <textarea id="formDescription" rows="3" placeholder="Detalles de lo que debe realizarse o validarse..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="formPriority">Prioridad</label>
+              <select id="formPriority">
+                <option value="baja">Baja</option>
+                <option value="media" selected>Media</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente 🔥</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="formMilestoneType">Tipo de Verificación de Hito</label>
+              <select id="formMilestoneType">
+                <option value="manual">Manual (Check interactivo)</option>
+                <option value="http_200">Servicio HTTP (200 OK)</option>
+                <option value="file_exists">Archivo existe en disco</option>
+                <option value="command_exit_0">Comando terminal (Código 0)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" id="milestoneTargetGroup">
+            <label for="formMilestoneTarget">Objetivo de Validación (URL / Archivo / Comando)</label>
+            <input type="text" id="formMilestoneTarget" placeholder="Ej: http://127.0.0.1:8001 o app/output.mp4">
+          </div>
+          <div class="form-group">
+            <label for="formMilestoneDesc">Criterio de Éxito Esperado</label>
+            <input type="text" id="formMilestoneDesc" placeholder="Ej: El vídeo se reproduce correctamente y el guion tiene audio.">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('taskModal')">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveTask">Guardar Tarea</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Completar Hito con Notificación a Telegram -->
+  <div class="modal-overlay" id="checkModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>✅ Completar Hito & Notificar a Telegram</h3>
+        <button class="modal-close" onclick="closeModal('checkModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="checkTaskId">
+        <div class="info-callout">
+          <p id="checkTaskTitle">Completando tarea...</p>
+        </div>
+        <div class="form-group">
+          <label for="checkComment">Comentario / Resumen del Resultado *</label>
+          <textarea id="checkComment" rows="3" placeholder="Ej: Escena 1 generada con éxito. Se adjunta captura del render..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>📋 Protocolo de Calidad Cumplido:</label>
+          <div class="modal-protocol-checklist">
+            <label class="protocol-check-label"><input type="checkbox" id="protoDocs" checked> 📁 Documentado en /docs</label>
+            <label class="protocol-check-label"><input type="checkbox" id="protoOneNote" checked> 📓 Anotado en OneNote</label>
+            <label class="protocol-check-label"><input type="checkbox" id="protoGit" checked> 🐙 Commit en Git</label>
+            <label class="protocol-check-label"><input type="checkbox" id="protoSkills" checked> 🧠 Skills / Patrones aplicados</label>
+            <label class="protocol-check-label"><input type="checkbox" id="protoTests" checked> 🧪 Pruebas y validación OK</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="checkImageFile">Adjuntar Imagen o Captura de Pantalla</label>
+          <input type="file" id="checkImageFile" accept="image/*">
+          <p class="field-help">Esta imagen se enviará directamente a tu móvil por Telegram.</p>
+        </div>
+        <div id="checkImagePreview" class="image-preview-container" style="display:none;">
+          <img id="checkPreviewImg" src="" alt="Vista previa">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('checkModal')">Cancelar</button>
+        <button class="btn btn-telegram" id="btnSubmitCheck">
+          <span class="btn-icon">🚀</span> Completar & Enviar Telegram
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Configuración General -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-dialog modal-dialog-wide">
+      <div class="modal-header">
+        <h3>⚙️ Configuración & Herramientas Generales</h3>
+        <button class="modal-close" onclick="closeModal('settingsModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Bloque 1: Servicios Locales y Puertos -->
+        <div class="settings-section">
+          <h4 class="settings-section-title">🌐 Estado de Servicios y Puertos Locales</h4>
+          <p class="field-help" style="margin-bottom: 0.65rem;">Haz clic en cualquier servicio para abrirlo (o arrancarlo automáticamente si está inactivo):</p>
+          <div class="dock-items settings-services-grid" id="dockItems">
+            <!-- Generated dynamically via JS -->
+          </div>
+        </div>
+
+        <!-- Bloque 2: Utilidades y Acciones Generales -->
+        <div class="settings-section">
+          <h4 class="settings-section-title">🛠️ Utilidades del Sistema</h4>
+          <div class="settings-actions-row">
+            <button type="button" class="btn btn-secondary" id="btnRescan" title="Escanear y actualizar proyectos en disco">
+              <span class="btn-icon">🔄</span> Escanear Proyectos en Disco
+            </button>
+            <button type="button" class="btn btn-telegram" id="btnTestTelegram" title="Enviar prueba de mensaje al bot @Bot2_Video_bot">
+              <span class="btn-icon">📱</span> Probar Conexión Telegram
+            </button>
+          </div>
+        </div>
+
+        <!-- Bloque 3: Ajustes de Telegram y n8n -->
+        <div class="settings-section" style="margin-bottom: 0;">
+          <h4 class="settings-section-title">📡 Credenciales Telegram & Webhook n8n</h4>
+          <form id="settingsForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="settingBotToken">Telegram Bot Token</label>
+                <input type="text" id="settingBotToken" placeholder="8691202872:AA...">
+              </div>
+              <div class="form-group">
+                <label for="settingChatId">Telegram Chat ID</label>
+                <input type="text" id="settingChatId" placeholder="7156474626">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="settingN8nWebhook">Webhook URL de n8n</label>
+              <input type="text" id="settingN8nWebhook" placeholder="http://localhost:5678/webhook/robot-task-completed">
+            </div>
+            <div class="checkbox-group">
+              <label class="toggle-switch">
+                <input type="checkbox" id="settingNotifyTelegram">
+                <span class="slider"></span>
+              </label>
+              <span class="toggle-label">Activar Notificaciones Automáticas por Telegram</span>
+            </div>
+            <div class="checkbox-group">
+              <label class="toggle-switch">
+                <input type="checkbox" id="settingNotifyViaN8n">
+                <span class="slider"></span>
+              </label>
+              <span class="toggle-label">Reenviar a través de Webhook de n8n</span>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('settingsModal')">Cerrar</button>
+        <button class="btn btn-primary" id="btnSaveSettings">Guardar Ajustes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/static/js/app.js?v={{ v }}"></script>
+</body>
+</html>
