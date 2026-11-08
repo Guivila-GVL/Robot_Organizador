@@ -117,10 +117,30 @@ DEFAULT_PROJECTS = [
                 "title": "Sistema de Validación Técnica y Carpeta /validacion por Proyecto",
                 "description": "Crear y abrir automáticamente la carpeta /validacion y el informe de estado y tests al pulsar en Validación Técnica.",
                 "priority": "alta",
-                "status": "in_progress",
+                "status": "completed",
                 "milestone_type": "file_exists",
                 "milestone_target": "validacion/ESTADO_VALIDACION.txt",
                 "milestone_description": "Al pulsar Validación Técnica se abre la carpeta de validación y el informe actualizado con tests y puertos del proyecto.",
+                "milestone_result": "Carpeta /validacion creada y reporte ESTADO_VALIDACION.txt generado y abierto en editor y explorador."
+            },
+            {
+                "title": "Organizar y Documentar Skills y Herramientas Globales",
+                "description": "Inventario centralizado de Skills, Servidores MCP, Herramientas Globales y APIs compartidas en 0000_Utilidades/01_Skills y 04_Claves_Subcripciones_APIs con hoja de resumen descriptiva (00_INDICE_SKILLS_Y_PATRONES.txt).",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "D:\\OneDrive\\04_Desarrollo_proyectos\\0000_Utilidades\\01_Skills\\00_INDICE_SKILLS_Y_PATRONES.txt",
+                "milestone_description": "Al pulsar Patrones de Skills se abre la carpeta de skills y la hoja de resumen descriptiva de todas las herramientas.",
+                "milestone_result": "Catálogo exhaustivo creado en 00_INDICE_SKILLS_Y_PATRONES.txt y README.md; botón de Skills abre carpeta y resumen técnico."
+            },
+            {
+                "title": "Protocolo Automatizado de Cierre de Tareas (Docs, OneNote, Git, Skills)",
+                "description": "Al completar cualquier tarea de cualquier proyecto, se ejecuta automáticamente el protocolo de cierre: 1) Registro en docs/REGISTRO_HITOS.md, 2) Sincronización en OneNote (Resumen y Actividades), 3) Commit y Push a GitHub, 4) Revisión de Skills y 5) Alerta a Telegram.",
+                "priority": "alta",
+                "status": "in_progress",
+                "milestone_type": "manual",
+                "milestone_target": "",
+                "milestone_description": "Comprobación de extremo a extremo del flujo automatizado de cierre general en una tarea.",
                 "milestone_result": ""
             }
         ]

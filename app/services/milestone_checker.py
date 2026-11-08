@@ -87,6 +87,15 @@ def check_and_complete_task(
     if not result_text:
         result_text = "Hito completado satisfactoriamente."
 
+    protocol_res = {}
+    # Si se ha completado la tarea, ejecutar el protocolo general automatizado
+    if new_status == "completed":
+        try:
+            from app.services.task_protocol import execute_automated_task_completion_protocol
+            protocol_res = execute_automated_task_completion_protocol(dict(task), result_text, image_path)
+        except Exception as e:
+            protocol_res = {"error": str(e), "protocol_summary": f"Error en protocolo automatizado: {e}"}
+
     # Actualizar tarea
     cursor.execute("""
         UPDATE tasks
@@ -103,16 +112,27 @@ def check_and_complete_task(
         VALUES (?, 'Robot Organizador', ?, COALESCE(?, ''), ?)
     """, (task_id, result_text, image_path, now))
 
+    # Si se ejecutó el protocolo, añadirlo también como comentario oficial
+    if protocol_res.get("protocol_summary"):
+        cursor.execute("""
+            INSERT INTO comments (task_id, author, text, image_url, created_at)
+            VALUES (?, 'Protocolo General', ?, '', ?)
+        """, (task_id, protocol_res["protocol_summary"], now))
+
     conn.commit()
     conn.close()
 
-    # Si se ha completado con éxito, enviar notificación a Telegram
+    # Si se ha completado con éxito, enviar notificación a Telegram incluyendo el protocolo
     tg_result = {}
     if new_status == "completed":
+        tg_comment = result_text
+        if protocol_res.get("protocol_summary"):
+            tg_comment += f"\n\n{protocol_res['protocol_summary']}"
+
         tg_result = notify_task_milestone(
             project_name=task["project_name"],
             task_title=task["title"],
-            milestone_comment=result_text,
+            milestone_comment=tg_comment,
             image_path=image_path
         )
 
@@ -122,5 +142,6 @@ def check_and_complete_task(
         "new_status": new_status,
         "is_success": is_success,
         "message": result_text,
+        "protocol": protocol_res,
         "telegram_sent": tg_result.get("success", False)
     }

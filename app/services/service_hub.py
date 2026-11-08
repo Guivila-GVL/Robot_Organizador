@@ -320,34 +320,24 @@ def open_project_resource(project_id: str, resource_key: str) -> Dict[str, Any]:
         skills_dir = os.path.join(WORKSPACE_ROOT, "0000_Utilidades", "01_Skills")
         skills_summary_file = os.path.join(skills_dir, "00_INDICE_SKILLS_Y_PATRONES.txt")
 
-        # Crear o actualizar resumen legible en texto de todas las skills
-        try:
-            with open(skills_summary_file, "w", encoding="utf-8") as f:
-                f.write("====================================================================\n")
-                f.write("  ÍNDICE DE SKILLS Y PATRONES DE DESARROLLO (0000_Utilidades/01_Skills)\n")
-                f.write("====================================================================\n\n")
-                f.write("1. 03_Gestion_Proyecto / Estructura_y_Organizacion.md\n")
-                f.write("   - Estándar de carpetas: /docs, /app o /web, /uploads, /validacion.\n")
-                f.write("   - Nomenclatura consistente y flujo de despliegue GitHub + Vercel.\n\n")
-                f.write("2. 02_OneNote_Management / Seguimiento_Proyectos_OneNote.md\n")
-                f.write("   - Metodología OneNote-Centric: Planificación, Seguimiento y Log de Actividad.\n")
-                f.write("   - Scripts automáticos en 0000_Utilidades/03_OneNote.\n\n")
-                f.write("3. 02_n8n_Antigravity & n8n_developer\n")
-                f.write("   - Patrones de flujos n8n, webhooks, validación de nodos y expresiones.\n\n")
-                f.write("4. 04_NotebookLM_Antigravity\n")
-                f.write("   - Sincronización de cuadernos de investigación y fuentes con NotebookLM.\n\n")
-                f.write(f"Ruta de la carpeta de Skills: {skills_dir}\n")
-        except Exception:
-            pass
+        # Asegurar que la carpeta existe
+        os.makedirs(skills_dir, exist_ok=True)
 
         if os.path.exists(skills_dir):
-            subprocess.Popen(["explorer.exe", skills_dir])
+            try:
+                subprocess.Popen(["explorer.exe", skills_dir])
+            except Exception as e:
+                logger.error(f"Error al abrir explorer para skills: {e}")
+
         if os.path.exists(skills_summary_file):
-            os.startfile(skills_summary_file)
+            try:
+                os.startfile(skills_summary_file)
+            except Exception as e:
+                logger.error(f"Error al abrir skills_summary_file con startfile: {e}")
 
         return {
             "success": True,
-            "message": "Abierta carpeta de Skills y fichero índice de patrones",
+            "message": "Abierta carpeta de Skills y documento resumen de patrones y herramientas",
             "target": skills_summary_file
         }
 
