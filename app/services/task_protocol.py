@@ -69,7 +69,7 @@ def sync_onenote_project(project_id: str) -> Dict[str, Any]:
             [py_exe, ONENOTE_SYNC_SCRIPT, "--project", project_id],
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=75
         )
         if res.returncode == 0:
             return {"success": True, "message": "OneNote sincronizado con éxito"}
@@ -184,3 +184,4 @@ def execute_automated_task_completion_protocol(
         "skills": skills_res,
         "protocol_summary": protocol_summary
     }
+
