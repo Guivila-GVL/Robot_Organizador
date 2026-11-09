@@ -139,11 +139,11 @@
               <span>Abrir carpeta y guía Skills</span>
             </div>
           </div>
-          <div class="protocol-item" onclick="openProjectResource('validation')" title="Abrir carpeta de validación e informe de estado técnico">
+          <div class="protocol-item" onclick="openProjectResource('validation')" title="Abrir carpeta de validación y protocolo de revisión general al acabar una tarea (Docs, OneNote, Git, Skills, Telegram)">
             <span class="protocol-item-icon">🧪</span>
             <div class="protocol-item-text">
               <strong>Validación Técnica</strong>
-              <span>Abrir carpeta y estado</span>
+              <span>Revisión general y cierre</span>
             </div>
           </div>
         </div>
@@ -169,10 +169,10 @@
       <!-- Task Controls & Filters -->
       <section class="task-toolbar">
         <div class="filter-tabs">
-          <button class="tab-btn active" data-filter="all">Todas (<span id="countAll">0</span>)</button>
+          <button class="tab-btn active" data-filter="in_progress">En Progreso (<span id="countInProgress">0</span>)</button>
           <button class="tab-btn" data-filter="pending">Pendientes (<span id="countPending">0</span>)</button>
-          <button class="tab-btn" data-filter="in_progress">En Progreso (<span id="countInProgress">0</span>)</button>
           <button class="tab-btn" data-filter="completed">Completadas (<span id="countCompleted">0</span>)</button>
+          <button class="tab-btn" data-filter="all">Todas (<span id="countAll">0</span>)</button>
         </div>
       </section>
 
@@ -255,13 +255,13 @@
           <textarea id="checkComment" rows="3" placeholder="Ej: Escena 1 generada con éxito. Se adjunta captura del render..."></textarea>
         </div>
         <div class="form-group">
-          <label>📋 Protocolo de Calidad Cumplido:</label>
+          <label>📋 Protocolo de Revisión General de Cierre:</label>
           <div class="modal-protocol-checklist">
-            <label class="protocol-check-label"><input type="checkbox" id="protoDocs" checked> 📁 Documentado en /docs</label>
-            <label class="protocol-check-label"><input type="checkbox" id="protoOneNote" checked> 📓 Anotado en OneNote</label>
-            <label class="protocol-check-label"><input type="checkbox" id="protoGit" checked> 🐙 Commit en Git</label>
-            <label class="protocol-check-label"><input type="checkbox" id="protoSkills" checked> 🧠 Skills / Patrones aplicados</label>
-            <label class="protocol-check-label"><input type="checkbox" id="protoTests" checked> 🧪 Pruebas y validación OK</label>
+            <label class="protocol-check-label"><input type="checkbox" id="protoDocs" checked> 📁 Documentación en /docs actualizada</label>
+            <label class="protocol-check-label"><input type="checkbox" id="protoOneNote" checked> 📓 OneNote actualizado (Resumen y Actividades)</label>
+            <label class="protocol-check-label"><input type="checkbox" id="protoGit" checked> 🐙 Git actualizado y subido a GitHub</label>
+            <label class="protocol-check-label"><input type="checkbox" id="protoSkills" checked> 🧠 Skills y forma de trabajo aplicadas</label>
+            <label class="protocol-check-label"><input type="checkbox" id="protoTelegram" checked> 📱 Check y notificación a Telegram enviados</label>
           </div>
         </div>
         <div class="form-group">

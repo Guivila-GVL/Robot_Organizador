@@ -342,57 +342,138 @@ def open_project_resource(project_id: str, resource_key: str) -> Dict[str, Any]:
         }
 
     elif resource_key == "validation":
-        cursor.execute("SELECT title, status, milestone_type, milestone_target, milestone_result FROM tasks WHERE project_id = ? ORDER BY order_index ASC", (project_id,))
-        tasks = cursor.fetchall()
+        cursor.execute("SELECT id, title, status, milestone_type, milestone_target, milestone_result, priority FROM tasks WHERE project_id = ? ORDER BY order_index ASC", (project_id,))
+        tasks = [dict(t) for t in cursor.fetchall()]
+
+        cursor.execute("SELECT value FROM settings WHERE key = 'telegram_bot_token'")
+        tg_token_row = cursor.fetchone()
+        has_tg = bool(tg_token_row and tg_token_row["value"])
+
+        onenote_url = project["onenote_url"] if "onenote_url" in project.keys() else None
         conn.close()
 
         val_dir = os.path.join(folder_path, "validacion")
         os.makedirs(val_dir, exist_ok=True)
+        guide_file = os.path.join(val_dir, "00_GUIA_REVISION_GENERAL_TAREA.md")
         report_file = os.path.join(val_dir, "ESTADO_VALIDACION.txt")
 
+        # 1. Crear o actualizar la guía oficial de Revisión General al Acabar una Tarea
+        with open(guide_file, "w", encoding="utf-8") as f:
+            f.write(
+                f"# Protocolo de Revisión General al Acabar una Tarea — {project_name}\n\n"
+                f"Este checklist define la revisión técnica obligatoria que debe ejecutarse al concluir cualquier tarea:\n\n"
+                f"### 📋 Checklist de los 5 Pasos Obligatorios:\n\n"
+                f"1. **📁 Documentación en /docs actualizada:**\n"
+                f"   - Verificar que los cambios y decisiones queden documentados en la carpeta `docs/`.\n"
+                f"   - Añadir o actualizar la entrada en `docs/REGISTRO_HITOS.md` con el resultado y fecha.\n\n"
+                f"2. **📓 OneNote / Bitácora actualizada:**\n"
+                f"   - Comprobar que la sección del proyecto en *Desarrollo Proyectos* refleje el avance reciente.\n"
+                f"   - Hoja `01. Resumen`: porcentaje recalculado y fecha actualizada.\n"
+                f"   - Hoja `02. Listado de Actividades`: tarea marcada como completada con su resultado.\n\n"
+                f"3. **🐙 Git actualizado y subido a GitHub:**\n"
+                f"   - Comprobar que no queden ficheros temporales ni secretos sin proteger en `.gitignore`.\n"
+                f"   - Crear un commit descriptivo: `feat(hito): <tarea> [protocolo-completado]`.\n"
+                f"   - Ejecutar `git push origin main` al repositorio de GitHub.\n\n"
+                f"4. **🧠 Skills y forma de trabajo revisadas:**\n"
+                f"   - Consultar las directrices de `0000_Utilidades/01_Skills` (`03_Gestion_Proyecto`, `02_OneNote_Management`, etc.).\n"
+                f"   - Verificar que la arquitectura y limpieza del código sean consistentes con el estándar.\n\n"
+                f"5. **📱 Check y envío a Telegram:**\n"
+                f"   - Último paso de confirmación: enviar el check de esta revisión general con su imagen/captura al canal de Telegram (@Bot2_Video_bot).\n\n"
+                f"---\n"
+                f"*Automatización: En el Robot de Gestión de Proyectos, esta secuencia se ejecuta automáticamente al completar cualquier tarea.*\n"
+            )
+
+        # 2. Diagnóstico técnico en vivo
         port = project["port"]
         port_status = "No aplica (Sin puerto local)"
         if port:
             is_open = check_port_open("127.0.0.1", port)
             port_status = f"Puerto :{port} -> {'ACTIVO (200 OK / Escuchando)' if is_open else 'INACTIVO'}"
 
-        has_docs = os.path.exists(os.path.join(folder_path, "docs"))
-        has_git = os.path.exists(os.path.join(folder_path, ".git"))
+        docs_dir = os.path.join(folder_path, "docs")
+        has_docs = os.path.exists(docs_dir)
+        has_hitos_log = os.path.exists(os.path.join(docs_dir, "REGISTRO_HITOS.md"))
+
+        git_dir = os.path.join(folder_path, ".git")
+        has_git = os.path.exists(git_dir)
+        git_remote = _extract_git_remote_url(folder_path) if has_git else "N/A"
+
+        git_clean = "N/A"
+        if has_git:
+            try:
+                res_git = subprocess.run(["git", "status", "--porcelain"], cwd=folder_path, capture_output=True, text=True, timeout=3)
+                git_clean = "Limpio (Sin cambios pendientes)" if not res_git.stdout.strip() else "Hay cambios sin commit"
+            except Exception:
+                git_clean = "No verificado"
+
+        has_onenote = bool(onenote_url)
+        has_val_folder = os.path.exists(val_dir)
+
+        in_progress_tasks = [t for t in tasks if t["status"] == "in_progress"]
+        pending_tasks = [t for t in tasks if t["status"] == "pending"]
+        completed_tasks = [t for t in tasks if t["status"] == "completed"]
 
         lines = [
             "====================================================================",
-            f"  INFORME DE VALIDACIÓN TÉCNICA — {project_name.upper()}",
+            f"  INFORME DE VALIDACIÓN TÉCNICA Y REVISIÓN GENERAL — {project_name.upper()}",
             f"  Fecha: { time.strftime('%d/%m/%Y %H:%M:%S') }",
             "====================================================================",
             "",
-            f"📁 Carpeta del proyecto : {folder_path}",
-            f"🌐 Estado del servidor  : {port_status}",
-            f"📚 Carpeta /docs        : {'✅ Presente' if has_docs else '⚠️ Pendiente de crear'}",
-            f"🐙 Repositorio Git      : {'✅ Inicializado (.git)' if has_git else '⚠️ Sin repositorio local'}",
+            "📌 ESTADO EN VIVO DE LOS 5 PUNTOS DEL PROTOCOLO DE CIERRE:",
+            "--------------------------------------------------------------------",
+            f"1. 📁 Documentación (/docs)  : {'✅ Presente' if has_docs else '⚠️ Falta crear'} | Registro hitos: {'✅ Al día' if has_hitos_log else '⚠️ Sin REGISTRO_HITOS.md'}",
+            f"2. 📓 OneNote / Bitácora      : {'✅ Enlazado y Activo' if has_onenote else '⚠️ Enlace no registrado'}",
+            f"3. 🐙 Git & GitHub            : {'✅ Repositorio activo' if has_git else '⚠️ Sin .git'} | {git_clean}",
+            f"   ↳ URL Remota              : {git_remote}",
+            f"4. 🧠 Skills y Metodología    : {'✅ Carpetas /docs y /validacion conforme' if (has_docs and has_val_folder) else '⚠️ Revisar estructura'}",
+            f"5. 📱 Notificación Telegram   : {'✅ Configurada (@Bot2_Video_bot)' if has_tg else '⚠️ Token pendiente'}",
+            f"🌐 Servidor / Puerto Local   : {port_status}",
             "",
             "--------------------------------------------------------------------",
-            "  ESTADO DE HITOS Y VALIDACIONES DEL PROYECTO",
-            "--------------------------------------------------------------------"
+            "  ESTADO DE LAS TAREAS DEL PROYECTO (PRIORIDAD VISUAL)",
+            "--------------------------------------------------------------------",
+            f"Total: {len(tasks)} tareas | ⏳ En Progreso: {len(in_progress_tasks)} | ⬜ Pendientes: {len(pending_tasks)} | ✅ Completadas: {len(completed_tasks)}",
+            ""
         ]
-        for idx, t in enumerate(tasks, 1):
-            st_label = "✅ COMPLETADO" if t["status"] == "completed" else ("⏳ EN PROGRESO" if t["status"] == "in_progress" else "⬜ PENDIENTE")
-            lines.append(f"{idx}. [{st_label}] {t['title']} (Tipo: {t['milestone_type']})")
-            if t["milestone_target"]:
-                lines.append(f"   Objetivo : {t['milestone_target']}")
-            if t["milestone_result"]:
-                lines.append(f"   Resultado: {t['milestone_result']}")
+
+        if in_progress_tasks:
+            lines.append("▶ TAREAS EN PROGRESO (Revisión prioritaria):")
+            for t in in_progress_tasks:
+                lines.append(f"  • [⏳ EN PROGRESO] {t['title']} (Prioridad: {t['priority'].upper()})")
+                if t["milestone_target"]:
+                    lines.append(f"    Objetivo : {t['milestone_target']}")
+            lines.append("")
+
+        if pending_tasks:
+            lines.append("▶ TAREAS PENDIENTES (Siguientes pasos):")
+            for t in pending_tasks:
+                lines.append(f"  • [⬜ PENDIENTE] {t['title']} (Prioridad: {t['priority'].upper()})")
+            lines.append("")
+
+        if completed_tasks:
+            lines.append("▶ TAREAS COMPLETADAS (Historial cerrado con protocolo):")
+            for t in completed_tasks:
+                res_desc = f" -> {t['milestone_result'][:70]}..." if t['milestone_result'] else ""
+                lines.append(f"  • [✅ COMPLETADA] {t['title']}{res_desc}")
             lines.append("")
 
         with open(report_file, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
 
-        subprocess.Popen(["explorer.exe", val_dir])
-        os.startfile(report_file)
+        # Abrir carpeta y documentos
+        if os.path.exists(val_dir):
+            subprocess.Popen(["explorer.exe", val_dir])
+        if os.path.exists(guide_file):
+            try:
+                os.startfile(guide_file)
+            except Exception:
+                if os.path.exists(report_file):
+                    os.startfile(report_file)
 
         return {
             "success": True,
-            "message": f"Abierta carpeta /validacion e informe de estado de {project_name}",
-            "target": report_file
+            "message": f"Abierta carpeta /validacion y protocolo de revisión general de {project_name}",
+            "target": guide_file
         }
 
     conn.close()

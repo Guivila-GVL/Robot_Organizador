@@ -6,7 +6,7 @@ const state = {
   projects: [],
   activeProjectId: null,
   tasks: [],
-  currentFilter: 'all',
+  currentFilter: 'in_progress',
   services: [],
   settings: {}
 };
@@ -329,6 +329,12 @@ function selectProject(projectId) {
   } else {
     bannerUrlLinkEl.style.display = 'none';
   }
+
+  // Pestaña inicial por defecto: tareas 'En Progreso'
+  state.currentFilter = 'in_progress';
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === 'in_progress');
+  });
 
   loadTasks(projectId);
 }

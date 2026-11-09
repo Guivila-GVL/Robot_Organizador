@@ -10,32 +10,32 @@ BASE_PROJECTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."
 DEFAULT_PROTOCOL_ITEMS = [
     {
         "item_key": "docs",
-        "title": "Documentación en /docs",
-        "description": "El cambio y las decisiones de diseño quedan explicados en la carpeta docs/ del proyecto.",
+        "title": "1. Documentación en /docs",
+        "description": "El cambio y las decisiones quedan explicados en la carpeta docs/ y registrados en REGISTRO_HITOS.md.",
         "order_index": 1
     },
     {
         "item_key": "onenote",
-        "title": "Registro en OneNote / Bitácora",
-        "description": "Se ha actualizado la página de seguimiento en OneNote con el progreso realizado.",
+        "title": "2. OneNote / Bitácora Actualizada",
+        "description": "Páginas 01. Resumen y 02. Listado de Actividades actualizadas en la sección del proyecto.",
         "order_index": 2
     },
     {
         "item_key": "git",
-        "title": "Snapshot / Commit en Git",
-        "description": "El repositorio tiene guardado el estado limpio de este cambio.",
+        "title": "3. Git Actualizado y Subido a GitHub",
+        "description": "Commit limpio realizado en local y subido exitosamente con git push a GitHub.",
         "order_index": 3
     },
     {
         "item_key": "skills",
-        "title": "Patrones de Skills aplicados",
-        "description": "Se han consultado y respetado los estándares de 0000_Utilidades/01_Skills.",
+        "title": "4. Skills y Forma de Trabajo Revisadas",
+        "description": "Revisión de directrices, estándares y patrones aplicados de 0000_Utilidades/01_Skills.",
         "order_index": 4
     },
     {
-        "item_key": "validation",
-        "title": "Verificación Técnica Superada",
-        "description": "El archivo, script o servidor responde exactamente como se esperaba.",
+        "item_key": "telegram",
+        "title": "5. Check y Envío a Telegram",
+        "description": "Paso final: enviar la confirmación de la revisión y verificación al canal de Telegram.",
         "order_index": 5
     }
 ]
