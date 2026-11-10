@@ -88,16 +88,7 @@ def check_and_complete_task(
     if not result_text:
         result_text = "Hito completado satisfactoriamente."
 
-    protocol_res = {}
-    # Si se ha completado la tarea, ejecutar el protocolo general automatizado
-    if new_status == "completed":
-        try:
-            from app.services.task_protocol import execute_automated_task_completion_protocol
-            protocol_res = execute_automated_task_completion_protocol(dict(task), result_text, image_path)
-        except Exception as e:
-            protocol_res = {"error": str(e), "protocol_summary": f"Error en protocolo automatizado: {e}"}
-
-    # Actualizar tarea
+    # Actualizar tarea en la base de datos primero para que OneNote y el protocolo vean el estado completado
     new_pct = 100 if new_status == "completed" else 0
     new_step = "✅ Completada y verificada con protocolo" if new_status == "completed" else ""
     cursor.execute("""
@@ -117,14 +108,29 @@ def check_and_complete_task(
         VALUES (?, 'Robot Organizador', ?, COALESCE(?, ''), ?)
     """, (task_id, result_text, image_path, now))
 
+    conn.commit()
+
+    protocol_res = {}
+    # Si se ha completado la tarea, ejecutar el protocolo general automatizado
+    if new_status == "completed":
+        try:
+            from app.services.task_protocol import execute_automated_task_completion_protocol
+            task_dict = dict(task)
+            task_dict["status"] = new_status
+            task_dict["completed_at"] = now
+            task_dict["milestone_result"] = result_text
+            protocol_res = execute_automated_task_completion_protocol(task_dict, result_text, image_path)
+        except Exception as e:
+            protocol_res = {"error": str(e), "protocol_summary": f"Error en protocolo automatizado: {e}"}
+
     # Si se ejecutó el protocolo, añadirlo también como comentario oficial
     if protocol_res.get("protocol_summary"):
         cursor.execute("""
             INSERT INTO comments (task_id, author, text, image_url, created_at)
             VALUES (?, 'Protocolo General', ?, '', ?)
         """, (task_id, protocol_res["protocol_summary"], now))
+        conn.commit()
 
-    conn.commit()
     conn.close()
 
     try:

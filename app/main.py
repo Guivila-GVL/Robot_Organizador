@@ -204,6 +204,12 @@ async def rescan_projects():
 async def open_project_resource_endpoint(project_id: str, resource_key: str):
     return open_project_resource(project_id, resource_key)
 
+@app.post("/api/projects/{project_id}/sync-onenote")
+async def sync_onenote_endpoint(project_id: str):
+    from app.services.task_protocol import sync_onenote_project
+    res = sync_onenote_project(project_id)
+    return res
+
 @app.get("/api/projects/{project_id}/tasks")
 async def get_project_tasks(project_id: str):
     conn = get_db_connection()

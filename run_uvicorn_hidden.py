@@ -28,6 +28,9 @@ def main():
     sys.stdout = log_file
     sys.stderr = log_file
 
+    import logging
+    logging.basicConfig(stream=log_file, level=logging.INFO, force=True)
+
     print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 Iniciando servidor oculto (pythonw.exe) -> {args.app} en http://{args.host}:{args.port}", flush=True)
 
     import uvicorn
