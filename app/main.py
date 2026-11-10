@@ -222,9 +222,9 @@ async def get_project_tasks(project_id: str):
         WHERE project_id = ?
         ORDER BY
             CASE status WHEN 'in_progress' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END ASC,
-            CASE WHEN status = 'completed' THEN COALESCE(completed_at, created_at) ELSE '' END DESC,
+            CASE WHEN status = 'completed' THEN COALESCE(completed_at, '1970-01-01') ELSE '' END DESC,
             CASE WHEN status = 'in_progress' THEN COALESCE(queue_order, 9999) ELSE 0 END ASC,
-            created_at DESC,
+            order_index DESC,
             id DESC
     """, (project_id,))
     task_rows = cursor.fetchall()

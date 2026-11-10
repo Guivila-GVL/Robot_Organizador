@@ -201,19 +201,6 @@ def start_local_service(service_id: str, wait_ready: bool = True, max_wait: floa
 
 def open_url_in_system_browser(url: str) -> bool:
     try:
-        if sys.platform == "win32":
-            subprocess.Popen(
-                ["cmd", "/c", "start", "", url],
-                creationflags=CREATE_NO_WINDOW,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL
-            )
-            return True
-    except Exception as e:
-        logger.warning(f"cmd start falló para {url}: {e}")
-
-    try:
         if hasattr(os, "startfile"):
             os.startfile(url)
             return True
@@ -392,7 +379,7 @@ def open_project_resource(project_id: str, resource_key: str, open_browser: bool
         }
 
     elif resource_key == "validation":
-        cursor.execute("SELECT id, title, status, milestone_type, milestone_target, milestone_result, priority FROM tasks WHERE project_id = ? ORDER BY order_index ASC", (project_id,))
+        cursor.execute("SELECT id, title, status, milestone_type, milestone_target, milestone_result, priority, completed_at, order_index FROM tasks WHERE project_id = ? ORDER BY order_index ASC, id ASC", (project_id,))
         tasks = [dict(t) for t in cursor.fetchall()]
 
         cursor.execute("SELECT value FROM settings WHERE key = 'telegram_bot_token'")
@@ -462,6 +449,14 @@ def open_project_resource(project_id: str, resource_key: str, open_browser: bool
         in_progress_tasks = [t for t in tasks if t["status"] == "in_progress"]
         pending_tasks = [t for t in tasks if t["status"] == "pending"]
         completed_tasks = [t for t in tasks if t["status"] == "completed"]
+        completed_tasks.sort(
+            key=lambda t: (
+                t.get("completed_at") or "1970-01-01",
+                t.get("order_index") if t.get("order_index") is not None else 0,
+                t.get("id") or 0
+            ),
+            reverse=True
+        )
 
         lines = [
             "====================================================================",
@@ -501,10 +496,12 @@ def open_project_resource(project_id: str, resource_key: str, open_browser: bool
             lines.append("")
 
         if completed_tasks:
-            lines.append("▶ TAREAS COMPLETADAS (Historial cerrado con protocolo):")
-            for t in completed_tasks:
+            comp_total = len(completed_tasks)
+            lines.append("▶ TAREAS COMPLETADAS (De más reciente a más antigua):")
+            for idx_zero, t in enumerate(completed_tasks):
+                hist_num = comp_total - idx_zero
                 res_desc = f" -> {t['milestone_result'][:70]}..." if t['milestone_result'] else ""
-                lines.append(f"  • [✅ COMPLETADA] {t['title']}{res_desc}")
+                lines.append(f"  • [#{hist_num} ✅ COMPLETADA] {t['title']}{res_desc}")
             lines.append("")
 
         with open(report_file, "w", encoding="utf-8") as f:

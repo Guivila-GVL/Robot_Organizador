@@ -49,10 +49,22 @@ def update_project_docs(project_folder: str, project_name: str, task: dict, mile
             f"---\n\n"
         )
 
-        with open(hitos_file, "a" if not is_new_hitos else "w", encoding="utf-8") as f:
-            if is_new_hitos:
-                f.write(f"# Registro Histórico de Hitos y Tareas — {project_name}\n\n")
-            f.write(entry)
+        header_line = f"# Registro Histórico de Hitos y Tareas — {project_name}\n\n"
+        if is_new_hitos:
+            with open(hitos_file, "w", encoding="utf-8") as f:
+                f.write(header_line + entry)
+        else:
+            with open(hitos_file, "r", encoding="utf-8", errors="ignore") as f:
+                existing_content = f.read()
+            if existing_content.startswith("# "):
+                first_nl = existing_content.find("\n")
+                header_part = existing_content[:first_nl + 1].strip() + "\n\n"
+                body_part = existing_content[first_nl + 1:].lstrip()
+                new_content = header_part + entry + body_part
+            else:
+                new_content = header_line + entry + existing_content
+            with open(hitos_file, "w", encoding="utf-8") as f:
+                f.write(new_content)
 
         return {"success": True, "file": hitos_file, "message": "Documentación actualizada en /docs"}
     except Exception as e:

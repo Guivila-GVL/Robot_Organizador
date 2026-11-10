@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeTag = document.activeElement ? document.activeElement.tagName : '';
     const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag);
     const hasModalOpen = document.querySelector('.modal-overlay.open') !== null;
-    if (!isTyping && !hasModalOpen && state.activeProjectId && state.tasks.some(t => t.status === 'in_progress')) {
+    if (!isTyping && !hasModalOpen && state.activeProjectId) {
       loadTasks(state.activeProjectId, true);
     }
   }, 8000);
@@ -89,6 +89,9 @@ function initEventListeners() {
       btn.classList.add('active');
       state.currentFilter = btn.dataset.filter;
       renderTasksList();
+      if (state.activeProjectId) {
+        loadTasks(state.activeProjectId, true);
+      }
     });
   });
 
@@ -493,35 +496,38 @@ async function openProjectResource(resourceKey) {
     return;
   }
 
-  const proj = state.projects.find(p => p.id === state.activeProjectId);
-  let directUrl = null;
-  if (resourceKey === 'onenote' && proj && proj.onenote_url) {
-    directUrl = proj.onenote_url;
-  } else if (resourceKey === 'git' && proj && proj.git_url) {
-    directUrl = proj.git_url;
-  }
-
-  if (directUrl) {
-    window.open(directUrl, '_blank', 'noopener');
-    showToast(`Abriendo ${resourceKey === 'onenote' ? 'OneNote' : 'GitHub'} de ${proj.name}...`, 'success');
-    fetch(`/api/projects/${state.activeProjectId}/open-resource/${resourceKey}?open_browser=false`, { method: 'POST' }).catch(() => {});
-    return;
+  const isWebResource = (resourceKey === 'onenote' || resourceKey === 'git');
+  let popupWin = null;
+  if (isWebResource) {
+    popupWin = window.open('about:blank', '_blank');
   }
 
   try {
-    const res = await fetch(`/api/projects/${state.activeProjectId}/open-resource/${resourceKey}`, {
+    const query = (isWebResource && popupWin) ? '?open_browser=false' : '';
+    const res = await fetch(`/api/projects/${state.activeProjectId}/open-resource/${resourceKey}${query}`, {
       method: 'POST'
     });
     const data = await res.json();
     if (data.success) {
-      if ((resourceKey === 'onenote' || resourceKey === 'git') && data.target && data.target.startsWith('http')) {
-        window.open(data.target, '_blank', 'noopener');
+      if (isWebResource && data.target && data.target.startsWith('http')) {
+        if (popupWin) {
+          popupWin.location.href = data.target;
+        } else {
+          window.open(data.target, '_blank', 'noopener');
+        }
+        const proj = state.projects.find(p => p.id === state.activeProjectId);
+        if (proj && resourceKey === 'onenote') proj.onenote_url = data.target;
+        if (proj && resourceKey === 'git') proj.git_url = data.target;
+      } else if (popupWin) {
+        popupWin.close();
       }
       showToast(data.message || 'Recurso abierto', 'success');
     } else {
+      if (popupWin) popupWin.close();
       showToast(data.error || 'No se pudo abrir el recurso', 'error');
     }
   } catch (err) {
+    if (popupWin) popupWin.close();
     showToast('Error al abrir recurso del proyecto', 'error');
   }
 }
@@ -586,12 +592,55 @@ function updateBannerProgress() {
   }
 }
 
+function sortTasksForDisplay(tasksArray) {
+  const copy = [...tasksArray];
+  copy.sort((a, b) => {
+    const statusOrder = { in_progress: 0, pending: 1, completed: 2 };
+    const sa = statusOrder[a.status] ?? 2;
+    const sb = statusOrder[b.status] ?? 2;
+    if (sa !== sb) return sa - sb;
+
+    if (a.status === 'completed') {
+      const ca = a.completed_at || '1970-01-01';
+      const cb = b.completed_at || '1970-01-01';
+      if (ca !== cb) return cb.localeCompare(ca);
+      const oa = a.order_index ?? 0;
+      const ob = b.order_index ?? 0;
+      if (oa !== ob) return ob - oa;
+      return (b.id || 0) - (a.id || 0);
+    }
+
+    if (a.status === 'in_progress') {
+      const qa = a.queue_order ?? 9999;
+      const qb = b.queue_order ?? 9999;
+      if (qa !== qb) return qa - qb;
+    }
+
+    const oa = a.order_index ?? 0;
+    const ob = b.order_index ?? 0;
+    if (oa !== ob) return ob - oa;
+    return (b.id || 0) - (a.id || 0);
+  });
+  return copy;
+}
+
 function renderTasksList() {
   tasksContainerEl.innerHTML = '';
 
-  let filtered = state.tasks;
+  const sortedAll = sortTasksForDisplay(state.tasks);
+  const completedSorted = sortedAll.filter(t => t.status === 'completed');
+  const totalCompletedCount = completedSorted.length;
+  const completedRankMap = {};
+  completedSorted.forEach((t, idx) => {
+    completedRankMap[t.id] = {
+      histNum: totalCompletedCount - idx,
+      isLatest: idx === 0
+    };
+  });
+
+  let filtered = sortedAll;
   if (state.currentFilter !== 'all') {
-    filtered = state.tasks.filter(t => t.status === state.currentFilter);
+    filtered = sortedAll.filter(t => t.status === state.currentFilter);
   }
 
   if (filtered.length === 0) {
@@ -625,6 +674,13 @@ function renderTasksList() {
     const isChecked = task.status === 'completed';
     const isPending = task.status === 'pending';
     const isInProgress = task.status === 'in_progress';
+
+    let completedOrderBadge = '';
+    if (isChecked && completedRankMap[task.id]) {
+      const { histNum, isLatest } = completedRankMap[task.id];
+      const dateStr = task.completed_at ? ` · 🕒 ${formatDate(task.completed_at)}` : '';
+      completedOrderBadge = `<span class="priority-tag" style="background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.38);">✅ Hito #${histNum}${isLatest ? ' (Última completada)' : ''}${dateStr}</span>`;
+    }
 
     // Live Progress Tracker HTML for in_progress tasks
     let trackerHtml = '';
@@ -689,6 +745,7 @@ function renderTasksList() {
         <div class="custom-checkbox ${isChecked ? 'checked' : ''}" onclick="toggleTaskCheck(${task.id}, ${isChecked})"></div>
         <div class="task-content">
           <div class="task-title-group">
+            ${completedOrderBadge}
             <span class="task-title">${task.title}</span>
             <span class="priority-tag priority-${task.priority}">${task.priority}</span>
           </div>
