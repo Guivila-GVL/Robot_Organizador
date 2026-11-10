@@ -70,11 +70,25 @@ def init_db():
         milestone_result TEXT DEFAULT '',
         result_image_url TEXT DEFAULT '',
         order_index INTEGER DEFAULT 0,
+        progress_pct INTEGER DEFAULT 0,
+        current_step TEXT DEFAULT '',
+        launched_at TEXT DEFAULT NULL,
         created_at TEXT NOT NULL,
         completed_at TEXT DEFAULT NULL,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
     );
     """)
+
+    # Migraciones seguras para columnas nuevas en tasks
+    for col_def in [
+        "progress_pct INTEGER DEFAULT 0",
+        "current_step TEXT DEFAULT ''",
+        "launched_at TEXT DEFAULT NULL"
+    ]:
+        try:
+            cursor.execute(f"ALTER TABLE tasks ADD COLUMN {col_def}")
+        except sqlite3.OperationalError:
+            pass
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS comments (

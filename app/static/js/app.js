@@ -53,11 +53,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Service & Watchdog polling every 10s
+  // Service & Watchdog polling every 10s + live progress refresh if in_progress tasks exist
   setInterval(() => {
     loadServices();
     loadWatchdogStatus();
-  }, 10000);
+
+    const activeTag = document.activeElement ? document.activeElement.tagName : '';
+    const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag);
+    const hasModalOpen = document.querySelector('.modal-overlay.open') !== null;
+    if (!isTyping && !hasModalOpen && state.activeProjectId && state.tasks.some(t => t.status === 'in_progress')) {
+      loadTasks(state.activeProjectId, true);
+    }
+  }, 8000);
 });
 
 function initEventListeners() {
@@ -75,6 +82,24 @@ function initEventListeners() {
       renderTasksList();
     });
   });
+
+  // Copy All Queue button
+  const btnCopyQueue = document.getElementById('btnCopyAllQueue');
+  if (btnCopyQueue) {
+    btnCopyQueue.addEventListener('click', copyAllLaunchedQueue);
+  }
+
+  // Progress Modal listeners
+  const progressRange = document.getElementById('progressRange');
+  if (progressRange) {
+    progressRange.addEventListener('input', (e) => {
+      document.getElementById('progressPctLabel').textContent = `${e.target.value}%`;
+    });
+  }
+  const btnSaveProgress = document.getElementById('btnSaveProgress');
+  if (btnSaveProgress) {
+    btnSaveProgress.addEventListener('click', saveTaskProgress);
+  }
 
   // Top buttons
   document.getElementById('btnOpenAllServices').addEventListener('click', openAllServices);
@@ -379,7 +404,7 @@ async function openProjectResource(resourceKey) {
 // --------------------------------------------------------------------------
 // TASKS
 // --------------------------------------------------------------------------
-async function loadTasks(projectId) {
+async function loadTasks(projectId, silent = false) {
   try {
     const res = await fetch(`/api/projects/${projectId}/tasks`);
     const tasks = await res.json();
@@ -388,7 +413,7 @@ async function loadTasks(projectId) {
     updateBannerProgress();
     renderTasksList();
   } catch (err) {
-    showToast('Error al cargar tareas', 'error');
+    if (!silent) showToast('Error al cargar tareas', 'error');
   }
 }
 
@@ -405,6 +430,18 @@ function updateTaskCounters() {
 
   statCompletedEl.textContent = completed;
   statTotalEl.textContent = total;
+
+  // Actualizar banner de Cola Activa
+  const queueBanner = document.getElementById('queueBanner');
+  const queueCountText = document.getElementById('queueCountText');
+  if (queueBanner && queueCountText) {
+    if (inProgress > 0) {
+      queueCountText.textContent = `${inProgress} ${inProgress === 1 ? 'tarea activa' : 'tareas activas'}`;
+      queueBanner.style.display = 'flex';
+    } else {
+      queueBanner.style.display = 'none';
+    }
+  }
 }
 
 function updateBannerProgress() {
@@ -433,13 +470,25 @@ function renderTasksList() {
   }
 
   if (filtered.length === 0) {
-    tasksContainerEl.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">📋</div>
-        <h3>No hay tareas en esta categoría</h3>
-        <p>Añade una nueva tarea para comenzar a organizar este proyecto.</p>
-      </div>
-    `;
+    if (state.currentFilter === 'in_progress') {
+      const pendCount = state.tasks.filter(t => t.status === 'pending').length;
+      tasksContainerEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🚀</div>
+          <h3>No hay tareas en progreso en este proyecto</h3>
+          <p>${pendCount > 0 ? `Tienes ${pendCount} tarea(s) en Pendientes listas para lanzar.` : 'Añade una nueva tarea arriba para empezar.'}</p>
+          ${pendCount > 0 ? `<button class="btn btn-launch" style="margin-top:0.8rem;" onclick="switchFilterTab('pending')">Ir a Pendientes (${pendCount}) →</button>` : ''}
+        </div>
+      `;
+    } else {
+      tasksContainerEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📋</div>
+          <h3>No hay tareas en esta categoría</h3>
+          <p>Añade una nueva tarea para comenzar a organizar este proyecto.</p>
+        </div>
+      `;
+    }
     return;
   }
 
@@ -449,6 +498,26 @@ function renderTasksList() {
     item.id = `task-${task.id}`;
 
     const isChecked = task.status === 'completed';
+    const isPending = task.status === 'pending';
+    const isInProgress = task.status === 'in_progress';
+
+    // Live Progress Tracker HTML for in_progress tasks
+    let trackerHtml = '';
+    if (isInProgress) {
+      const pct = task.progress_pct || 10;
+      const stepLabel = task.current_step || '🚀 En cola de lanzamiento (lista para ejecutar)';
+      trackerHtml = `
+        <div class="task-progress-tracker">
+          <div class="tracker-header">
+            <span class="tracker-step">${stepLabel}</span>
+            <span class="tracker-pct">${pct}%</span>
+          </div>
+          <div class="tracker-bar-bg">
+            <div class="tracker-bar-fill" style="width: ${pct}%;"></div>
+          </div>
+        </div>
+      `;
+    }
 
     // Image preview HTML
     let imagePreviewHtml = '';
@@ -502,19 +571,33 @@ function renderTasksList() {
         </div>
       </div>
 
+      ${trackerHtml}
       ${milestoneHtml}
 
       <div class="task-footer">
         <div class="task-buttons-left">
-          ${!isChecked ? `
-            <button class="btn btn-secondary btn-small" onclick="openCheckModal(${task.id})">
-              ✅ Completar & Telegram
-            </button>
-            <button class="btn btn-secondary btn-small" onclick="runAutomatedCheck(${task.id})">
-              ⚡ Validar Hito
+          ${isPending ? `
+            <button class="btn btn-launch btn-small" onclick="launchTask(${task.id})" title="Pasar a En Progreso y añadir a la Cola de Ejecución">
+              🚀 Lanzar Tarea
             </button>
             <button class="btn btn-secondary btn-small" onclick="copyTaskPrompt(${task.id})" title="Copiar orden lista para pegar en Antigravity IDE">
               📋 Copiar Prompt
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="openCheckModal(${task.id})">
+              ✅ Completar & Telegram
+            </button>
+          ` : isInProgress ? `
+            <button class="btn btn-primary btn-small" onclick="openProgressModal(${task.id})" title="Actualizar porcentaje y fase actual">
+              📝 Avance
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="openCheckModal(${task.id})">
+              ✅ Completar & Telegram
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="copyTaskPrompt(${task.id})" title="Copiar orden lista para pegar en Antigravity IDE">
+              📋 Copiar Prompt
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="pauseTask(${task.id})" title="Devolver a Pendientes">
+              ⏸️ Pausar
             </button>
           ` : `
             <span style="font-size: 0.74rem; color: var(--accent-emerald); font-weight: 600;">
@@ -666,10 +749,10 @@ async function submitTaskCompletion() {
   // Collect verified protocols
   const protocolsVerified = [];
   if (document.getElementById('protoDocs')?.checked) protocolsVerified.push('Documentado en /docs');
-  if (document.getElementById('protoOneNote')?.checked) protocolsVerified.push('OneNote / Bitácora');
-  if (document.getElementById('protoGit')?.checked) protocolsVerified.push('Git snapshot');
-  if (document.getElementById('protoSkills')?.checked) protocolsVerified.push('Patrones de Skills');
-  if (document.getElementById('protoTests')?.checked) protocolsVerified.push('Pruebas y validación OK');
+  if (document.getElementById('protoOneNote')?.checked) protocolsVerified.push('OneNote actualizado');
+  if (document.getElementById('protoGit')?.checked) protocolsVerified.push('Git actualizado y subido');
+  if (document.getElementById('protoSkills')?.checked) protocolsVerified.push('Skills y forma de trabajo revisadas');
+  if (document.getElementById('protoTelegram')?.checked) protocolsVerified.push('Check enviado a Telegram');
 
   try {
     showToast('Completando hito y enviando notificación a Telegram...', 'info');
@@ -723,7 +806,8 @@ async function createSmartTask() {
     const data = await res.json();
     if (data.success) {
       input.value = '';
-      showToast('¡Tarea creada y desglosada automáticamente!', 'success');
+      showToast('¡Tarea creada en Pendientes! Pulsa 🚀 Lanzar cuando quieras arrancarla.', 'success');
+      switchFilterTab('pending');
       await loadTasks(state.activeProjectId);
       renderProjectsList(projectSearchEl.value.toLowerCase());
     } else {
@@ -877,7 +961,10 @@ async function saveTask() {
     const data = await res.json();
     if (data.success) {
       closeModal('taskModal');
-      showToast(taskId ? 'Tarea actualizada' : 'Tarea creada con éxito', 'success');
+      showToast(taskId ? 'Tarea actualizada' : 'Tarea creada en Pendientes. Pulsa 🚀 Lanzar para arrancarla.', 'success');
+      if (!taskId) {
+        switchFilterTab('pending');
+      }
       await loadTasks(state.activeProjectId);
       renderProjectsList(projectSearchEl.value.toLowerCase());
     }
@@ -965,6 +1052,113 @@ async function saveSettings() {
 }
 
 // --------------------------------------------------------------------------
+// EXECUTION QUEUE & LIVE PROGRESS TRACKING
+// --------------------------------------------------------------------------
+function switchFilterTab(filterKey) {
+  state.currentFilter = filterKey;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === filterKey);
+  });
+  renderTasksList();
+}
+
+async function launchTask(taskId) {
+  try {
+    const res = await fetch(`/api/tasks/${taskId}/launch`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('🚀 Tarea lanzada a «En Progreso» y añadida a la Cola de Ejecución', 'success');
+      await loadTasks(state.activeProjectId);
+      renderProjectsList(projectSearchEl.value.toLowerCase());
+    } else {
+      showToast(data.error || 'No se pudo lanzar la tarea', 'error');
+    }
+  } catch (err) {
+    showToast('Error al lanzar la tarea', 'error');
+  }
+}
+
+async function pauseTask(taskId) {
+  try {
+    const res = await fetch(`/api/tasks/${taskId}/pause`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('⏸️ Tarea devuelta a Pendientes', 'info');
+      await loadTasks(state.activeProjectId);
+    }
+  } catch (err) {
+    showToast('Error al pausar tarea', 'error');
+  }
+}
+
+let activeProgressTaskId = null;
+
+function openProgressModal(taskId) {
+  const task = state.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  activeProgressTaskId = taskId;
+
+  const pct = task.progress_pct || 10;
+  document.getElementById('progressTaskTitle').textContent = `Tarea: "${task.title}"`;
+  document.getElementById('progressRange').value = pct;
+  document.getElementById('progressPctLabel').textContent = `${pct}%`;
+  document.getElementById('progressStepInput').value = task.current_step || '';
+  document.getElementById('progressNoteInput').value = '';
+
+  document.getElementById('progressModal').classList.add('open');
+}
+
+function setProgressPreset(pct, stepText) {
+  document.getElementById('progressRange').value = pct;
+  document.getElementById('progressPctLabel').textContent = `${pct}%`;
+  document.getElementById('progressStepInput').value = stepText;
+}
+
+async function saveTaskProgress() {
+  if (!activeProgressTaskId) return;
+  const pct = parseInt(document.getElementById('progressRange').value, 10);
+  const step = document.getElementById('progressStepInput').value.trim();
+  const note = document.getElementById('progressNoteInput').value.trim();
+
+  try {
+    const res = await fetch(`/api/tasks/${activeProgressTaskId}/progress`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        progress_pct: pct,
+        current_step: step,
+        note: note,
+        author: 'Guillermo'
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeModal('progressModal');
+      showToast(`Progreso actualizado (${pct}%)`, 'success');
+      await loadTasks(state.activeProjectId);
+    }
+  } catch (err) {
+    showToast('Error al guardar el avance', 'error');
+  }
+}
+
+async function copyAllLaunchedQueue() {
+  try {
+    const url = state.activeProjectId ? `/api/queue?project_id=${state.activeProjectId}` : '/api/queue';
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.success && data.master_prompt) {
+      await navigator.clipboard.writeText(data.master_prompt);
+      showToast(`📋 Orden de ${data.count} tarea(s) copiada al portapapeles. Pégala en Antigravity o di: "Ponte con las tareas lanzadas"`, 'success');
+    } else {
+      showToast('No hay tareas en progreso en este proyecto para copiar.', 'info');
+    }
+  } catch (err) {
+    showToast('Error al copiar la cola de tareas', 'error');
+  }
+}
+
+// --------------------------------------------------------------------------
 // UTILS & GLOBAL HANDLERS
 // --------------------------------------------------------------------------
 window.closeModal = function(modalId) {
@@ -983,6 +1177,13 @@ window.openProjectResource = openProjectResource;
 window.toggleCommentsDrawer = toggleCommentsDrawer;
 window.handleCommentKey = handleCommentKey;
 window.addComment = addComment;
+window.switchFilterTab = switchFilterTab;
+window.launchTask = launchTask;
+window.pauseTask = pauseTask;
+window.openProgressModal = openProgressModal;
+window.setProgressPreset = setProgressPreset;
+window.saveTaskProgress = saveTaskProgress;
+window.copyAllLaunchedQueue = copyAllLaunchedQueue;
 
 // Close modals when clicking outside modal-dialog or on Escape key
 document.querySelectorAll('.modal-overlay').forEach(overlay => {

@@ -451,9 +451,28 @@ def smart_breakdown_task(prompt: str) -> Dict[str, Any]:
     if not clean:
         return {}
 
-    title = clean.capitalize()
-    description = f"Implementación solicitada: {clean}."
-    milestone_desc = f"Verificar que {clean.lower()} funciona correctamente y cumple las expectativas."
+    # Limpiar muletillas de dictado por voz para generar un título conciso y limpio
+    clean_title = clean
+    filler_patterns = [
+        r"^(vale|bueno|mira|oye|a ver)[,\s]+",
+        r"^(aquí|aqui|ahora)\s+",
+        r"^(me gustaría|me gustaria|quiero|querría|querria|necesito|deberíamos|podríamos)\s+",
+        r"^(crear|añadir|hacer|poner)\s+una\s+tarea\s+(que\s+fuera|para|sobre|de)\s+(que\s+)?",
+        r"^(que\s+fuera|que\s+sea)\s+(que\s+)?",
+    ]
+    for pat in filler_patterns:
+        clean_title = re.sub(pat, "", clean_title, flags=re.IGNORECASE).strip()
+
+    # Tomar la primera cláusula significativa o recortar limpiamente
+    clean_title = re.sub(r"[,\.\s]+$", "", clean_title)
+    if len(clean_title) > 72:
+        # Cortar en el último espacio antes de 72
+        cut = clean_title[:72].rsplit(" ", 1)[0]
+        clean_title = cut + "..."
+
+    title = (clean_title[0].upper() + clean_title[1:]) if clean_title else clean[:72].capitalize()
+    description = clean
+    milestone_desc = f"Verificar que '{title}' funciona correctamente y cumple con el objetivo descrito."
     priority = "media"
     milestone_type = "manual"
     milestone_target = ""
@@ -462,7 +481,7 @@ def smart_breakdown_task(prompt: str) -> Dict[str, Any]:
     lower = clean.lower()
     if any(k in lower for k in ["urgente", "critico", "error", "bug", "falla"]):
         priority = "urgente"
-    elif any(k in lower for k in ["importante", "servidor", "api", "seguridad", "base de datos", "db"]):
+    elif any(k in lower for k in ["importante", "servidor", "api", "seguridad", "base de datos", "db", "arrancar", "inicio", "pc"]):
         priority = "alta"
     elif any(k in lower for k in ["mejora", "estilo", "color", "icono", "documentar"]):
         priority = "baja"

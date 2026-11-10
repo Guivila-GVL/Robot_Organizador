@@ -97,14 +97,18 @@ def check_and_complete_task(
             protocol_res = {"error": str(e), "protocol_summary": f"Error en protocolo automatizado: {e}"}
 
     # Actualizar tarea
+    new_pct = 100 if new_status == "completed" else 0
+    new_step = "✅ Completada y verificada con protocolo" if new_status == "completed" else ""
     cursor.execute("""
         UPDATE tasks
         SET status = ?,
             milestone_result = ?,
             result_image_url = COALESCE(?, result_image_url),
+            progress_pct = CASE WHEN ? = 'completed' THEN 100 WHEN ? = 'pending' THEN 0 ELSE progress_pct END,
+            current_step = CASE WHEN ? = 'completed' THEN ? WHEN ? = 'pending' THEN '' ELSE current_step END,
             completed_at = CASE WHEN ? = 'completed' THEN ? ELSE NULL END
         WHERE id = ?
-    """, (new_status, result_text, image_path, new_status, now, task_id))
+    """, (new_status, result_text, image_path, new_status, new_status, new_status, new_step, new_status, new_status, now, task_id))
 
     # Añadir comentario a la bitácora
     cursor.execute("""
@@ -121,6 +125,12 @@ def check_and_complete_task(
 
     conn.commit()
     conn.close()
+
+    try:
+        from app.services.execution_queue import sync_execution_queue_file
+        sync_execution_queue_file()
+    except Exception:
+        pass
 
     # Si se ha completado con éxito, enviar notificación a Telegram incluyendo el protocolo
     tg_result = {}

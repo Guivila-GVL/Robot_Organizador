@@ -26,6 +26,12 @@ from app.services.service_hub import (
 from app.services.project_scanner import scan_and_seed_projects, smart_breakdown_task
 from app.services.milestone_checker import check_and_complete_task
 from app.services.watchdog_service import get_watchdog_status, build_agent_prompt_for_task
+from app.services.execution_queue import (
+    launch_task,
+    pause_task,
+    update_task_progress,
+    get_launched_queue
+)
 
 app = FastAPI(title="Robot de Gestión de Proyectos 2026", version="1.1.0")
 
@@ -84,6 +90,12 @@ class CheckRequest(BaseModel):
     force_status: Optional[str] = None
     image_url: Optional[str] = None
     protocols_verified: Optional[List[str]] = []
+
+class ProgressUpdate(BaseModel):
+    progress_pct: Optional[int] = None
+    current_step: Optional[str] = None
+    note: Optional[str] = None
+    author: Optional[str] = "Agente"
 
 class SettingsUpdate(BaseModel):
     telegram_bot_token: Optional[str] = None
@@ -325,6 +337,28 @@ async def watchdog_status_endpoint():
 @app.get("/api/tasks/{task_id}/prompt")
 async def get_task_agent_prompt(task_id: int):
     return build_agent_prompt_for_task(task_id)
+
+@app.post("/api/tasks/{task_id}/launch")
+async def launch_task_endpoint(task_id: int):
+    return launch_task(task_id)
+
+@app.post("/api/tasks/{task_id}/pause")
+async def pause_task_endpoint(task_id: int):
+    return pause_task(task_id)
+
+@app.patch("/api/tasks/{task_id}/progress")
+async def update_progress_endpoint(task_id: int, req: ProgressUpdate):
+    return update_task_progress(
+        task_id=task_id,
+        progress_pct=req.progress_pct,
+        current_step=req.current_step,
+        note=req.note,
+        author=req.author or "Agente"
+    )
+
+@app.get("/api/queue")
+async def get_queue_endpoint(project_id: Optional[str] = None):
+    return get_launched_queue(project_id)
 
 @app.get("/api/settings")
 async def get_all_settings():

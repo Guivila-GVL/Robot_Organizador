@@ -174,6 +174,12 @@
           <button class="tab-btn" data-filter="completed">Completadas (<span id="countCompleted">0</span>)</button>
           <button class="tab-btn" data-filter="all">Todas (<span id="countAll">0</span>)</button>
         </div>
+        <div class="queue-banner" id="queueBanner" style="display:none;">
+          <span class="queue-badge">🚀 Cola en marcha: <strong id="queueCountText">0</strong></span>
+          <button class="btn btn-primary btn-small" id="btnCopyAllQueue" title="Copiar orden completa con todas las tareas lanzadas para pegarla en Antigravity">
+            📋 Copiar Orden para Antigravity
+          </button>
+        </div>
       </section>
 
       <!-- Tasks List -->
@@ -350,6 +356,43 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('settingsModal')">Cerrar</button>
         <button class="btn btn-primary" id="btnSaveSettings">Guardar Ajustes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Reportar Avance de Tarea -->
+  <div class="modal-overlay" id="progressModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>📝 Actualizar Progreso de Tarea</h3>
+        <button class="modal-close" onclick="closeModal('progressModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-callout">
+          <p id="progressTaskTitle">Actualizando tarea...</p>
+        </div>
+        <div class="form-group">
+          <label for="progressRange">Porcentaje de avance: <strong id="progressPctLabel">25%</strong></label>
+          <input type="range" id="progressRange" min="0" max="100" step="5" value="25" style="width:100%; accent-color: var(--accent-purple);">
+          <div style="display:flex; gap:0.4rem; margin-top:0.5rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(25, '🔍 Analizando requisitos y código')">25% Analizando</button>
+            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(50, '⚙️ Implementando solución')">50% En desarrollo</button>
+            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(75, '🧪 Probando y validando')">75% Probando</button>
+            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(90, '📋 Lista para revisión final')">90% Casi lista</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="progressStepInput">Fase / Paso Actual</label>
+          <input type="text" id="progressStepInput" placeholder="Ej: Configurando script de arranque automático...">
+        </div>
+        <div class="form-group">
+          <label for="progressNoteInput">Nota de Bitácora (Opcional)</label>
+          <textarea id="progressNoteInput" rows="2" placeholder="Detalles sobre lo que se ha avanzado hasta ahora..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('progressModal')">Cancelar</button>
+        <button class="btn btn-primary" id="btnSaveProgress">💾 Guardar Avance</button>
       </div>
     </div>
   </div>
