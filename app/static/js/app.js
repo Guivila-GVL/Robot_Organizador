@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   loadServices();
   loadWatchdogStatus();
+  refreshGlobalQueueBadge();
   loadProjects().then(() => {
     // Select first project by default
     if (state.projects.length > 0) {
@@ -53,10 +54,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Service & Watchdog polling every 10s + live progress refresh if in_progress tasks exist
+  // Service & Watchdog polling every 8s + live progress refresh
   setInterval(() => {
     loadServices();
     loadWatchdogStatus();
+    refreshGlobalQueueBadge();
+
+    const gqModal = document.getElementById('globalQueueModal');
+    if (gqModal && gqModal.classList.contains('open')) {
+      loadGlobalQueueModal();
+    }
 
     const activeTag = document.activeElement ? document.activeElement.tagName : '';
     const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag);
@@ -102,6 +109,11 @@ function initEventListeners() {
   }
 
   // Top buttons
+  const btnGlobalQ = document.getElementById('btnOpenGlobalQueue');
+  if (btnGlobalQ) btnGlobalQ.addEventListener('click', openGlobalQueueModal);
+  const btnCopyGlobalSeq = document.getElementById('btnCopyGlobalSequence');
+  if (btnCopyGlobalSeq) btnCopyGlobalSeq.addEventListener('click', copyGlobalQueueSequence);
+
   document.getElementById('btnOpenAllServices').addEventListener('click', openAllServices);
   document.getElementById('btnTestTelegram').addEventListener('click', testTelegram);
   document.getElementById('btnRescan').addEventListener('click', rescanProjects);
@@ -772,6 +784,7 @@ async function submitTaskCompletion() {
       showToast('¡Tarea completada y enviada a Telegram con éxito!', 'success');
       await loadTasks(state.activeProjectId);
       renderProjectsList(projectSearchEl.value.toLowerCase());
+      refreshGlobalQueueBadge();
     }
   } catch (err) {
     showToast('Error al completar tarea', 'error');
@@ -1067,9 +1080,10 @@ async function launchTask(taskId) {
     const res = await fetch(`/api/tasks/${taskId}/launch`, { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast('🚀 Tarea lanzada a «En Progreso» y añadida a la Cola de Ejecución', 'success');
+      showToast('🚀 Tarea lanzada a «En Progreso» y añadida a la Cola Global', 'success');
       await loadTasks(state.activeProjectId);
       renderProjectsList(projectSearchEl.value.toLowerCase());
+      refreshGlobalQueueBadge();
     } else {
       showToast(data.error || 'No se pudo lanzar la tarea', 'error');
     }
@@ -1085,6 +1099,7 @@ async function pauseTask(taskId) {
     if (data.success) {
       showToast('⏸️ Tarea devuelta a Pendientes', 'info');
       await loadTasks(state.activeProjectId);
+      refreshGlobalQueueBadge();
     }
   } catch (err) {
     showToast('Error al pausar tarea', 'error');
@@ -1158,6 +1173,156 @@ async function copyAllLaunchedQueue() {
   }
 }
 
+async function refreshGlobalQueueBadge() {
+  try {
+    const res = await fetch('/api/queue');
+    const data = await res.json();
+    const badge = document.getElementById('globalQueueTopCount');
+    if (badge && data.success) {
+      badge.textContent = data.total_global ?? data.count ?? 0;
+    }
+  } catch (err) {
+    // silent fail on background poll
+  }
+}
+
+async function openGlobalQueueModal() {
+  document.getElementById('globalQueueModal').classList.add('open');
+  await loadGlobalQueueModal();
+}
+
+async function loadGlobalQueueModal() {
+  try {
+    const res = await fetch('/api/queue');
+    const data = await res.json();
+    if (!data.success) return;
+
+    const badge = document.getElementById('globalQueueTopCount');
+    if (badge) badge.textContent = data.total_global ?? 0;
+
+    // Estado en vivo del Agente (trabajando vs esperando)
+    const wd = data.watchdog || {};
+    const dot = document.getElementById('gqLiveDot');
+    const agentLabel = document.getElementById('gqAgentLabel');
+    const summaryText = document.getElementById('gqSummaryText');
+
+    if (dot && agentLabel && summaryText) {
+      dot.className = 'gq-live-dot';
+      if (wd.state === 'working') {
+        dot.classList.add('working');
+        agentLabel.textContent = `${wd.label || '⚡ Trabajando ahora mismo'} · ${wd.active_model || 'Gemini'}`;
+      } else if (wd.state === 'quota_error') {
+        dot.classList.add('error');
+        agentLabel.textContent = wd.label || '⚠️ Cuota Gemini agotada';
+      } else {
+        agentLabel.textContent = `${wd.label || '🟢 Parado / Esperando órdenes'} · ${wd.active_model || 'Gemini'}`;
+      }
+      summaryText.textContent = `${data.total_global || 0} en progreso (cola activa) · ${data.total_pending || 0} pendientes entre todos los proyectos`;
+    }
+
+    const listEl = document.getElementById('globalQueueList');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    if (!data.tasks || data.tasks.length === 0) {
+      listEl.innerHTML = `
+        <div class="empty-state" style="padding: 2rem;">
+          <div class="empty-icon">🚀</div>
+          <h3>La Cola Global está vacía</h3>
+          <p>Ve a la pestaña <b>Pendientes</b> de cualquier proyecto y pulsa <b>🚀 Lanzar Tarea</b> para añadir tareas aquí.</p>
+        </div>
+      `;
+      return;
+    }
+
+    data.tasks.forEach((t, idx) => {
+      const pct = t.progress_pct || 10;
+      const stepText = t.current_step || '🚀 En cola de lanzamiento (lista para ejecutar)';
+      const isFirst = idx === 0;
+      const isLast = idx === data.tasks.length - 1;
+
+      const row = document.createElement('div');
+      row.className = 'global-queue-item';
+      row.innerHTML = `
+        <div class="gq-item-main">
+          <div class="gq-order-badge">#${idx + 1}</div>
+          <div class="gq-item-info">
+            <div class="gq-item-meta">
+              <span class="gq-project-pill">${t.project_icon || '📁'} ${t.project_name}</span>
+              <span class="priority-tag priority-${t.priority}">${t.priority}</span>
+            </div>
+            <div class="gq-item-title">${t.title}</div>
+            <div class="gq-item-progress-row">
+              <div class="gq-mini-bar-bg">
+                <div class="gq-mini-bar-fill" style="width: ${pct}%;"></div>
+              </div>
+              <strong>${pct}%</strong>
+              <span>— ${stepText}</span>
+            </div>
+          </div>
+        </div>
+        <div class="gq-actions">
+          <button class="btn btn-secondary btn-small" onclick="moveGlobalQueueTask(${t.id}, 'up')" ${isFirst ? 'disabled style="opacity:0.35;cursor:not-allowed;"' : ''} title="Subir prioridad en la secuencia">⬆️</button>
+          <button class="btn btn-secondary btn-small" onclick="moveGlobalQueueTask(${t.id}, 'down')" ${isLast ? 'disabled style="opacity:0.35;cursor:not-allowed;"' : ''} title="Bajar prioridad en la secuencia">⬇️</button>
+          <button class="btn btn-secondary btn-small" onclick="goToProjectFromQueue('${t.project_id}')" title="Ir a este proyecto">🔗 Ir</button>
+          <button class="btn btn-secondary btn-small" onclick="pauseFromGlobalQueue(${t.id})" title="Pausar y sacar de la cola activa">⏸️</button>
+        </div>
+      `;
+      listEl.appendChild(row);
+    });
+  } catch (err) {
+    showToast('Error al cargar la Cola Global', 'error');
+  }
+}
+
+async function moveGlobalQueueTask(taskId, direction) {
+  try {
+    const res = await fetch(`/api/queue/${taskId}/move/${direction}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      await loadGlobalQueueModal();
+    }
+  } catch (err) {
+    showToast('Error al reordenar la secuencia', 'error');
+  }
+}
+
+function goToProjectFromQueue(projectId) {
+  closeModal('globalQueueModal');
+  selectProject(projectId);
+}
+
+async function pauseFromGlobalQueue(taskId) {
+  try {
+    const res = await fetch(`/api/tasks/${taskId}/pause`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('⏸️ Tarea pausada y devuelta a Pendientes', 'info');
+      await loadGlobalQueueModal();
+      if (state.activeProjectId) {
+        await loadTasks(state.activeProjectId);
+      }
+    }
+  } catch (err) {
+    showToast('Error al pausar tarea', 'error');
+  }
+}
+
+async function copyGlobalQueueSequence() {
+  try {
+    const res = await fetch('/api/queue');
+    const data = await res.json();
+    if (data.success && data.master_prompt) {
+      await navigator.clipboard.writeText(data.master_prompt);
+      showToast(`📋 Secuencia completa (${data.count} tareas) copiada. Pégala en Antigravity o di: "Ejecuta la cola global"`, 'success');
+    } else {
+      showToast('No hay tareas en la Cola Global para copiar.', 'info');
+    }
+  } catch (err) {
+    showToast('Error al copiar la secuencia global', 'error');
+  }
+}
+
 // --------------------------------------------------------------------------
 // UTILS & GLOBAL HANDLERS
 // --------------------------------------------------------------------------
@@ -1184,6 +1349,12 @@ window.openProgressModal = openProgressModal;
 window.setProgressPreset = setProgressPreset;
 window.saveTaskProgress = saveTaskProgress;
 window.copyAllLaunchedQueue = copyAllLaunchedQueue;
+window.openGlobalQueueModal = openGlobalQueueModal;
+window.loadGlobalQueueModal = loadGlobalQueueModal;
+window.moveGlobalQueueTask = moveGlobalQueueTask;
+window.goToProjectFromQueue = goToProjectFromQueue;
+window.pauseFromGlobalQueue = pauseFromGlobalQueue;
+window.copyGlobalQueueSequence = copyGlobalQueueSequence;
 
 // Close modals when clicking outside modal-dialog or on Escape key
 document.querySelectorAll('.modal-overlay').forEach(overlay => {

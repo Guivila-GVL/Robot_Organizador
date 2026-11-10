@@ -73,3 +73,25 @@
 
 ---
 
+### [10/11/2026 18:21:37] ✅ Cola Global Arriba del Todo: Secuencia de Tareas En Progreso (Subir/Bajar)
+
+- **ID Tarea:** `38`
+- **Prioridad:** ALTA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Implementada la Cola Global Multi-Proyecto arriba del todo en la cabecera (🚀 Cola Global): muestra el estado en vivo del agente (trabajando vs esperando órdenes), el resumen de tareas en progreso vs pendientes entre todos los proyectos, el proyecto al que pertenece cada tarea, su barra de avance y flechas ⬆️/⬇️ para reordenar la secuencia exacta de ejecución (queue_order), más enlace directo y pausa.
+
+📋 <b>Protocolo Verificado:</b>
+  ✅ Documentado en /docs
+  ✅ OneNote actualizado
+  ✅ Git actualizado y subido
+  ✅ Skills y forma de trabajo revisadas
+  ✅ Check enviado a Telegram
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+

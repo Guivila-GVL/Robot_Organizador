@@ -21,6 +21,9 @@
 
     <!-- Top Action Buttons -->
     <div class="nav-actions">
+      <button class="btn btn-launch" id="btnOpenGlobalQueue" title="Ver y gestionar la secuencia global de tareas En Progreso de todos los proyectos">
+        <span class="btn-icon">🚀</span> Cola Global (<span id="globalQueueTopCount">0</span>)
+      </button>
       <button class="btn btn-primary" id="btnOpenAllServices" title="Abrir todas las páginas de servicios activos">
         <span class="btn-icon">🌐</span> Abrir Todo
       </button>
@@ -393,6 +396,44 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('progressModal')">Cancelar</button>
         <button class="btn btn-primary" id="btnSaveProgress">💾 Guardar Avance</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Cola Global Multi-Proyecto -->
+  <div class="modal-overlay" id="globalQueueModal">
+    <div class="modal-dialog modal-dialog-wide">
+      <div class="modal-header">
+        <h3>🚀 Cola Global de Ejecución (Todos los Proyectos)</h3>
+        <button class="modal-close" onclick="closeModal('globalQueueModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="global-queue-status-bar" id="gqStatusBar">
+          <div class="gq-status-left">
+            <span class="gq-live-dot" id="gqLiveDot"></span>
+            <div>
+              <strong id="gqAgentLabel">Consultando estado del agente...</strong>
+              <div class="gq-subtext" id="gqSummaryText">0 tareas en progreso · 0 pendientes globales</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-small" onclick="loadGlobalQueueModal()" title="Refrescar estado ahora">
+            🔄 Actualizar
+          </button>
+        </div>
+
+        <p class="field-help" style="margin-bottom: 0.75rem;">
+          Ordena con ⬆️ / ⬇️ la secuencia exacta en la que quieres que se ejecuten todas las tareas que pusiste <b>En Progreso</b> (#1 se realiza primero):
+        </p>
+
+        <div class="global-queue-list" id="globalQueueList">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('globalQueueModal')">Cerrar</button>
+        <button class="btn btn-primary" id="btnCopyGlobalSequence">
+          📋 Copiar Secuencia Completa para Antigravity
+        </button>
       </div>
     </div>
   </div>
