@@ -30,3 +30,24 @@
 
 ---
 
+### [10/11/2026 17:48:46] ✅ Vale, aquí me gustaría crear una tarea que fuera que, cuando se arranque el pc, 
+
+- **ID Tarea:** `37`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Hito cumplido: Verificar que vale, aquí me gustaría crear una tarea que fuera que, cuando se arranque el pc, se arranque este robot y que se combine con otra aplicación que ya está funcionando, que es la de energía y gráficos de esios, que hay un proceso que se actualiza. me gustaría, al final, que ambas se lanzaran al arrancar el ordenador. funciona correctamente y cumple las expectativas.
+
+📋 <b>Protocolo Verificado:</b>
+  ✅ Documentado en /docs
+  ✅ OneNote / Bitácora
+  ✅ Git snapshot
+  ✅ Patrones de Skills
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
