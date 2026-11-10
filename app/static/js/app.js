@@ -180,12 +180,15 @@ async function loadWatchdogStatus() {
   try {
     const res = await fetch('/api/watchdog/status');
     const data = await res.json();
+    state.watchdogData = data;
+
     const stateEl = document.getElementById('watchdogState');
     const cardEl = document.getElementById('agentStatusCard') || document.querySelector('.agent-status-card');
     const modelEl = document.getElementById('watchdogModel');
     const pctEl = document.getElementById('watchdogQuotaPct');
     const barEl = document.getElementById('watchdogQuotaBar');
     const resetEl = document.getElementById('watchdogResetTime');
+    const othersEl = document.getElementById('watchdogOtherModels');
 
     if (stateEl && data.label) {
       stateEl.textContent = data.label;
@@ -216,8 +219,91 @@ async function loadWatchdogStatus() {
     if (resetEl && data.reset_text) {
       resetEl.textContent = data.reset_text;
     }
+
+    if (othersEl && Array.isArray(data.models)) {
+      const others = data.models.filter(m => !m.is_active);
+      othersEl.innerHTML = others.map(m => {
+        const shortName = m.name.replace('Gemini ', '').replace(' (Medium)', '').replace(' (High)', '');
+        return `<span class="quota-mini-chip" title="${m.name}: ${m.reset_text}">${shortName}: <b>${m.quota_remaining_pct}%</b></span>`;
+      }).join('');
+    }
+
+    const modelsModal = document.getElementById('modelsModal');
+    if (modelsModal && modelsModal.classList.contains('open')) {
+      renderModelsModal();
+    }
   } catch (err) {
     console.error('Error al consultar Watchdog:', err);
+  }
+}
+
+function openModelsModal() {
+  document.getElementById('modelsModal').classList.add('open');
+  renderModelsModal();
+  loadWatchdogStatus();
+}
+
+function renderModelsModal() {
+  const container = document.getElementById('modelsListContainer');
+  const data = state.watchdogData;
+  if (!container || !data || !Array.isArray(data.models)) return;
+
+  container.innerHTML = '';
+  data.models.forEach((m, idx) => {
+    const isFirst = idx === 0;
+    const isLast = idx === data.models.length - 1;
+    const colorClass = `quota-${m.quota_color}`;
+    const statusBadge = m.is_active
+      ? '<span class="model-active-pill">⚡ EN USO AHORA</span>'
+      : (m.is_exhausted
+          ? '<span class="priority-tag priority-urgente">⚠️ AGOTADO 429</span>'
+          : '<span class="gq-project-pill">✅ DISPONIBLE</span>');
+
+    const row = document.createElement('div');
+    row.className = 'global-queue-item';
+    row.innerHTML = `
+      <div class="gq-item-main">
+        <div class="gq-order-badge">#${idx + 1}</div>
+        <div class="gq-item-info">
+          <div class="gq-item-meta">
+            <strong style="color:var(--text-white);font-size:0.9rem;">${m.name}</strong>
+            ${statusBadge}
+          </div>
+          <div style="font-size:0.74rem;color:var(--text-muted);margin-bottom:0.35rem;">
+            ${m.tier} · Uso ciclo 5h: <b>${m.steps_used}/${m.steps_budget}</b> pasos · ⏳ ${m.reset_text}
+          </div>
+          <div class="gq-item-progress-row">
+            <div class="gq-mini-bar-bg" style="width:140px;">
+              <div class="quota-bar-fill ${colorClass}" style="width:${m.quota_remaining_pct}%;"></div>
+            </div>
+            <span class="quota-pct-badge ${colorClass}">${m.quota_remaining_pct}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="gq-actions">
+        <button class="btn btn-secondary btn-small" onclick="moveModelSequence('${m.name.replace(/'/g, "\\'")}', 'up')" ${isFirst ? 'disabled style="opacity:0.35;cursor:not-allowed;"' : ''} title="Subir prioridad en la secuencia de fallback">⬆️</button>
+        <button class="btn btn-secondary btn-small" onclick="moveModelSequence('${m.name.replace(/'/g, "\\'")}', 'down')" ${isLast ? 'disabled style="opacity:0.35;cursor:not-allowed;"' : ''} title="Bajar prioridad en la secuencia de fallback">⬇️</button>
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+async function moveModelSequence(modelName, direction) {
+  try {
+    const res = await fetch('/api/watchdog/models/move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model_name: modelName, direction })
+    });
+    const data = await res.json();
+    if (data.success && data.status) {
+      state.watchdogData = data.status;
+      renderModelsModal();
+      showToast('Secuencia de motores actualizada', 'success');
+    }
+  } catch (err) {
+    showToast('Error al reordenar motores', 'error');
   }
 }
 
@@ -1355,6 +1441,9 @@ window.moveGlobalQueueTask = moveGlobalQueueTask;
 window.goToProjectFromQueue = goToProjectFromQueue;
 window.pauseFromGlobalQueue = pauseFromGlobalQueue;
 window.copyGlobalQueueSequence = copyGlobalQueueSequence;
+window.openModelsModal = openModelsModal;
+window.renderModelsModal = renderModelsModal;
+window.moveModelSequence = moveModelSequence;
 
 // Close modals when clicking outside modal-dialog or on Escape key
 document.querySelectorAll('.modal-overlay').forEach(overlay => {

@@ -25,7 +25,7 @@ from app.services.service_hub import (
 )
 from app.services.project_scanner import scan_and_seed_projects, smart_breakdown_task
 from app.services.milestone_checker import check_and_complete_task
-from app.services.watchdog_service import get_watchdog_status, build_agent_prompt_for_task
+from app.services.watchdog_service import get_watchdog_status, build_agent_prompt_for_task, move_model_in_sequence
 from app.services.execution_queue import (
     launch_task,
     pause_task,
@@ -97,6 +97,10 @@ class ProgressUpdate(BaseModel):
     current_step: Optional[str] = None
     note: Optional[str] = None
     author: Optional[str] = "Agente"
+
+class ModelMoveRequest(BaseModel):
+    model_name: str
+    direction: str
 
 class SettingsUpdate(BaseModel):
     telegram_bot_token: Optional[str] = None
@@ -334,6 +338,13 @@ async def start_service_endpoint(service_id: str, open_browser: bool = True):
 @app.get("/api/watchdog/status")
 async def watchdog_status_endpoint():
     return get_watchdog_status()
+
+@app.post("/api/watchdog/models/move")
+async def move_watchdog_model_endpoint(req: ModelMoveRequest):
+    res = move_model_in_sequence(req.model_name, req.direction)
+    if res.get("success"):
+        res["status"] = get_watchdog_status()
+    return res
 
 @app.get("/api/tasks/{task_id}/prompt")
 async def get_task_agent_prompt(task_id: int):

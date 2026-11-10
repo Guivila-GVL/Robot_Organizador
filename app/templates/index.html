@@ -68,6 +68,12 @@
             <div class="quota-reset-row">
               <span>⏳ <span id="watchdogResetTime">Calculando ciclo...</span></span>
             </div>
+            <div class="quota-mini-others" id="watchdogOtherModels">
+              <!-- Mini resumen de otros motores -->
+            </div>
+            <button type="button" class="btn btn-secondary btn-small" style="width:100%; margin-top:0.25rem; justify-content:center;" onclick="openModelsModal()">
+              🔀 Ver Motores & Secuencia
+            </button>
           </div>
         </div>
       </div>
@@ -434,6 +440,27 @@
         <button class="btn btn-primary" id="btnCopyGlobalSequence">
           📋 Copiar Secuencia Completa para Antigravity
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Motores IA, Cuotas y Secuencia de Fallback -->
+  <div class="modal-overlay" id="modelsModal">
+    <div class="modal-dialog modal-dialog-wide">
+      <div class="modal-header">
+        <h3>🤖 Motores IA, Cuotas y Secuencia de Continuidad</h3>
+        <button class="modal-close" onclick="closeModal('modelsModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-callout" style="margin-bottom: 0.9rem;">
+          <b>Autonomía Máxima Multi-Motor:</b> El orden #1 → #4 define qué motor utilizar primero y hacia cuál saltar si uno se agota (error 429) para que el trabajo no se detenga mientras quede cuota en cualquier motor de Antigravity.
+        </div>
+        <div class="global-queue-list" id="modelsListContainer">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modelsModal')">Cerrar</button>
       </div>
     </div>
   </div>

@@ -276,6 +276,14 @@ def get_launched_queue(project_id: Optional[str] = None) -> Dict[str, Any]:
     total_pending = cursor.fetchone()["total"]
     conn.close()
 
+    # Incluir estado en vivo del Watchdog (trabajando vs esperando) + secuencia de motores
+    watchdog_info = {}
+    try:
+        from app.services.watchdog_service import get_watchdog_status
+        watchdog_info = get_watchdog_status()
+    except Exception:
+        pass
+
     if not tasks:
         master_prompt = ""
     else:
@@ -289,20 +297,17 @@ def get_launched_queue(project_id: Optional[str] = None) -> Dict[str, Any]:
                 f"   - Descripción: {t['description'] or 'Implementar funcionalidad solicitada.'}\n"
                 f"   - Criterio de éxito: {t['milestone_description'] or 'Validación funcional completa.'}{target_info}"
             )
+
+        models_seq = watchdog_info.get("models", [])
+        seq_str = " → ".join([f"#{m['order']} {m['name']} ({m['quota_remaining_pct']}%)" for m in models_seq]) if models_seq else "Flash → Argon → Flash Lite"
         lines.append(
-            "\nMientras avanzas, ve actualizando el progreso de cada tarea en el Robot "
+            f"\n🤖 **Estrategia de Motores & Autonomía:** Secuencia configurada: {seq_str}.\n"
+            "- Para maximizar el tiempo de trabajo sin agotar cuota principal, delega subtareas mecánicas/de lectura en subagentes `flash` o `flash_lite` cuando proceda.\n"
+            "- Mientras avanzas, ve actualizando el progreso de cada tarea en el Robot "
             "(`PATCH http://127.0.0.1:8002/api/tasks/{id}/progress`) y cuando termines cada una ciérrala "
             "(`POST http://127.0.0.1:8002/api/tasks/{id}/check`) para ejecutar la revisión general (Docs, OneNote, Git, Skills y Telegram)."
         )
         master_prompt = "\n\n".join(lines)
-
-    # Incluir estado en vivo del Watchdog (trabajando vs esperando)
-    watchdog_info = {}
-    try:
-        from app.services.watchdog_service import get_watchdog_status
-        watchdog_info = get_watchdog_status()
-    except Exception:
-        pass
 
     return {
         "success": True,
