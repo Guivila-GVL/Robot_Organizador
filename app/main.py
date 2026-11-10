@@ -33,6 +33,11 @@ from app.services.execution_queue import (
     get_launched_queue,
     reorder_queue_task
 )
+from app.services.queue_runner import (
+    start_queue_runner,
+    stop_queue_runner,
+    get_runner_status
+)
 
 app = FastAPI(title="Robot de Gestión de Proyectos 2026", version="1.1.0")
 
@@ -375,6 +380,18 @@ async def get_queue_endpoint(project_id: Optional[str] = None):
 @app.post("/api/queue/{task_id}/move/{direction}")
 async def move_queue_task_endpoint(task_id: int, direction: str):
     return reorder_queue_task(task_id, direction)
+
+@app.post("/api/queue/run")
+async def start_queue_runner_endpoint():
+    return start_queue_runner()
+
+@app.post("/api/queue/stop")
+async def stop_queue_runner_endpoint():
+    return stop_queue_runner()
+
+@app.get("/api/queue/runner-status")
+async def runner_status_endpoint():
+    return get_runner_status()
 
 @app.get("/api/settings")
 async def get_all_settings():

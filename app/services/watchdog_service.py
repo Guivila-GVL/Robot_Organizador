@@ -11,36 +11,75 @@ BRAIN_DIR = os.path.expanduser(r"~\.gemini\antigravity\brain")
 
 QUOTA_WINDOW_HOURS = 5
 
-# Catálogo base de motores Antigravity y su capacidad estimada por ciclo de 5h
+# Catálogo oficial de motores verificados en Antigravity (`agy models`)
 DEFAULT_MODELS_INFO = {
     "Gemini 3.8 Flash (Medium)": {
+        "cli_id": "gemini-3.8-flash-medium",
         "budget": 450,
-        "tier": "Flash Rápido · Alta Autonomía",
-        "subagent_alias": "flash"
+        "tier": "Gemini Flash · Rápido y Alta Autonomía"
+    },
+    "Claude Sonnet 5.5 (Medium)": {
+        "cli_id": "claude-sonnet-5-5-medium",
+        "budget": 160,
+        "tier": "Claude Sonnet · Arquitectura y Código Preciso"
     },
     "Gemini 4 Argon (Medium)": {
+        "cli_id": "gemini-4-argon-medium",
         "budget": 180,
-        "tier": "Argon / Pro · Razonamiento Complejo",
-        "subagent_alias": "pro"
+        "tier": "Gemini Argon · Razonamiento Complejo"
+    },
+    "Claude Opus 5.5 (Medium)": {
+        "cli_id": "claude-opus-5-5-medium",
+        "budget": 100,
+        "tier": "Claude Opus · Máxima Profundidad"
+    },
+    "Gemini 3.8 Flash (High)": {
+        "cli_id": "gemini-3.8-flash-high",
+        "budget": 400,
+        "tier": "Gemini Flash High · Alta Capacidad"
+    },
+    "GPT-OSS 120B (Medium)": {
+        "cli_id": "gpt-oss-120b-medium",
+        "budget": 250,
+        "tier": "GPT-OSS 120B · Respaldo Abierto"
+    },
+    "Gemini 3.8 Flash (Low)": {
+        "cli_id": "gemini-3.8-flash-low",
+        "budget": 600,
+        "tier": "Flash Low · Última línea de autonomía"
     },
     "Gemini 3.5 Flash (High)": {
+        "cli_id": "gemini-3.8-flash-high",
         "budget": 450,
-        "tier": "Flash Respaldo · Alta Precisión",
-        "subagent_alias": "flash"
-    },
-    "Gemini Flash Lite": {
-        "budget": 600,
-        "tier": "Lite · Autonomía Máxima (Última línea)",
-        "subagent_alias": "flash_lite"
+        "tier": "Flash Respaldo · Alta Precisión"
     }
 }
 
 DEFAULT_FALLBACK_SEQUENCE = [
     "Gemini 3.8 Flash (Medium)",
+    "Claude Sonnet 5.5 (Medium)",
     "Gemini 4 Argon (Medium)",
-    "Gemini 3.5 Flash (High)",
-    "Gemini Flash Lite"
+    "Claude Opus 5.5 (Medium)",
+    "GPT-OSS 120B (Medium)",
+    "Gemini 3.8 Flash (Low)"
 ]
+
+
+def get_cli_id_for_model(model_name: str) -> str:
+    if model_name in DEFAULT_MODELS_INFO:
+        return DEFAULT_MODELS_INFO[model_name]["cli_id"]
+    lower = model_name.lower()
+    if "claude" in lower and "opus" in lower:
+        return "claude-opus-5-5-medium"
+    if "claude" in lower:
+        return "claude-sonnet-5-5-medium"
+    if "gpt" in lower:
+        return "gpt-oss-120b-medium"
+    if "argon" in lower:
+        return "gemini-4-argon-medium"
+    if "low" in lower or "lite" in lower:
+        return "gemini-3.8-flash-low"
+    return "gemini-3.8-flash-medium"
 
 _last_alerted_quota_key: Optional[str] = None
 
@@ -144,12 +183,28 @@ def get_model_sequence(discovered_models: Optional[List[str]] = None) -> List[st
     if not seq:
         seq = list(DEFAULT_FALLBACK_SEQUENCE)
 
-    # Añadir modelos nuevos detectados que no estuvieran en la lista
     changed = False
-    for m in (discovered_models or []):
+    # Reemplazar placeholder antiguo si existía
+    if "Gemini Flash Lite" in seq:
+        seq = [s if s != "Gemini Flash Lite" else "Gemini 3.8 Flash (Low)" for s in seq]
+        changed = True
+
+    # Asegurar que todos los motores oficiales (Claude Sonnet, Claude Opus, GPT-OSS, etc.) estén en la lista
+    for m in DEFAULT_FALLBACK_SEQUENCE + (discovered_models or []):
         if m and m.lower() != "none" and m not in seq:
             seq.append(m)
             changed = True
+
+    # Evitar duplicados preservando el orden
+    seen = set()
+    deduped = []
+    for s in seq:
+        if s not in seen:
+            seen.add(s)
+            deduped.append(s)
+    if len(deduped) != len(seq):
+        seq = deduped
+        changed = True
 
     if changed or not raw:
         set_setting("model_fallback_sequence", json.dumps(seq, ensure_ascii=False))
@@ -206,6 +261,10 @@ def _clear_model_exhausted(model_name: str) -> None:
     if model_name in ex_map:
         del ex_map[model_name]
         set_setting("model_exhausted_until", json.dumps(ex_map, ensure_ascii=False))
+
+
+def mark_model_exhausted_hours(model_name: str, hours: int = QUOTA_WINDOW_HOURS) -> None:
+    _mark_model_exhausted(model_name, datetime.now(timezone.utc) + timedelta(hours=hours))
 
 
 def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool) -> Dict[str, Any]:
@@ -314,6 +373,7 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
         item = {
             "order": seq_idx,
             "name": m_name,
+            "cli_id": get_cli_id_for_model(m_name),
             "tier": _describe_tier_for_model(m_name),
             "is_active": (m_name == active_model),
             "is_exhausted": is_exhausted,

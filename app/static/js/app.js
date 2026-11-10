@@ -113,6 +113,10 @@ function initEventListeners() {
   if (btnGlobalQ) btnGlobalQ.addEventListener('click', openGlobalQueueModal);
   const btnCopyGlobalSeq = document.getElementById('btnCopyGlobalSequence');
   if (btnCopyGlobalSeq) btnCopyGlobalSeq.addEventListener('click', copyGlobalQueueSequence);
+  const btnRunGQ = document.getElementById('btnRunGlobalQueue');
+  if (btnRunGQ) btnRunGQ.addEventListener('click', runGlobalQueueNow);
+  const btnStopGQ = document.getElementById('btnStopGlobalQueue');
+  if (btnStopGQ) btnStopGQ.addEventListener('click', stopGlobalQueueNow);
 
   document.getElementById('btnOpenAllServices').addEventListener('click', openAllServices);
   document.getElementById('btnTestTelegram').addEventListener('click', testTelegram);
@@ -1263,9 +1267,16 @@ async function refreshGlobalQueueBadge() {
   try {
     const res = await fetch('/api/queue');
     const data = await res.json();
-    const badge = document.getElementById('globalQueueTopCount');
-    if (badge && data.success) {
-      badge.textContent = data.total_global ?? data.count ?? 0;
+    const btn = document.getElementById('btnOpenGlobalQueue');
+    const runner = data.runner || {};
+    const total = data.total_global ?? data.count ?? 0;
+
+    if (btn && data.success) {
+      if (runner.running) {
+        btn.innerHTML = `<span class="btn-icon">⚙️</span> Ejecutando Cola (<span id="globalQueueTopCount">${total}</span>)`;
+      } else {
+        btn.innerHTML = `<span class="btn-icon">🚀</span> Cola Global (<span id="globalQueueTopCount">${total}</span>)`;
+      }
     }
   } catch (err) {
     // silent fail on background poll
@@ -1286,24 +1297,40 @@ async function loadGlobalQueueModal() {
     const badge = document.getElementById('globalQueueTopCount');
     if (badge) badge.textContent = data.total_global ?? 0;
 
-    // Estado en vivo del Agente (trabajando vs esperando)
+    // Estado en vivo del Worker Autónomo + Watchdog
     const wd = data.watchdog || {};
+    const runner = data.runner || {};
     const dot = document.getElementById('gqLiveDot');
     const agentLabel = document.getElementById('gqAgentLabel');
     const summaryText = document.getElementById('gqSummaryText');
+    const runnerLogEl = document.getElementById('gqRunnerLog');
+    const btnRun = document.getElementById('btnRunGlobalQueue');
+    const btnStop = document.getElementById('btnStopGlobalQueue');
+
+    if (btnRun && btnStop) {
+      btnRun.style.display = runner.running ? 'none' : 'inline-flex';
+      btnStop.style.display = runner.running ? 'inline-flex' : 'none';
+    }
 
     if (dot && agentLabel && summaryText) {
       dot.className = 'gq-live-dot';
-      if (wd.state === 'working') {
+      if (runner.running) {
+        dot.classList.add('working');
+        agentLabel.textContent = `⚙️ Worker Autónomo Activo: "${runner.current_task_title || 'Iniciando...'}" · ${runner.current_model || ''}`;
+      } else if (wd.state === 'working') {
         dot.classList.add('working');
         agentLabel.textContent = `${wd.label || '⚡ Trabajando ahora mismo'} · ${wd.active_model || 'Gemini'}`;
       } else if (wd.state === 'quota_error') {
         dot.classList.add('error');
-        agentLabel.textContent = wd.label || '⚠️ Cuota Gemini agotada';
+        agentLabel.textContent = wd.label || '⚠️ Cuota agotada';
       } else {
         agentLabel.textContent = `${wd.label || '🟢 Parado / Esperando órdenes'} · ${wd.active_model || 'Gemini'}`;
       }
       summaryText.textContent = `${data.total_global || 0} en progreso (cola activa) · ${data.total_pending || 0} pendientes entre todos los proyectos`;
+    }
+
+    if (runnerLogEl) {
+      runnerLogEl.textContent = runner.last_log || '';
     }
 
     const listEl = document.getElementById('globalQueueList');
@@ -1409,6 +1436,37 @@ async function copyGlobalQueueSequence() {
   }
 }
 
+async function runGlobalQueueNow() {
+  try {
+    showToast('▶️ Arrancando Worker Autónomo para ejecutar la secuencia...', 'info');
+    const res = await fetch('/api/queue/run', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('🚀 ¡Ejecución autónoma iniciada! Verás el avance en directo.', 'success');
+      await loadGlobalQueueModal();
+      refreshGlobalQueueBadge();
+    } else {
+      showToast(data.error || 'No se pudo iniciar la ejecución', 'error');
+    }
+  } catch (err) {
+    showToast('Error al arrancar la Cola Global', 'error');
+  }
+}
+
+async function stopGlobalQueueNow() {
+  try {
+    const res = await fetch('/api/queue/stop', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('⏹️ Deteniendo el worker autónomo...', 'info');
+      await loadGlobalQueueModal();
+      refreshGlobalQueueBadge();
+    }
+  } catch (err) {
+    showToast('Error al detener la ejecución', 'error');
+  }
+}
+
 // --------------------------------------------------------------------------
 // UTILS & GLOBAL HANDLERS
 // --------------------------------------------------------------------------
@@ -1441,6 +1499,8 @@ window.moveGlobalQueueTask = moveGlobalQueueTask;
 window.goToProjectFromQueue = goToProjectFromQueue;
 window.pauseFromGlobalQueue = pauseFromGlobalQueue;
 window.copyGlobalQueueSequence = copyGlobalQueueSequence;
+window.runGlobalQueueNow = runGlobalQueueNow;
+window.stopGlobalQueueNow = stopGlobalQueueNow;
 window.openModelsModal = openModelsModal;
 window.renderModelsModal = renderModelsModal;
 window.moveModelSequence = moveModelSequence;

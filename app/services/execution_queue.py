@@ -309,12 +309,20 @@ def get_launched_queue(project_id: Optional[str] = None) -> Dict[str, Any]:
         )
         master_prompt = "\n\n".join(lines)
 
+    runner_info = {}
+    try:
+        from app.services.queue_runner import get_runner_status
+        runner_info = get_runner_status()
+    except Exception:
+        pass
+
     return {
         "success": True,
         "count": len(tasks),
         "total_global": total_global,
         "total_pending": total_pending,
         "watchdog": watchdog_info,
+        "runner": runner_info,
         "tasks": tasks,
         "master_prompt": master_prompt,
         "queue_file": QUEUE_FILE

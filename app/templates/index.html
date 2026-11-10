@@ -420,15 +420,21 @@
             <div>
               <strong id="gqAgentLabel">Consultando estado del agente...</strong>
               <div class="gq-subtext" id="gqSummaryText">0 tareas en progreso · 0 pendientes globales</div>
+              <div class="gq-subtext" id="gqRunnerLog" style="color:#a78bfa; margin-top:0.2rem;"></div>
             </div>
           </div>
-          <button type="button" class="btn btn-secondary btn-small" onclick="loadGlobalQueueModal()" title="Refrescar estado ahora">
-            🔄 Actualizar
-          </button>
+          <div style="display:flex; gap:0.4rem;">
+            <button type="button" class="btn btn-secondary btn-small" onclick="openModelsModal()" title="Ver secuencia de motores IA (Gemini, Claude, GPT-OSS)">
+              🔀 Motores
+            </button>
+            <button type="button" class="btn btn-secondary btn-small" onclick="loadGlobalQueueModal()" title="Refrescar estado ahora">
+              🔄
+            </button>
+          </div>
         </div>
 
         <p class="field-help" style="margin-bottom: 0.75rem;">
-          Ordena con ⬆️ / ⬇️ la secuencia exacta en la que quieres que se ejecuten todas las tareas que pusiste <b>En Progreso</b> (#1 se realiza primero):
+          Ordena con ⬆️ / ⬇️ la secuencia exacta en la que quieres que se ejecuten todas las tareas que pusiste <b>En Progreso</b> (#1 se realiza primero) y pulsa <b>▶️ Ejecutar Secuencia Ahora</b>:
         </p>
 
         <div class="global-queue-list" id="globalQueueList">
@@ -437,8 +443,14 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('globalQueueModal')">Cerrar</button>
-        <button class="btn btn-primary" id="btnCopyGlobalSequence">
-          📋 Copiar Secuencia Completa para Antigravity
+        <button class="btn btn-secondary" id="btnCopyGlobalSequence" title="Copiar orden escrita para pegar en el chat">
+          📋 Copiar Orden
+        </button>
+        <button class="btn btn-danger" id="btnStopGlobalQueue" style="display:none; background:#e11d48; color:#fff; border:none;">
+          ⏹️ Detener Ejecución
+        </button>
+        <button class="btn btn-launch" id="btnRunGlobalQueue">
+          ▶️ Ejecutar Secuencia Ahora
         </button>
       </div>
     </div>
