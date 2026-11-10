@@ -158,20 +158,76 @@ DEFAULT_PROJECTS = [
         "description": "Generación de Vídeos Cortos Narrativos a partir de Libros y Capítulos Literarios",
         "tasks": [
             {
+                "title": "Plan de Producción y Arquitectura Human-in-the-Loop",
+                "description": "Diseño del pipeline audiovisual para transformar capítulos literarios en vídeos verticales (9:16) con puntos de control y consistencia visual.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "docs/plan_proyecto.md",
+                "milestone_description": "Documento de arquitectura y flujo de trabajo validado en /docs.",
+                "milestone_result": "Arquitectura documentada en docs/plan_proyecto.md y README.md.",
+                "completed_at": "2026-10-15T10:00:00"
+            },
+            {
+                "title": "Extractor de Libros y Gestor de Proyectos Literarios",
+                "description": "Implementación de document_parser.py (PDF, DOCX, TXT) y project_manager.py para organizar capítulos, personajes y escenarios.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "app/core/project_manager.py",
+                "milestone_description": "Lectura de documentos y estructura de proyectos literarios operativa.",
+                "milestone_result": "Módulos document_parser.py y project_manager.py integrados con biblioteca de proyectos.",
+                "completed_at": "2026-10-20T12:30:00"
+            },
+            {
+                "title": "Motor de Storyboard y Consistencia Visual (FLUX / DALL-E 3)",
+                "description": "Desglose automático de capítulos en escenas (gancho, nudo, desenlace) e inyección de rasgos fijos del protagonista en cada prompt 9:16.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "app/core/script_generator.py",
+                "milestone_description": "Generación de guion técnico e imágenes verticales consistentes.",
+                "milestone_result": "Motores script_generator.py e image_engine.py operativos con soporte FLUX y DALL-E 3.",
+                "completed_at": "2026-10-25T16:00:00"
+            },
+            {
+                "title": "Locución Neuronal Multi-Motor (ElevenLabs, OpenAI y gTTS)",
+                "description": "Integración de síntesis de voz de estudio con ElevenLabs y alternativa gratuita gTTS sin API Key.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "app/core/tts_engine.py",
+                "milestone_description": "Generación de pistas de audio sincronizadas por escena.",
+                "milestone_result": "Motor tts_engine.py validado con voces neuronales y fallback automático.",
+                "completed_at": "2026-10-30T18:15:00"
+            },
+            {
+                "title": "Renderizador FFmpeg con Efecto Ken Burns y Subtítulos",
+                "description": "Montaje automático de vídeo vertical 1080x1920 con movimiento suave Ken Burns (zoom/paneo), audio y subtítulos quemados.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "app/core/video_renderer.py",
+                "milestone_description": "Exportación de archivo MP4 final listo para TikTok, Reels y Shorts.",
+                "milestone_result": "Renderizador video_renderer.py y ensamblar_video.py verificados con tests.",
+                "completed_at": "2026-11-03T19:00:00"
+            },
+            {
                 "title": "Verificar Servidor VideoStudio en Puerto 8001",
-                "description": "Comprobar que FastAPI, la base de datos de libros/capítulos y las rutas de vídeo responden correctamente.",
+                "description": "Comprobar que FastAPI, la base de datos de libros/capítulos y el simulador móvil interactivo responden correctamente.",
                 "priority": "alta",
                 "status": "completed",
                 "milestone_type": "http_200",
                 "milestone_target": "http://127.0.0.1:8001",
                 "milestone_description": "La página principal carga con el visor de proyectos de libros y generación de escenas.",
-                "milestone_result": "Servidor 8001 activo y validado mediante navegador."
+                "milestone_result": "Servidor 8001 activo y validado mediante navegador y suite test_api.py.",
+                "completed_at": "2026-11-07T16:00:00"
             },
             {
                 "title": "Alineación de Flujo Telegram para Aprobaciones Humanas",
                 "description": "Integrar webhook n8n para enviar por Telegram los clips generados antes del ensamblado final.",
                 "priority": "alta",
-                "status": "in_progress",
+                "status": "pending",
                 "milestone_type": "manual",
                 "milestone_target": "",
                 "milestone_description": "Recepción de botón 'Aprobar' o 'Regenerar escena' en Telegram.",
@@ -202,6 +258,61 @@ DEFAULT_PROJECTS = [
         "description": "Asistente Editorial para X con Generación de Hilos e Integración de Gráficos Grafana",
         "tasks": [
             {
+                "title": "Inicialización del Repositorio y Documentación Estratégica",
+                "description": "Creación de estructura estándar del proyecto y definición de visión, arquitectura técnica y casos de uso en /docs.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "docs/00_Strategy/00_Vision_y_Estrategia.md",
+                "milestone_description": "Documentación estratégica y mockups iniciales completados.",
+                "milestone_result": "Estructura inicializada con 00_Vision_y_Estrategia.md, 01_Arquitectura_Tecnica.md y 02_Roadmap_y_Fases.md.",
+                "completed_at": "2026-10-07T18:05:00"
+            },
+            {
+                "title": "Arquitectura Backend Python + Conector Grafana",
+                "description": "Diseño e implementación del backend FastAPI con conector directo a paneles de energía de Grafana.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "app/main.py",
+                "milestone_description": "Backend FastAPI y simulador web de X operativos.",
+                "milestone_result": "Aplicación FastAPI e interfaz web con simulador idéntico a X creadas y validadas.",
+                "completed_at": "2026-10-07T18:23:00"
+            },
+            {
+                "title": "Motor de Fact-Checking, Noticias RSS e Infografías 16:9",
+                "description": "Implementación de verificación de datos técnicos en vivo (fact_checker.py) y generación automática de infografías 16:9 (infographic_generator.py).",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "app/services/fact_checker.py",
+                "milestone_description": "Verificación de noticias reales y generación de infografías 16:9 superando tests.",
+                "milestone_result": "Módulos fact_checker.py e infographic_generator.py implementados con éxito.",
+                "completed_at": "2026-10-07T19:53:00"
+            },
+            {
+                "title": "Bucle de Refinamiento Conversacional y Control de Versiones (v1/v2/v3)",
+                "description": "Módulo de comentarios en vivo para ajustar el tweet, historial de versiones con deshacer/rehacer y píldoras rápidas.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "manual",
+                "milestone_target": "",
+                "milestone_description": "Refinamiento iterativo del tweet e historial de versiones funcionando en el simulador.",
+                "milestone_result": "Feedback loop conversacional, deshacer/rehacer y píldoras rápidas integradas.",
+                "completed_at": "2026-10-07T20:05:00"
+            },
+            {
+                "title": "Propuesta Directa en Simulador X y Editor Interactivo de Infografías",
+                "description": "Búsqueda 100% en vivo de noticias RSS y datos técnicos con propuesta directa en el simulador y edición interactiva de infografías.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "manual",
+                "milestone_target": "",
+                "milestone_description": "Flujo desacoplado de textos estáticos con pruebas 100% superadas.",
+                "milestone_result": "Rediseño de flujo completado y validado con test_app.py.",
+                "completed_at": "2026-10-07T20:15:00"
+            },
+            {
                 "title": "Verificar Lanzador y Servidor Local en Puerto 8000",
                 "description": "Ejecutar iniciar_comentarista.bat y comprobar respuesta en http://127.0.0.1:8000.",
                 "priority": "alta",
@@ -209,7 +320,8 @@ DEFAULT_PROJECTS = [
                 "milestone_type": "http_200",
                 "milestone_target": "http://127.0.0.1:8000",
                 "milestone_description": "El asistente editorial carga con la plantilla de tweets e integración de métricas.",
-                "milestone_result": "Servidor en puerto 8000 activo y auto-arranque integrado en el hub de servicios."
+                "milestone_result": "Servidor en puerto 8000 activo y auto-arranque integrado en el hub de servicios.",
+                "completed_at": "2026-11-07T16:30:00"
             },
             {
                 "title": "Validar Conexión con Grafana Renderer (8081)",
@@ -236,6 +348,39 @@ DEFAULT_PROJECTS = [
         "description": "Series Temporales del Mercado Eléctrico, Ingesta ESIOS, TimescaleDB y Dashboards",
         "tasks": [
             {
+                "title": "Arquitectura Docker Unificada (TimescaleDB, Grafana y n8n)",
+                "description": "Consolidación de infraestructura en docker-compose.yml eliminando contenedores obsoletos de InfluxDB y unificando TimescaleDB + Grafana.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "01_Infraestructura_Docker/docker-compose.yml",
+                "milestone_description": "Infraestructura Docker limpia y documentada.",
+                "milestone_result": "Contenedores timescaledb-db, grafana-local, grafana-renderer y n8n-python-local unificados.",
+                "completed_at": "2026-05-26T22:18:00"
+            },
+            {
+                "title": "Ingesta Masiva de Series ESIOS y Vistas Jerárquicas PVPC",
+                "description": "Scripts maestros de descarga de precios, energía, potencia real e instalada en TimescaleDB y creación de vista SQL v_esios_precios_grupo.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "02_Scripts_Python/03_REPORTE_ACTUALIZACIONES.md",
+                "milestone_description": "Más de 7 millones de registros históricos sincronizados y jerarquía PVPC N0/N1/N2 activa.",
+                "milestone_result": "Tablas esios_precios, esios_energia, esios_potencia_real y esios_potencia_instalada actualizadas.",
+                "completed_at": "2026-06-01T12:00:00"
+            },
+            {
+                "title": "Importación Histórica Eurostat y Dashboards Power BI / Grafana",
+                "description": "Integración de series europeas de Eurostat y documentación de vistas analíticas para Power BI y cuadros de mando de Grafana.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "02_Scripts_Python/importar_eurostat_historico.py",
+                "milestone_description": "Datos históricos europeos y vistas SQL de análisis disponibles.",
+                "milestone_result": "Script importar_eurostat_historico.py y documentación técnica de vistas completados.",
+                "completed_at": "2026-06-07T18:08:00"
+            },
+            {
                 "title": "Verificar Contenedores Docker (TimescaleDB, Grafana, n8n)",
                 "description": "Confirmar que la base de datos PostgreSQL/TimescaleDB en el puerto 5432 y Grafana en el 3000 están sanos.",
                 "priority": "alta",
@@ -243,13 +388,25 @@ DEFAULT_PROJECTS = [
                 "milestone_type": "http_200",
                 "milestone_target": "http://127.0.0.1:3000",
                 "milestone_description": "Acceso al login o dashboard de Grafana confirmado.",
-                "milestone_result": "Docker activo: n8n-python-local, grafana-local, timescaledb-db y grafana-renderer funcionando."
+                "milestone_result": "Docker activo: n8n-python-local, grafana-local, timescaledb-db y grafana-renderer funcionando.",
+                "completed_at": "2026-11-07T17:00:00"
+            },
+            {
+                "title": "Dashboard Web de Actualización ESIOS en Segundo Plano (:8050)",
+                "description": "Ejecución oculta con pythonw.exe sin ventana CMD y transmisión de progreso en tiempo real a la consola CMD Tareas del Robot Organizador.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "http_200",
+                "milestone_target": "http://127.0.0.1:8050",
+                "milestone_description": "Dashboard ESIOS activo en puerto 8050 y conectado con CMD Tareas.",
+                "milestone_result": "Servicio ESIOS ejecutándose en segundo plano con telemetría conectada al panel central.",
+                "completed_at": "2026-11-10T19:15:00"
             },
             {
                 "title": "Comprobar Actualizador Diario Maestro ESIOS",
                 "description": "Verificar ejecución del script de ingesta diaria de curvas de precio y demanda en TimescaleDB.",
                 "priority": "alta",
-                "status": "in_progress",
+                "status": "pending",
                 "milestone_type": "manual",
                 "milestone_target": "",
                 "milestone_description": "Última fecha en base de datos coincide con hoy.",
@@ -270,14 +427,37 @@ DEFAULT_PROJECTS = [
         "description": "Plataforma de Certificación y Auditoría de Contenido Generado por IA",
         "tasks": [
             {
-                "title": "Auditoría de Esquema Prisma y Migraciones",
-                "description": "Comprobar compatibilidad entre base de datos de desarrollo (SQLite/Timescale) y producción Vercel.",
-                "priority": "media",
-                "status": "pending",
+                "title": "Plan Maestro, Arquitectura y Documentación Bilingüe (ES/EN)",
+                "description": "Consolidación de estrategia, modelo de negocio, historias de usuario y sincronización con OneNote.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "docs/00_Strategy/12_Activity_Log.md",
+                "milestone_description": "Documentación estratégica bilingüe estructurada en /docs.",
+                "milestone_result": "Plan Maestro, Arquitectura, Roadmap e Historias de Usuario documentados.",
+                "completed_at": "2026-05-11T16:17:00"
+            },
+            {
+                "title": "Rutas en Inglés, Autenticación (AuthContext) y Página How It Works",
+                "description": "Implementación de navegación bilingüe, Login con AuthContext y edición de perfil de especialista.",
+                "priority": "alta",
+                "status": "completed",
                 "milestone_type": "manual",
                 "milestone_target": "",
-                "milestone_description": "Migraciones de Prisma ejecutadas sin inconsistencias.",
-                "milestone_result": ""
+                "milestone_description": "Flujo de login, registro y perfil de especialista operativos.",
+                "milestone_result": "Rutas en inglés, AuthContext y página How It Works desplegadas.",
+                "completed_at": "2026-05-12T22:55:00"
+            },
+            {
+                "title": "Motor de Tarifación por Palabras (wordCount) y Nivel Seniority Master",
+                "description": "Cálculo automático de presupuesto según extensión del documento y nivel de seniority requerido en el Checkout.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "manual",
+                "milestone_target": "",
+                "milestone_description": "Checkout calcula dinámicamente la tarifa y asigna nivel Seniority.",
+                "milestone_result": "Lógica de precios por wordCount y niveles Seniority Master integrada en producción.",
+                "completed_at": "2026-05-16T18:50:00"
             },
             {
                 "title": "Verificar Despliegue en Vercel",
@@ -287,7 +467,18 @@ DEFAULT_PROJECTS = [
                 "milestone_type": "manual",
                 "milestone_target": "",
                 "milestone_description": "Página pública accesible y operativa.",
-                "milestone_result": "Despliegue verificado en producción."
+                "milestone_result": "Despliegue verificado en producción (https://human-certified.vercel.app/).",
+                "completed_at": "2026-11-07T17:30:00"
+            },
+            {
+                "title": "Auditoría de Esquema Prisma y Migraciones",
+                "description": "Comprobar compatibilidad entre base de datos de desarrollo (SQLite/Timescale) y producción Vercel.",
+                "priority": "media",
+                "status": "pending",
+                "milestone_type": "manual",
+                "milestone_target": "",
+                "milestone_description": "Migraciones de Prisma ejecutadas sin inconsistencias.",
+                "milestone_result": ""
             }
         ]
     },
@@ -304,10 +495,32 @@ DEFAULT_PROJECTS = [
         "description": "Control Remoto del Entorno desde Tablet y Smartphone (Tailscale, RDP, SSH, Telegram)",
         "tasks": [
             {
+                "title": "Análisis de Opciones de Conectividad Remota (Tailscale, RDP y SSH)",
+                "description": "Evaluación comparativa de seguridad, latencia y coste para controlar Antigravity IDE y servidores Docker desde tablet y móvil.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "docs/01_Analisis_Opciones_Conectividad.md",
+                "milestone_description": "Documento de arquitectura de red privada malla VPN y escritorio remoto completado.",
+                "milestone_result": "Análisis técnico documentado en docs/01_Analisis_Opciones_Conectividad.md.",
+                "completed_at": "2026-11-01T11:00:00"
+            },
+            {
+                "title": "Hoja de Ruta de Implementación en 5 Fases y Scripts de Activación",
+                "description": "Diseño paso a paso (Energía PC, Tailscale VPN, RD Client en Tablet, Acceso Web Docker y SSH/Telegram) y script activar_escritorio_remoto.bat.",
+                "priority": "alta",
+                "status": "completed",
+                "milestone_type": "file_exists",
+                "milestone_target": "docs/02_Hoja_de_Ruta_Implementacion.md",
+                "milestone_description": "Guía de implementación en 5 fases y automatización lista para ejecutar.",
+                "milestone_result": "Hoja de ruta documentada en docs/02_Hoja_de_Ruta_Implementacion.md y repositorio Git inicializado.",
+                "completed_at": "2026-11-08T14:12:00"
+            },
+            {
                 "title": "Instalar y Enlazar Red Tailscale",
                 "description": "Configurar Tailscale en el PC anfitrión para acceder a Grafana, n8n y apps web desde el móvil.",
                 "priority": "alta",
-                "status": "in_progress",
+                "status": "pending",
                 "milestone_type": "manual",
                 "milestone_target": "",
                 "milestone_description": "Dispositivos conectados en la red privada de Tailscale.",
@@ -407,18 +620,19 @@ def scan_and_seed_projects(force_reset: bool = False):
 
         for idx, t in enumerate(p["tasks"]):
             cursor.execute(
-                "SELECT id, status FROM tasks WHERE project_id = ? AND LOWER(TRIM(title)) = LOWER(TRIM(?))",
+                "SELECT id, status, completed_at FROM tasks WHERE project_id = ? AND LOWER(TRIM(title)) = LOWER(TRIM(?))",
                 (p["id"], t["title"])
             )
             existing_task = cursor.fetchone()
+            t_completed_at = t.get("completed_at") or (now if t["status"] == "completed" else None)
             if not existing_task:
                 cursor.execute("""
                 INSERT INTO tasks (
                     project_id, title, description, priority, status,
                     milestone_type, milestone_target, milestone_description,
-                    milestone_result, order_index, created_at
+                    milestone_result, order_index, created_at, completed_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """, (
                     p["id"],
                     t["title"],
@@ -430,13 +644,20 @@ def scan_and_seed_projects(force_reset: bool = False):
                     t["milestone_description"],
                     t["milestone_result"],
                     idx,
-                    now
+                    now,
+                    t_completed_at
                 ))
             else:
-                cursor.execute(
-                    "UPDATE tasks SET order_index = ? WHERE id = ?",
-                    (idx, existing_task["id"])
-                )
+                if t.get("completed_at") and not existing_task["completed_at"]:
+                    cursor.execute(
+                        "UPDATE tasks SET order_index = ?, completed_at = ? WHERE id = ?",
+                        (idx, t["completed_at"], existing_task["id"])
+                    )
+                else:
+                    cursor.execute(
+                        "UPDATE tasks SET order_index = ? WHERE id = ?",
+                        (idx, existing_task["id"])
+                    )
 
     conn.commit()
     conn.close()
