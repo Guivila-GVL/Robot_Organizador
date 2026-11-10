@@ -38,6 +38,10 @@ def _log_event(msg: str) -> None:
     RUNNER_STATE["history"].append(line)
     if len(RUNNER_STATE["history"]) > 30:
         RUNNER_STATE["history"] = RUNNER_STATE["history"][-30:]
+    try:
+        print(f"[RUNNER] {line}", flush=True)
+    except Exception:
+        pass
 
 
 def get_runner_status() -> Dict[str, Any]:

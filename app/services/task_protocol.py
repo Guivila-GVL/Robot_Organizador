@@ -10,6 +10,7 @@ logger = logging.getLogger("task_protocol")
 WORKSPACE_ROOT = r"D:\OneDrive\04_Desarrollo_proyectos"
 ONENOTE_VENV_PYTHON = os.path.join(WORKSPACE_ROOT, "0000_Utilidades", "03_OneNote", "venv", "Scripts", "python.exe")
 ONENOTE_SYNC_SCRIPT = os.path.join(WORKSPACE_ROOT, "0000_Utilidades", "03_OneNote", "sync_desarrollo_proyectos.py")
+CREATE_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 
 
 def update_project_docs(project_folder: str, project_name: str, task: dict, milestone_result: str) -> Dict[str, Any]:
@@ -69,7 +70,8 @@ def sync_onenote_project(project_id: str) -> Dict[str, Any]:
             [py_exe, ONENOTE_SYNC_SCRIPT, "--project", project_id],
             capture_output=True,
             text=True,
-            timeout=75
+            timeout=75,
+            creationflags=CREATE_NO_WINDOW
         )
         if res.returncode == 0:
             return {"success": True, "message": "OneNote sincronizado con éxito"}
@@ -88,7 +90,7 @@ def commit_and_push_git(project_folder: str, task_title: str) -> Dict[str, Any]:
 
     try:
         # 1. git add .
-        subprocess.run(["git", "add", "."], cwd=project_folder, capture_output=True, timeout=10)
+        subprocess.run(["git", "add", "."], cwd=project_folder, capture_output=True, timeout=10, creationflags=CREATE_NO_WINDOW)
 
         # 2. git commit
         clean_title = task_title.replace('"', "'")
@@ -98,7 +100,8 @@ def commit_and_push_git(project_folder: str, task_title: str) -> Dict[str, Any]:
             cwd=project_folder,
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=10,
+            creationflags=CREATE_NO_WINDOW
         )
 
         commit_done = (res_commit.returncode == 0)
@@ -110,7 +113,8 @@ def commit_and_push_git(project_folder: str, task_title: str) -> Dict[str, Any]:
             cwd=project_folder,
             capture_output=True,
             text=True,
-            timeout=25
+            timeout=25,
+            creationflags=CREATE_NO_WINDOW
         )
         push_done = (res_push.returncode == 0)
         push_output = res_push.stdout.strip() if push_done else res_push.stderr.strip()

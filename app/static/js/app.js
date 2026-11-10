@@ -1654,11 +1654,23 @@ async function loadCmdTelemetry() {
     }
 
     const terminalRobot = document.getElementById('cmdRobotTerminal');
-    const robotLogs = (runner.history && runner.history.length > 0) ? runner.history : (robot.server_logs || []);
+    const srvLogs = robot.server_logs || [];
+    const runLogs = (runner.history || []).map(h => `[RUNNER] ${h}`);
+    const combinedSet = [...srvLogs];
+    runLogs.forEach(rl => {
+      if (!combinedSet.includes(rl)) combinedSet.push(rl);
+    });
+    const robotLogs = combinedSet.slice(-50);
     const robotLogCount = document.getElementById('cmdRobotLogCount');
     if (terminalRobot && robotLogs.length > 0) {
       if (robotLogCount) robotLogCount.textContent = `${robotLogs.length} líneas`;
-      terminalRobot.innerHTML = robotLogs.map(l => `<div class="terminal-line">${escapeHtml(l)}</div>`).join('');
+      terminalRobot.innerHTML = robotLogs.map(l => {
+        let cls = 'terminal-line';
+        if (l.includes('ERROR') || l.includes('⚠️')) cls += ' error';
+        else if (l.includes('[RUNNER]') || l.includes('🚀')) cls += ' info';
+        else if (l.includes('200 OK') || l.includes('✅')) cls += ' success';
+        return `<div class="${cls}">${escapeHtml(l)}</div>`;
+      }).join('');
       terminalRobot.scrollTop = terminalRobot.scrollHeight;
     }
 

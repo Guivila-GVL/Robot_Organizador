@@ -17,6 +17,8 @@ WORKSPACE_ROOT = r"D:\OneDrive\04_Desarrollo_proyectos"
 _python_dir = os.path.dirname(sys.executable) if sys.executable else ""
 _pythonw_candidate = os.path.join(_python_dir, "pythonw.exe")
 PYTHON_EXE = _pythonw_candidate if os.path.exists(_pythonw_candidate) else (sys.executable or "python")
+HIDDEN_RUNNER_SCRIPT = os.path.join(WORKSPACE_ROOT, "2026_Proyecto_RobotOrganizador", "run_uvicorn_hidden.py")
+CREATE_NO_WINDOW = 0x08000000 if sys.platform == "win32" else 0
 
 SERVICES_CONFIG = [
     {
@@ -29,7 +31,7 @@ SERVICES_CONFIG = [
         "icon": "🤖",
         "color": "#8b5cf6",
         "cwd": os.path.join(WORKSPACE_ROOT, "2026_Proyecto_RobotOrganizador"),
-        "start_cmd": [PYTHON_EXE, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8002"]
+        "start_cmd": [PYTHON_EXE, HIDDEN_RUNNER_SCRIPT, "--app", "app.main:app", "--host", "127.0.0.1", "--port", "8002", "--cwd", os.path.join(WORKSPACE_ROOT, "2026_Proyecto_RobotOrganizador")]
     },
     {
         "id": "videostudio",
@@ -41,7 +43,7 @@ SERVICES_CONFIG = [
         "icon": "🎬",
         "color": "#ec4899",
         "cwd": os.path.join(WORKSPACE_ROOT, "2026_Proyecto_Videos"),
-        "start_cmd": [PYTHON_EXE, "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+        "start_cmd": [PYTHON_EXE, HIDDEN_RUNNER_SCRIPT, "--app", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--cwd", os.path.join(WORKSPACE_ROOT, "2026_Proyecto_Videos")]
     },
     {
         "id": "comentarista",
@@ -53,7 +55,7 @@ SERVICES_CONFIG = [
         "icon": "✍️",
         "color": "#38bdf8",
         "cwd": os.path.join(WORKSPACE_ROOT, "2026_Proyecto_Comentarista"),
-        "start_cmd": [PYTHON_EXE, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"]
+        "start_cmd": [PYTHON_EXE, HIDDEN_RUNNER_SCRIPT, "--app", "app.main:app", "--host", "127.0.0.1", "--port", "8000", "--cwd", os.path.join(WORKSPACE_ROOT, "2026_Proyecto_Comentarista")]
     },
     {
         "id": "n8n",
@@ -85,7 +87,7 @@ SERVICES_CONFIG = [
         "icon": "🔋",
         "color": "#14b8a6",
         "cwd": os.path.join(WORKSPACE_ROOT, "2026_Proyecto_Energia_Graficos", "02_Scripts_Python"),
-        "start_cmd": [PYTHON_EXE, "00_DASHBOARD_ACTUALIZADOR.py", "--autostart"]
+        "start_cmd": [PYTHON_EXE, "00_DASHBOARD_ACTUALIZADOR.py", "--autostart", "--no-browser"]
     },
     {
         "id": "certificado_humano",
@@ -154,14 +156,15 @@ def start_local_service(service_id: str, wait_ready: bool = True, max_wait: floa
         return {"success": False, "error": f"El servicio '{service['name']}' no tiene comando de auto-arranque local"}
 
     try:
-        # CREATE_NEW_PROCESS_GROUP (0x00000200) | CREATE_NO_WINDOW (0x08000000)
-        creation_flags = 0x00000200 | 0x08000000
+        # DETACHED_PROCESS (0x00000008) | CREATE_NEW_PROCESS_GROUP (0x00000200) | CREATE_NO_WINDOW (0x08000000)
+        creation_flags = 0x00000008 | 0x00000200 | 0x08000000
         subprocess.Popen(
             start_cmd,
             cwd=cwd,
             creationflags=creation_flags,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
             close_fds=True
         )
         logger.info(f"Iniciando servicio {service['name']} en {cwd}...")
@@ -418,7 +421,7 @@ def open_project_resource(project_id: str, resource_key: str) -> Dict[str, Any]:
         git_clean = "N/A"
         if has_git:
             try:
-                res_git = subprocess.run(["git", "status", "--porcelain"], cwd=folder_path, capture_output=True, text=True, timeout=3)
+                res_git = subprocess.run(["git", "status", "--porcelain"], cwd=folder_path, capture_output=True, text=True, timeout=3, creationflags=CREATE_NO_WINDOW)
                 git_clean = "Limpio (Sin cambios pendientes)" if not res_git.stdout.strip() else "Hay cambios sin commit"
             except Exception:
                 git_clean = "No verificado"
@@ -521,6 +524,17 @@ def get_esios_live_status() -> Dict[str, Any]:
                 data = json.loads(res.read().decode("utf-8"))
                 status_raw = data.get("status", "idle")
                 status_text = "En ejecución" if status_raw == "running" else "Listo / Al día" if status_raw == "completed" else "En espera" if status_raw == "idle" else "Error / Fallido"
+                raw_logs = data.get("logs", [])[-100:]
+                if not raw_logs:
+                    esios_log_file = os.path.join(WORKSPACE_ROOT, "2026_Proyecto_Energia_Graficos", "02_Scripts_Python", "actualizador_8050.log")
+                    if os.path.exists(esios_log_file):
+                        try:
+                            with open(esios_log_file, "r", encoding="utf-8", errors="ignore") as lf:
+                                raw_logs = [ln.strip() for ln in lf.readlines() if ln.strip()][-30:]
+                        except Exception:
+                            pass
+                if not raw_logs:
+                    raw_logs = ["[OK] Demonio Actualizador ESIOS activo en segundo plano (pythonw.exe - sin ventana CMD).", "Listo para sincronizar o esperando siguiente ciclo."]
                 return {
                     "online": True,
                     "status": status_raw,
@@ -530,7 +544,7 @@ def get_esios_live_status() -> Dict[str, Any]:
                     "current_task_name": data.get("current_task_name", ""),
                     "elapsed_time": data.get("elapsed_time", 0),
                     "eta_text": data.get("eta_text", "--"),
-                    "logs": data.get("logs", [])[-100:],
+                    "logs": raw_logs,
                     "total_tasks": data.get("total_tasks", 86),
                     "completed_tasks": data.get("completed_tasks", 0),
                     "total_added": data.get("total_added", 0)
