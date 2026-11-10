@@ -25,7 +25,8 @@ from app.services.service_hub import (
     open_project_resource,
     get_combined_service_monitor,
     get_esios_live_status,
-    trigger_esios_update
+    trigger_esios_update,
+    _extract_git_remote_url
 )
 from app.services.project_scanner import scan_and_seed_projects, smart_breakdown_task
 from app.services.milestone_checker import check_and_complete_task
@@ -189,6 +190,8 @@ async def get_projects():
             "port": r["port"],
             "url": r["url"],
             "description": r["description"],
+            "onenote_url": r["onenote_url"] if "onenote_url" in r.keys() else None,
+            "git_url": _extract_git_remote_url(r["folder_path"]),
             "total_tasks": total,
             "completed_tasks": completed,
             "progress_percent": pct
@@ -201,8 +204,8 @@ async def rescan_projects():
     return result
 
 @app.post("/api/projects/{project_id}/open-resource/{resource_key}")
-async def open_project_resource_endpoint(project_id: str, resource_key: str):
-    return open_project_resource(project_id, resource_key)
+async def open_project_resource_endpoint(project_id: str, resource_key: str, open_browser: bool = True):
+    return open_project_resource(project_id, resource_key, open_browser=open_browser)
 
 @app.post("/api/projects/{project_id}/sync-onenote")
 async def sync_onenote_endpoint(project_id: str):
@@ -217,7 +220,12 @@ async def get_project_tasks(project_id: str):
     cursor.execute("""
         SELECT * FROM tasks
         WHERE project_id = ?
-        ORDER BY order_index ASC, id ASC
+        ORDER BY
+            CASE status WHEN 'in_progress' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END ASC,
+            CASE WHEN status = 'completed' THEN COALESCE(completed_at, created_at) ELSE '' END DESC,
+            CASE WHEN status = 'in_progress' THEN COALESCE(queue_order, 9999) ELSE 0 END ASC,
+            created_at DESC,
+            id DESC
     """, (project_id,))
     task_rows = cursor.fetchall()
 

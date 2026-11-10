@@ -492,12 +492,31 @@ async function openProjectResource(resourceKey) {
     showToast('Selecciona primero un proyecto', 'error');
     return;
   }
+
+  const proj = state.projects.find(p => p.id === state.activeProjectId);
+  let directUrl = null;
+  if (resourceKey === 'onenote' && proj && proj.onenote_url) {
+    directUrl = proj.onenote_url;
+  } else if (resourceKey === 'git' && proj && proj.git_url) {
+    directUrl = proj.git_url;
+  }
+
+  if (directUrl) {
+    window.open(directUrl, '_blank', 'noopener');
+    showToast(`Abriendo ${resourceKey === 'onenote' ? 'OneNote' : 'GitHub'} de ${proj.name}...`, 'success');
+    fetch(`/api/projects/${state.activeProjectId}/open-resource/${resourceKey}?open_browser=false`, { method: 'POST' }).catch(() => {});
+    return;
+  }
+
   try {
     const res = await fetch(`/api/projects/${state.activeProjectId}/open-resource/${resourceKey}`, {
       method: 'POST'
     });
     const data = await res.json();
     if (data.success) {
+      if ((resourceKey === 'onenote' || resourceKey === 'git') && data.target && data.target.startsWith('http')) {
+        window.open(data.target, '_blank', 'noopener');
+      }
       showToast(data.message || 'Recurso abierto', 'success');
     } else {
       showToast(data.error || 'No se pudo abrir el recurso', 'error');

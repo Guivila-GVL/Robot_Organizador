@@ -201,6 +201,19 @@ def start_local_service(service_id: str, wait_ready: bool = True, max_wait: floa
 
 def open_url_in_system_browser(url: str) -> bool:
     try:
+        if sys.platform == "win32":
+            subprocess.Popen(
+                ["cmd", "/c", "start", "", url],
+                creationflags=CREATE_NO_WINDOW,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL
+            )
+            return True
+    except Exception as e:
+        logger.warning(f"cmd start falló para {url}: {e}")
+
+    try:
         if hasattr(os, "startfile"):
             os.startfile(url)
             return True
@@ -276,7 +289,7 @@ def _extract_git_remote_url(project_folder: str) -> str:
     return "https://github.com/Guivila-GVL?tab=repositories"
 
 
-def open_project_resource(project_id: str, resource_key: str) -> Dict[str, Any]:
+def open_project_resource(project_id: str, resource_key: str, open_browser: bool = True) -> Dict[str, Any]:
     from app.database import get_db_connection
 
     conn = get_db_connection()
@@ -315,33 +328,37 @@ def open_project_resource(project_id: str, resource_key: str) -> Dict[str, Any]:
         onenote_url = project["onenote_url"] if "onenote_url" in project.keys() else None
         conn.close()
         if onenote_url:
-            open_url_in_system_browser(onenote_url)
+            if open_browser:
+                open_url_in_system_browser(onenote_url)
             return {
                 "success": True,
                 "message": f"Abriendo sección de {project_name} en OneNote (Desarrollo Proyectos)",
                 "target": onenote_url
             }
         onenote_shortcut = r"D:\OneDrive\01_Gestion\Bloc de notas de Guillermo.url"
+        fallback_url = "https://www.onenote.com/notebooks"
         if os.path.exists(onenote_shortcut):
-            open_url_in_system_browser(onenote_shortcut)
-            return {
-                "success": True,
-                "message": f"Abriendo Bloc de notas de Guillermo en OneNote ({project_name})",
-                "target": onenote_shortcut
-            }
-        else:
-            fallback_url = "https://www.onenote.com/notebooks"
+            try:
+                with open(onenote_shortcut, "r", encoding="utf-8", errors="ignore") as sf:
+                    for line in sf:
+                        if line.strip().upper().startswith("URL="):
+                            fallback_url = line.strip().split("=", 1)[1].strip()
+                            break
+            except Exception:
+                pass
+        if open_browser:
             open_url_in_system_browser(fallback_url)
-            return {
-                "success": True,
-                "message": "Abriendo OneNote Web",
-                "target": fallback_url
-            }
+        return {
+            "success": True,
+            "message": f"Abriendo Bloc de notas en OneNote ({project_name})",
+            "target": fallback_url
+        }
 
     elif resource_key == "git":
         conn.close()
         git_url = _extract_git_remote_url(folder_path)
-        open_url_in_system_browser(git_url)
+        if open_browser:
+            open_url_in_system_browser(git_url)
         return {
             "success": True,
             "message": f"Abriendo repositorio Git en el navegador ({git_url})",
