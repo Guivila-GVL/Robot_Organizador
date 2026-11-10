@@ -21,7 +21,10 @@ from app.services.service_hub import (
     open_all_services_in_browser,
     start_local_service,
     open_url_in_system_browser,
-    open_project_resource
+    open_project_resource,
+    get_combined_service_monitor,
+    get_esios_live_status,
+    trigger_esios_update
 )
 from app.services.project_scanner import scan_and_seed_projects, smart_breakdown_task
 from app.services.milestone_checker import check_and_complete_task
@@ -339,6 +342,18 @@ async def start_service_endpoint(service_id: str, open_browser: bool = True):
     if res.get("success") and open_browser and res.get("url"):
         open_url_in_system_browser(res["url"])
     return res
+
+@app.get("/api/services/monitor")
+async def services_monitor_endpoint():
+    return get_combined_service_monitor()
+
+@app.get("/api/services/esios/status")
+async def esios_status_endpoint():
+    return get_esios_live_status()
+
+@app.post("/api/services/esios/start")
+async def esios_start_endpoint():
+    return trigger_esios_update()
 
 @app.get("/api/watchdog/status")
 async def watchdog_status_endpoint():

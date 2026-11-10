@@ -21,6 +21,9 @@
 
     <!-- Top Action Buttons -->
     <div class="nav-actions">
+      <button class="btn btn-cmd-monitor" id="btnOpenCmdMonitor" title="Supervisar tareas en segundo plano y consola CMD sin ventanas flotantes">
+        <span class="btn-icon">🖥️</span> Consola CMD & Tareas <span class="cmd-nav-dot" id="cmdNavDot"></span>
+      </button>
       <button class="btn btn-launch" id="btnOpenGlobalQueue" title="Ver y gestionar la secuencia global de tareas En Progreso de todos los proyectos">
         <span class="btn-icon">🚀</span> Cola Global (<span id="globalQueueTopCount">0</span>)
       </button>
@@ -473,6 +476,167 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modelsModal')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Centro de Control de Consola CMD & Tareas en Segundo Plano -->
+  <div class="modal-overlay" id="cmdMonitorModal">
+    <div class="modal-dialog modal-dialog-wide modal-cmd-dialog">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3>🖥️ Centro de Control de Tareas & Consola CMD</h3>
+          <p class="modal-subtitle">Monitoreo bajo demanda de procesos en segundo plano sin ventanas molestas</p>
+        </div>
+        <button class="modal-close" onclick="closeModal('cmdMonitorModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Pestañas de Servicios en Segundo Plano -->
+        <div class="cmd-tabs-bar">
+          <button class="cmd-tab-btn active" data-tab="tab-esios" onclick="switchCmdTab('tab-esios')">
+            <span class="cmd-tab-dot" id="tabDotEsios"></span> 🔋 Ingesta de Energía (ESIOS :8050)
+          </button>
+          <button class="cmd-tab-btn" data-tab="tab-robot" onclick="switchCmdTab('tab-robot')">
+            <span class="cmd-tab-dot online"></span> 🤖 Robot Organizador (:8002)
+          </button>
+          <button class="cmd-tab-btn" data-tab="tab-ecosystem" onclick="switchCmdTab('tab-ecosystem')">
+            🌐 Otros Servicios Locales
+          </button>
+        </div>
+
+        <!-- Tab 1: ESIOS Dashboard -->
+        <div class="cmd-tab-content active" id="tab-esios">
+          <div class="cmd-service-card">
+            <div class="cmd-service-header">
+              <div class="cmd-service-title">
+                <span class="service-icon-lg">🔋</span>
+                <div>
+                  <h4>Actualizador Maestro ESIOS</h4>
+                  <div class="cmd-service-meta">
+                    <span class="cmd-status-badge" id="cmdEsiosBadge">Cargando...</span>
+                    <span class="cmd-meta-item" id="cmdEsiosCurrentStep">Conectando...</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cmd-service-actions">
+                <button class="btn btn-sm btn-primary" id="btnTriggerEsiosSync" onclick="triggerEsiosSync()">
+                  <span class="btn-icon">▶️</span> Iniciar Sincronización
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="openServiceUrl('http://127.0.0.1:8050')">
+                  <span class="btn-icon">🌐</span> Abrir Panel Web
+                </button>
+              </div>
+            </div>
+
+            <!-- Progreso y Métricas de Ingesta -->
+            <div class="cmd-progress-container">
+              <div class="cmd-progress-labels">
+                <span id="cmdEsiosTaskName">Tarea activa: Ninguna</span>
+                <span class="cmd-progress-pct" id="cmdEsiosPct">0%</span>
+              </div>
+              <div class="cmd-progress-bar">
+                <div class="cmd-progress-fill" id="cmdEsiosBarFill" style="width: 0%;"></div>
+              </div>
+              <div class="cmd-metrics-row">
+                <div class="cmd-metric-box">
+                  <label>Tiempo Transcurrido</label>
+                  <strong id="cmdEsiosElapsed">00:00</strong>
+                </div>
+                <div class="cmd-metric-box">
+                  <label>Tiempo Restante Estimado</label>
+                  <strong id="cmdEsiosEta">--</strong>
+                </div>
+                <div class="cmd-metric-box">
+                  <label>Tareas Restantes</label>
+                  <strong id="cmdEsiosTasks">86 / 86</strong>
+                </div>
+                <div class="cmd-metric-box">
+                  <label>Registros Añadidos</label>
+                  <strong id="cmdEsiosAdded" style="color: #10b981;">0</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Visor de Consola CMD en Vivo -->
+            <div class="cmd-console-wrapper">
+              <div class="cmd-console-header">
+                <span>TERMINAL DE EJECUCIÓN (CMD STREAM)</span>
+                <div class="cmd-console-tools">
+                  <span id="cmdEsiosLogCount">0 líneas</span>
+                  <button class="btn btn-xs btn-outline" onclick="clearConsoleView('cmdEsiosTerminal')" title="Limpiar vista de consola">Limpiar</button>
+                  <label class="cmd-autoscroll-toggle">
+                    <input type="checkbox" id="cmdEsiosAutoScroll" checked> Auto-scroll
+                  </label>
+                </div>
+              </div>
+              <div class="cmd-terminal-box" id="cmdEsiosTerminal">
+                <div class="terminal-line placeholder">Esperando logs del proceso...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Robot Organizador -->
+        <div class="cmd-tab-content" id="tab-robot">
+          <div class="cmd-service-card">
+            <div class="cmd-service-header">
+              <div class="cmd-service-title">
+                <span class="service-icon-lg">🤖</span>
+                <div>
+                  <h4>Robot de Gestión de Proyectos (:8002)</h4>
+                  <div class="cmd-service-meta">
+                    <span class="cmd-status-badge online">🟢 EN LÍNEA</span>
+                    <span class="cmd-meta-item">Uvicorn FastAPI Server & Runner Autónomo</span>
+                  </div>
+                </div>
+              </div>
+              <div class="cmd-service-actions">
+                <button class="btn btn-sm btn-secondary" onclick="openServiceUrl('http://localhost:8002')">
+                  <span class="btn-icon">🌐</span> Panel Web :8002
+                </button>
+              </div>
+            </div>
+
+            <!-- Estado de Cola Autónoma -->
+            <div class="cmd-runner-box">
+              <div class="cmd-runner-status-row">
+                <div>
+                  <strong>Ejecutor Autónomo de Cola:</strong>
+                  <span id="cmdRobotRunnerBadge" class="cmd-status-badge">En espera</span>
+                </div>
+                <div id="cmdRobotRunnerModel" class="cmd-runner-model">Motor: --</div>
+              </div>
+              <div class="cmd-runner-task-info" id="cmdRobotRunnerTask">
+                Sin tarea activa en ejecución autónoma
+              </div>
+            </div>
+
+            <!-- Visor de Logs del Servidor -->
+            <div class="cmd-console-wrapper">
+              <div class="cmd-console-header">
+                <span>LOGS DEL SERVIDOR & RUNNER (CMD STREAM)</span>
+                <div class="cmd-console-tools">
+                  <span id="cmdRobotLogCount">0 líneas</span>
+                  <button class="btn btn-xs btn-outline" onclick="clearConsoleView('cmdRobotTerminal')" title="Limpiar vista">Limpiar</button>
+                </div>
+              </div>
+              <div class="cmd-terminal-box" id="cmdRobotTerminal">
+                <div class="terminal-line placeholder">Cargando registros del servidor...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Otros Servicios Locales -->
+        <div class="cmd-tab-content" id="tab-ecosystem">
+          <div class="cmd-ecosystem-grid" id="cmdEcosystemGrid">
+            <!-- Rellenado dinámicamente -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('cmdMonitorModal')">Cerrar</button>
+        <button class="btn btn-primary" onclick="openAllServicesInBrowser()">Abrir Todos los Servicios</button>
       </div>
     </div>
   </div>

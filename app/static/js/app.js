@@ -55,10 +55,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Service & Watchdog polling every 8s + live progress refresh
+  loadCmdTelemetry();
   setInterval(() => {
     loadServices();
     loadWatchdogStatus();
     refreshGlobalQueueBadge();
+    loadCmdTelemetry();
 
     const gqModal = document.getElementById('globalQueueModal');
     if (gqModal && gqModal.classList.contains('open')) {
@@ -109,6 +111,8 @@ function initEventListeners() {
   }
 
   // Top buttons
+  const btnCmdMon = document.getElementById('btnOpenCmdMonitor');
+  if (btnCmdMon) btnCmdMon.addEventListener('click', openCmdMonitorModal);
   const btnGlobalQ = document.getElementById('btnOpenGlobalQueue');
   if (btnGlobalQ) btnGlobalQ.addEventListener('click', openGlobalQueueModal);
   const btnCopyGlobalSeq = document.getElementById('btnCopyGlobalSequence');
@@ -1468,11 +1472,233 @@ async function stopGlobalQueueNow() {
 }
 
 // --------------------------------------------------------------------------
+// CENTRO DE CONTROL DE TAREAS Y CONSOLA CMD EN SEGUNDO PLANO
+// --------------------------------------------------------------------------
+let cmdMonitorInterval = null;
+let currentCmdTab = 'tab-esios';
+
+function openCmdMonitorModal() {
+  const modal = document.getElementById('cmdMonitorModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  loadCmdTelemetry();
+  if (cmdMonitorInterval) clearInterval(cmdMonitorInterval);
+  cmdMonitorInterval = setInterval(loadCmdTelemetry, 1500);
+}
+
+function switchCmdTab(tabId) {
+  currentCmdTab = tabId;
+  document.querySelectorAll('.cmd-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+  });
+  document.querySelectorAll('.cmd-tab-content').forEach(content => {
+    content.classList.toggle('active', content.id === tabId);
+  });
+}
+
+function clearConsoleView(terminalId) {
+  const terminal = document.getElementById(terminalId);
+  if (terminal) {
+    terminal.innerHTML = '<div class="terminal-line placeholder">Consola limpiada por el usuario.</div>';
+  }
+}
+
+function openServiceUrl(url) {
+  window.open(url, '_blank');
+}
+
+async function triggerEsiosSync() {
+  const btn = document.getElementById('btnTriggerEsiosSync');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch('/api/services/esios/start', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'Sincronización iniciada', 'success');
+      loadCmdTelemetry();
+    } else {
+      showToast(data.error || 'No se pudo iniciar la sincronización', 'error');
+    }
+  } catch (err) {
+    showToast('Error conectando con el servicio ESIOS', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function loadCmdTelemetry() {
+  try {
+    const res = await fetch('/api/services/monitor');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.success) return;
+
+    const esios = data.esios || {};
+    const robot = data.robot || {};
+    const services = data.services || [];
+
+    // Nav Dot
+    const navDot = document.getElementById('cmdNavDot');
+    if (navDot) {
+      if (esios.status === 'running' || (robot.runner && robot.runner.running)) {
+        navDot.className = 'cmd-nav-dot running';
+      } else if (esios.online) {
+        navDot.className = 'cmd-nav-dot online';
+      } else {
+        navDot.className = 'cmd-nav-dot offline';
+      }
+    }
+
+    // Tab Dot ESIOS
+    const tabDotEsios = document.getElementById('tabDotEsios');
+    if (tabDotEsios) {
+      tabDotEsios.className = 'cmd-tab-dot ' + (esios.status === 'running' ? 'running' : (esios.online ? 'online' : ''));
+    }
+
+    // ESIOS Tab Elements
+    const badge = document.getElementById('cmdEsiosBadge');
+    if (badge) {
+      if (esios.status === 'running') {
+        badge.className = 'cmd-status-badge running';
+        badge.textContent = '⚡ EN EJECUCIÓN';
+      } else if (esios.status === 'completed') {
+        badge.className = 'cmd-status-badge online';
+        badge.textContent = '✅ AL DÍA / LISTO';
+      } else if (esios.online) {
+        badge.className = 'cmd-status-badge';
+        badge.textContent = '⚪ EN ESPERA / PARADO';
+      } else {
+        badge.className = 'cmd-status-badge stopped';
+        badge.textContent = '🔴 APAGADO (PUERTO :8050)';
+      }
+    }
+
+    const stepEl = document.getElementById('cmdEsiosCurrentStep');
+    if (stepEl) stepEl.textContent = esios.current_step || 'Inactivo';
+
+    const taskEl = document.getElementById('cmdEsiosTaskName');
+    if (taskEl) taskEl.textContent = `Tarea activa: ${esios.current_task_name || 'Ninguna'}`;
+
+    const pctEl = document.getElementById('cmdEsiosPct');
+    const barFill = document.getElementById('cmdEsiosBarFill');
+    const pctVal = esios.progress || 0;
+    if (pctEl) pctEl.textContent = `${pctVal}%`;
+    if (barFill) barFill.style.width = `${pctVal}%`;
+
+    const elapsedEl = document.getElementById('cmdEsiosElapsed');
+    if (elapsedEl) {
+      const sec = esios.elapsed_time || 0;
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      elapsedEl.textContent = `${m}:${s}`;
+    }
+
+    const etaEl = document.getElementById('cmdEsiosEta');
+    if (etaEl) etaEl.textContent = esios.eta_text || '--';
+
+    const tasksEl = document.getElementById('cmdEsiosTasks');
+    if (tasksEl) {
+      const comp = esios.completed_tasks || 0;
+      const total = esios.total_tasks || 86;
+      tasksEl.textContent = `${comp} / ${total}`;
+    }
+
+    const addedEl = document.getElementById('cmdEsiosAdded');
+    if (addedEl) addedEl.textContent = `+${esios.total_added || 0}`;
+
+    // Logs ESIOS
+    const terminalEsios = document.getElementById('cmdEsiosTerminal');
+    const logCountEl = document.getElementById('cmdEsiosLogCount');
+    const autoScroll = document.getElementById('cmdEsiosAutoScroll')?.checked ?? true;
+
+    if (terminalEsios && esios.logs && esios.logs.length > 0) {
+      if (logCountEl) logCountEl.textContent = `${esios.logs.length} líneas`;
+      terminalEsios.innerHTML = esios.logs.map(line => {
+        let cls = 'terminal-line';
+        if (line.includes('ERROR') || line.includes('Falló')) cls += ' error';
+        else if (line.includes('--- Iniciando:') || line.includes('Descargando')) cls += ' info';
+        else if (line.includes('completada') || line.includes('éxito')) cls += ' success';
+        return `<div class="${cls}">${escapeHtml(line)}</div>`;
+      }).join('');
+
+      if (autoScroll) {
+        terminalEsios.scrollTop = terminalEsios.scrollHeight;
+      }
+    }
+
+    // Robot Tab Elements
+    const runner = robot.runner || {};
+    const runnerBadge = document.getElementById('cmdRobotRunnerBadge');
+    if (runnerBadge) {
+      if (runner.running) {
+        runnerBadge.className = 'cmd-status-badge running';
+        runnerBadge.textContent = '⚡ EN EJECUCIÓN';
+      } else {
+        runnerBadge.className = 'cmd-status-badge';
+        runnerBadge.textContent = '⚪ EN ESPERA';
+      }
+    }
+
+    const runnerModel = document.getElementById('cmdRobotRunnerModel');
+    if (runnerModel) {
+      runnerModel.textContent = runner.current_model ? `Motor: ${runner.current_model}` : 'Motor: Dinámico Multi-Motor';
+    }
+
+    const runnerTask = document.getElementById('cmdRobotRunnerTask');
+    if (runnerTask) {
+      if (runner.running && runner.current_task_title) {
+        runnerTask.innerHTML = `<b>Tarea activa:</b> #${runner.current_task_id} — ${escapeHtml(runner.current_task_title)}`;
+      } else {
+        runnerTask.textContent = runner.last_log || 'Sin tarea activa en ejecución autónoma';
+      }
+    }
+
+    const terminalRobot = document.getElementById('cmdRobotTerminal');
+    const robotLogs = (runner.history && runner.history.length > 0) ? runner.history : (robot.server_logs || []);
+    const robotLogCount = document.getElementById('cmdRobotLogCount');
+    if (terminalRobot && robotLogs.length > 0) {
+      if (robotLogCount) robotLogCount.textContent = `${robotLogs.length} líneas`;
+      terminalRobot.innerHTML = robotLogs.map(l => `<div class="terminal-line">${escapeHtml(l)}</div>`).join('');
+      terminalRobot.scrollTop = terminalRobot.scrollHeight;
+    }
+
+    // Ecosystem Tab
+    const ecoGrid = document.getElementById('cmdEcosystemGrid');
+    if (ecoGrid && services.length > 0) {
+      ecoGrid.innerHTML = services.map(s => `
+        <div class="cmd-eco-card">
+          <div class="cmd-eco-info">
+            <span class="cmd-eco-icon">${s.icon || '🌐'}</span>
+            <div class="cmd-eco-details">
+              <h5>${escapeHtml(s.name)}</h5>
+              <p>Puerto :${s.port} • <span style="color:${s.is_online ? '#34d399' : '#94a3b8'}">${s.is_online ? 'En línea' : 'Inactivo'}</span></p>
+            </div>
+          </div>
+          <div>
+            ${s.is_online
+              ? `<button class="btn btn-xs btn-primary" onclick="openServiceUrl('${s.url}')">Abrir</button>`
+              : (s.can_autostart ? `<button class="btn btn-xs btn-secondary" onclick="startService('${s.id}')">Arrancar</button>` : `<button class="btn btn-xs btn-outline" disabled>Inactivo</button>`)
+            }
+          </div>
+        </div>
+      `).join('');
+    }
+
+  } catch (err) {
+    console.warn('Error cargando telemetría CMD:', err);
+  }
+}
+
+// --------------------------------------------------------------------------
 // UTILS & GLOBAL HANDLERS
 // --------------------------------------------------------------------------
 window.closeModal = function(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) modal.classList.remove('open');
+  if (modalId === 'cmdMonitorModal' && cmdMonitorInterval) {
+    clearInterval(cmdMonitorInterval);
+    cmdMonitorInterval = null;
+  }
 };
 
 window.openTaskModal = openTaskModal;
@@ -1504,6 +1730,11 @@ window.stopGlobalQueueNow = stopGlobalQueueNow;
 window.openModelsModal = openModelsModal;
 window.renderModelsModal = renderModelsModal;
 window.moveModelSequence = moveModelSequence;
+window.openCmdMonitorModal = openCmdMonitorModal;
+window.switchCmdTab = switchCmdTab;
+window.clearConsoleView = clearConsoleView;
+window.openServiceUrl = openServiceUrl;
+window.triggerEsiosSync = triggerEsiosSync;
 
 // Close modals when clicking outside modal-dialog or on Escape key
 document.querySelectorAll('.modal-overlay').forEach(overlay => {

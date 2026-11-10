@@ -5,13 +5,18 @@ import socket
 import subprocess
 import webbrowser
 import logging
+import json
 import urllib.request
+import urllib.error
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger("service_hub")
 
 WORKSPACE_ROOT = r"D:\OneDrive\04_Desarrollo_proyectos"
-PYTHON_EXE = sys.executable or "python"
+_python_dir = os.path.dirname(sys.executable) if sys.executable else ""
+_pythonw_candidate = os.path.join(_python_dir, "pythonw.exe")
+PYTHON_EXE = _pythonw_candidate if os.path.exists(_pythonw_candidate) else (sys.executable or "python")
 
 SERVICES_CONFIG = [
     {
@@ -490,3 +495,115 @@ def open_project_resource(project_id: str, resource_key: str) -> Dict[str, Any]:
 
     conn.close()
     return {"success": False, "error": f"Recurso '{resource_key}' no reconocido"}
+
+
+def get_esios_live_status() -> Dict[str, Any]:
+    port_open = check_port_open("127.0.0.1", 8050, timeout=0.4)
+    if not port_open:
+        return {
+            "online": False,
+            "status": "stopped",
+            "status_text": "Servicio detenido (Puerto 8050 apagado)",
+            "progress": 0,
+            "current_step": "Inactivo. Pulsa 'Arrancar' para iniciar el proceso.",
+            "current_task_name": "Ninguna",
+            "elapsed_time": 0,
+            "eta_text": "--",
+            "logs": [],
+            "total_tasks": 86,
+            "completed_tasks": 0,
+            "total_added": 0
+        }
+    try:
+        req = urllib.request.Request("http://127.0.0.1:8050/api/status", headers={"User-Agent": "RobotOrganizador/1.0"})
+        with urllib.request.urlopen(req, timeout=1.5) as res:
+            if res.status == 200:
+                data = json.loads(res.read().decode("utf-8"))
+                status_raw = data.get("status", "idle")
+                status_text = "En ejecución" if status_raw == "running" else "Listo / Al día" if status_raw == "completed" else "En espera" if status_raw == "idle" else "Error / Fallido"
+                return {
+                    "online": True,
+                    "status": status_raw,
+                    "status_text": status_text,
+                    "progress": data.get("progress", 0),
+                    "current_step": data.get("current_step", ""),
+                    "current_task_name": data.get("current_task_name", ""),
+                    "elapsed_time": data.get("elapsed_time", 0),
+                    "eta_text": data.get("eta_text", "--"),
+                    "logs": data.get("logs", [])[-100:],
+                    "total_tasks": data.get("total_tasks", 86),
+                    "completed_tasks": data.get("completed_tasks", 0),
+                    "total_added": data.get("total_added", 0)
+                }
+    except Exception as e:
+        logger.warning(f"Error consultando telemetría ESIOS: {e}")
+
+    return {
+        "online": True,
+        "status": "idle",
+        "status_text": "En línea (Respondiendo)",
+        "progress": 0,
+        "current_step": "En espera",
+        "current_task_name": "Ninguna",
+        "elapsed_time": 0,
+        "eta_text": "--",
+        "logs": [],
+        "total_tasks": 86,
+        "completed_tasks": 0,
+        "total_added": 0
+    }
+
+
+def trigger_esios_update() -> Dict[str, Any]:
+    port_open = check_port_open("127.0.0.1", 8050, timeout=0.4)
+    if not port_open:
+        start_res = start_local_service("actualizador_esios", wait_ready=True, max_wait=6.0)
+        if not start_res.get("success"):
+            return {"success": False, "error": f"No se pudo arrancar el Actualizador ESIOS: {start_res.get('error')}"}
+
+    try:
+        req = urllib.request.Request("http://127.0.0.1:8050/api/start", data=b"{}", headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=3.0) as res:
+            return {"success": True, "message": "Sincronización de energía iniciada correctamente"}
+    except urllib.error.HTTPError as e:
+        try:
+            body = json.loads(e.read().decode())
+            return {"success": False, "error": body.get("error", str(e))}
+        except Exception:
+            return {"success": False, "error": str(e)}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def get_combined_service_monitor() -> Dict[str, Any]:
+    esios_status = get_esios_live_status()
+    try:
+        from app.services.queue_runner import get_runner_status
+        runner_status = get_runner_status()
+    except Exception:
+        runner_status = {"running": False, "last_log": "No disponible"}
+    
+    server_logs = []
+    log_path = os.path.join(WORKSPACE_ROOT, "2026_Proyecto_RobotOrganizador", "server_8002.log")
+    if os.path.exists(log_path):
+        try:
+            with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+                server_logs = [line.strip() for line in f.readlines() if line.strip()][-40:]
+        except Exception:
+            pass
+
+    services_summary = get_services_status()
+
+    return {
+        "success": True,
+        "timestamp": datetime.now().isoformat(),
+        "esios": esios_status,
+        "robot": {
+            "online": True,
+            "port": 8002,
+            "status_text": "En ejecución (Servidor Activo)",
+            "runner": runner_status,
+            "server_logs": server_logs
+        },
+        "services": services_summary
+    }

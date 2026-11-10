@@ -1840,3 +1840,455 @@ input:checked + .slider:before {
   color: #34d399;
   border: 1px solid rgba(16, 185, 129, 0.4);
 }
+
+/* =====================================================================
+   Centro de Control de Tareas & Consola CMD en Segundo Plano
+   ===================================================================== */
+.btn-cmd-monitor {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #e2e8f0;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-cmd-monitor:hover {
+  border-color: rgba(56, 189, 248, 0.7);
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.95), rgba(30, 41, 59, 0.95));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.2);
+}
+
+.cmd-nav-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.cmd-nav-dot.running {
+  background: #00f2fe;
+  box-shadow: 0 0 10px #00f2fe;
+  animation: pulse-dot 1.2s infinite;
+}
+
+.cmd-nav-dot.offline {
+  background: #64748b;
+  box-shadow: none;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-cmd-dialog {
+  max-width: 980px;
+  width: 95%;
+}
+
+.modal-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.cmd-tabs-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 0.6rem;
+  overflow-x: auto;
+}
+
+.cmd-tab-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-muted);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cmd-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+.cmd-tab-btn.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+}
+
+.cmd-tab-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.cmd-tab-dot.online {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.cmd-tab-dot.running {
+  background: #00f2fe;
+  box-shadow: 0 0 8px #00f2fe;
+  animation: pulse-dot 1.2s infinite;
+}
+
+.cmd-tab-content {
+  display: none;
+}
+
+.cmd-tab-content.active {
+  display: block;
+}
+
+.cmd-service-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cmd-service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+}
+
+.cmd-service-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.service-icon-lg {
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cmd-service-title h4 {
+  font-size: 1.05rem;
+  margin: 0;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cmd-service-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.cmd-status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.18rem 0.55rem;
+  border-radius: 20px;
+  background: rgba(100, 116, 139, 0.2);
+  color: #cbd5e1;
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cmd-status-badge.online {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.cmd-status-badge.running {
+  background: rgba(0, 242, 254, 0.18);
+  color: #00f2fe;
+  border-color: rgba(0, 242, 254, 0.4);
+  animation: pulse-border 1.5s infinite;
+}
+
+.cmd-status-badge.stopped,
+.cmd-status-badge.offline {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.cmd-meta-item {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.cmd-service-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Barra de Progreso y Métricas */
+.cmd-progress-container {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.cmd-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.45rem;
+  font-size: 0.85rem;
+}
+
+.cmd-progress-pct {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #38bdf8;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.cmd-progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.9rem;
+}
+
+.cmd-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #10b981);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+  transition: width 0.35s ease;
+}
+
+.cmd-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.65rem;
+}
+
+@media (max-width: 720px) {
+  .cmd-metrics-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.cmd-metric-box {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  text-align: center;
+}
+
+.cmd-metric-box label {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.cmd-metric-box strong {
+  font-size: 0.92rem;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Visor de Consola Terminal CMD */
+.cmd-console-wrapper {
+  background: #050811;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.cmd-console-header {
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.45rem 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.cmd-console-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.cmd-autoscroll-toggle {
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
+.cmd-terminal-box {
+  padding: 0.85rem 1rem;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+  height: 250px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: #04060d;
+}
+
+.cmd-terminal-box::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cmd-terminal-box::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.terminal-line {
+  margin-bottom: 2px;
+}
+
+.terminal-line.placeholder {
+  color: #475569;
+  font-style: italic;
+}
+
+.terminal-line.info {
+  color: #38bdf8;
+}
+
+.terminal-line.success {
+  color: #34d399;
+}
+
+.terminal-line.error {
+  color: #f87171;
+}
+
+.btn-xs {
+  padding: 0.15rem 0.45rem;
+  font-size: 0.68rem;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+}
+
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* Runner Box para el Robot */
+.cmd-runner-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+}
+
+.cmd-runner-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.cmd-runner-model {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  color: #a78bfa;
+}
+
+.cmd-runner-task-info {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Grid de Otros Servicios */
+.cmd-ecosystem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.85rem;
+}
+
+.cmd-eco-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.cmd-eco-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.04);
+}
+
+.cmd-eco-info {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.cmd-eco-icon {
+  font-size: 1.5rem;
+}
+
+.cmd-eco-details h5 {
+  font-size: 0.88rem;
+  margin: 0;
+  color: #fff;
+}
+
+.cmd-eco-details p {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0.1rem 0 0 0;
+}
