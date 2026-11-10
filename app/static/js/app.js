@@ -1507,22 +1507,60 @@ function openServiceUrl(url) {
   window.open(url, '_blank');
 }
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function startService(serviceId) {
+  showToast(`Arrancando servicio (${serviceId})...`, 'info');
+  try {
+    const res = await fetch(`/api/services/${encodeURIComponent(serviceId)}/start?open_browser=false`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`${data.name || serviceId} iniciado en segundo plano`, 'success');
+      loadServices();
+      loadCmdTelemetry();
+    } else {
+      showToast(data.error || `No se pudo iniciar ${serviceId}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Error arrancando ${serviceId}`, 'error');
+  }
+}
+
 async function triggerEsiosSync() {
   const btn = document.getElementById('btnTriggerEsiosSync');
-  if (btn) btn.disabled = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="btn-icon">⏳</span> Iniciando...';
+  }
   try {
     const res = await fetch('/api/services/esios/start', { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast(data.message || 'Sincronización iniciada', 'success');
+      showToast(data.message || 'Sincronización de energía iniciada', 'success');
       loadCmdTelemetry();
+      setTimeout(loadCmdTelemetry, 500);
+      setTimeout(loadCmdTelemetry, 1500);
     } else {
       showToast(data.error || 'No se pudo iniciar la sincronización', 'error');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="btn-icon">▶️</span> Iniciar Sincronización';
+      }
     }
   } catch (err) {
     showToast('Error conectando con el servicio ESIOS', 'error');
-  } finally {
-    if (btn) btn.disabled = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="btn-icon">▶️</span> Iniciar Sincronización';
+    }
   }
 }
 
@@ -1564,12 +1602,29 @@ async function loadCmdTelemetry() {
       } else if (esios.status === 'completed') {
         badge.className = 'cmd-status-badge online';
         badge.textContent = '✅ AL DÍA / LISTO';
+      } else if (esios.status === 'failed') {
+        badge.className = 'cmd-status-badge stopped';
+        badge.textContent = '❌ ERROR / FALLIDO';
       } else if (esios.online) {
         badge.className = 'cmd-status-badge';
         badge.textContent = '⚪ EN ESPERA / PARADO';
       } else {
         badge.className = 'cmd-status-badge stopped';
         badge.textContent = '🔴 APAGADO (PUERTO :8050)';
+      }
+    }
+
+    const syncBtn = document.getElementById('btnTriggerEsiosSync');
+    if (syncBtn) {
+      if (esios.status === 'running') {
+        syncBtn.disabled = true;
+        syncBtn.innerHTML = '<span class="btn-icon">⏳</span> Sincronizando...';
+      } else if (esios.status === 'failed') {
+        syncBtn.disabled = false;
+        syncBtn.innerHTML = '<span class="btn-icon">🔄</span> Reintentar Sincronización';
+      } else {
+        syncBtn.disabled = false;
+        syncBtn.innerHTML = '<span class="btn-icon">▶️</span> Iniciar Sincronización';
       }
     }
 
@@ -1611,18 +1666,22 @@ async function loadCmdTelemetry() {
     const logCountEl = document.getElementById('cmdEsiosLogCount');
     const autoScroll = document.getElementById('cmdEsiosAutoScroll')?.checked ?? true;
 
-    if (terminalEsios && esios.logs && esios.logs.length > 0) {
-      if (logCountEl) logCountEl.textContent = `${esios.logs.length} líneas`;
-      terminalEsios.innerHTML = esios.logs.map(line => {
-        let cls = 'terminal-line';
-        if (line.includes('ERROR') || line.includes('Falló')) cls += ' error';
-        else if (line.includes('--- Iniciando:') || line.includes('Descargando')) cls += ' info';
-        else if (line.includes('completada') || line.includes('éxito')) cls += ' success';
-        return `<div class="${cls}">${escapeHtml(line)}</div>`;
-      }).join('');
-
-      if (autoScroll) {
-        terminalEsios.scrollTop = terminalEsios.scrollHeight;
+    if (terminalEsios) {
+      if (esios.logs && esios.logs.length > 0) {
+        if (logCountEl) logCountEl.textContent = `${esios.logs.length} líneas`;
+        terminalEsios.innerHTML = esios.logs.map(line => {
+          let cls = 'terminal-line';
+          if (line.includes('ERROR') || line.includes('Falló') || line.includes('❌')) cls += ' error';
+          else if (line.includes('--- Iniciando') || line.includes('Descargando') || line.includes('▶') || line.includes('🔌')) cls += ' info';
+          else if (line.includes('completada') || line.includes('éxito') || line.includes('✅')) cls += ' success';
+          return `<div class="${cls}">${escapeHtml(line)}</div>`;
+        }).join('');
+        if (autoScroll) {
+          terminalEsios.scrollTop = terminalEsios.scrollHeight;
+        }
+      } else {
+        if (logCountEl) logCountEl.textContent = '0 líneas';
+        terminalEsios.innerHTML = '<div class="terminal-line placeholder">Esperando logs del proceso ESIOS...</div>';
       }
     }
 
@@ -1654,24 +1713,27 @@ async function loadCmdTelemetry() {
     }
 
     const terminalRobot = document.getElementById('cmdRobotTerminal');
+    const robotAutoScroll = document.getElementById('cmdRobotAutoScroll')?.checked ?? true;
     const srvLogs = robot.server_logs || [];
-    const runLogs = (runner.history || []).map(h => `[RUNNER] ${h}`);
+    const runLogs = (runner.history || []);
     const combinedSet = [...srvLogs];
     runLogs.forEach(rl => {
       if (!combinedSet.includes(rl)) combinedSet.push(rl);
     });
-    const robotLogs = combinedSet.slice(-50);
+    const robotLogs = combinedSet.slice(-60);
     const robotLogCount = document.getElementById('cmdRobotLogCount');
     if (terminalRobot && robotLogs.length > 0) {
       if (robotLogCount) robotLogCount.textContent = `${robotLogs.length} líneas`;
       terminalRobot.innerHTML = robotLogs.map(l => {
         let cls = 'terminal-line';
-        if (l.includes('ERROR') || l.includes('⚠️')) cls += ' error';
-        else if (l.includes('[RUNNER]') || l.includes('🚀')) cls += ' info';
-        else if (l.includes('200 OK') || l.includes('✅')) cls += ' success';
+        if (l.includes('ERROR') || l.includes('⚠️') || l.includes('❌')) cls += ' error';
+        else if (l.includes('[RUNNER]') || l.includes('[PROGRESO]') || l.includes('🚀') || l.includes('📊') || l.includes('⏳')) cls += ' info';
+        else if (l.includes('200 OK') || l.includes('✅') || l.includes('🟢')) cls += ' success';
         return `<div class="${cls}">${escapeHtml(l)}</div>`;
       }).join('');
-      terminalRobot.scrollTop = terminalRobot.scrollHeight;
+      if (robotAutoScroll) {
+        terminalRobot.scrollTop = terminalRobot.scrollHeight;
+      }
     }
 
     // Ecosystem Tab
@@ -1747,6 +1809,8 @@ window.switchCmdTab = switchCmdTab;
 window.clearConsoleView = clearConsoleView;
 window.openServiceUrl = openServiceUrl;
 window.triggerEsiosSync = triggerEsiosSync;
+window.startService = startService;
+window.openAllServicesInBrowser = openAllServices;
 
 // Close modals when clicking outside modal-dialog or on Escape key
 document.querySelectorAll('.modal-overlay').forEach(overlay => {

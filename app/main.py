@@ -1,5 +1,6 @@
 import os
 import shutil
+import logging
 from typing import Optional, List
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -41,6 +42,27 @@ from app.services.queue_runner import (
     stop_queue_runner,
     get_runner_status
 )
+from app.services.activity_logger import log_activity
+
+
+class _QuietPollingAccessFilter(logging.Filter):
+    """Evita que el polling periódico de la UI sature server_8002.log y tape los logs reales."""
+    NOISY_PATHS = (
+        "GET /api/services/monitor",
+        "GET /api/services ",
+        "GET /api/services/esios/status",
+        "GET /api/watchdog/status",
+        "GET /api/queue ",
+        "GET /api/queue/runner-status",
+        "GET /api/projects",
+        "GET / "
+    )
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        if " 200" in msg and any(p in msg for p in self.NOISY_PATHS):
+            return False
+        return True
 
 app = FastAPI(title="Robot de Gestión de Proyectos 2026", version="1.1.0")
 
@@ -63,8 +85,10 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 # Initialize database on startup
 @app.on_event("startup")
 def startup_event():
+    logging.getLogger("uvicorn.access").addFilter(_QuietPollingAccessFilter())
     init_db()
     scan_and_seed_projects()
+    log_activity("ROBOT", "🟢 Servidor Robot Organizador (:8002) iniciado en segundo plano y conectado.")
 
 # Models
 class TaskCreate(BaseModel):
@@ -329,34 +353,34 @@ async def upload_image(file: UploadFile = File(...)):
     return {"success": True, "file_url": f"/uploads/{filename}", "file_path": file_path}
 
 @app.get("/api/services")
-async def get_services():
+def get_services():
     return get_services_status()
 
 @app.post("/api/services/open-all")
-async def open_all_services():
+def open_all_services():
     return open_all_services_in_browser()
 
+@app.get("/api/services/monitor")
+def services_monitor_endpoint():
+    return get_combined_service_monitor()
+
+@app.get("/api/services/esios/status")
+def esios_status_endpoint():
+    return get_esios_live_status()
+
+@app.post("/api/services/esios/start")
+def esios_start_endpoint():
+    return trigger_esios_update()
+
 @app.post("/api/services/{service_id}/start")
-async def start_service_endpoint(service_id: str, open_browser: bool = True):
+def start_service_endpoint(service_id: str, open_browser: bool = True):
     res = start_local_service(service_id, wait_ready=True)
     if res.get("success") and open_browser and res.get("url"):
         open_url_in_system_browser(res["url"])
     return res
 
-@app.get("/api/services/monitor")
-async def services_monitor_endpoint():
-    return get_combined_service_monitor()
-
-@app.get("/api/services/esios/status")
-async def esios_status_endpoint():
-    return get_esios_live_status()
-
-@app.post("/api/services/esios/start")
-async def esios_start_endpoint():
-    return trigger_esios_update()
-
 @app.get("/api/watchdog/status")
-async def watchdog_status_endpoint():
+def watchdog_status_endpoint():
     return get_watchdog_status()
 
 @app.post("/api/watchdog/models/move")

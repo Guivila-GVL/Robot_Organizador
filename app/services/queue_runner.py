@@ -11,6 +11,7 @@ from app.services.execution_queue import get_launched_queue, update_task_progres
 from app.services.watchdog_service import get_watchdog_status, mark_model_exhausted_hours, QUOTA_KEYWORDS
 from app.services.milestone_checker import check_and_complete_task
 from app.services.telegram_service import send_telegram_message
+from app.services.activity_logger import log_activity
 
 AGY_EXE = r"C:\Users\guill\.gemini\bin\agy.exe"
 WORKSPACE_ROOT = r"D:\OneDrive\04_Desarrollo_proyectos"
@@ -32,16 +33,11 @@ RUNNER_STATE: Dict[str, Any] = {
 
 
 def _log_event(msg: str) -> None:
-    ts = datetime.now().strftime("%H:%M:%S")
-    line = f"[{ts}] {msg}"
+    line = log_activity("RUNNER", msg)
     RUNNER_STATE["last_log"] = line
     RUNNER_STATE["history"].append(line)
-    if len(RUNNER_STATE["history"]) > 30:
-        RUNNER_STATE["history"] = RUNNER_STATE["history"][-30:]
-    try:
-        print(f"[RUNNER] {line}", flush=True)
-    except Exception:
-        pass
+    if len(RUNNER_STATE["history"]) > 60:
+        RUNNER_STATE["history"] = RUNNER_STATE["history"][-60:]
 
 
 def get_runner_status() -> Dict[str, Any]:
@@ -54,7 +50,7 @@ def get_runner_status() -> Dict[str, Any]:
         "current_model": RUNNER_STATE["current_model"],
         "started_at": RUNNER_STATE["started_at"],
         "last_log": RUNNER_STATE["last_log"],
-        "history": list(RUNNER_STATE["history"][-10:]),
+        "history": list(RUNNER_STATE["history"][-30:]),
         "agy_available": os.path.exists(AGY_EXE)
     }
 
@@ -121,6 +117,9 @@ def _run_single_task_with_model(task: Dict[str, Any], model_info: Dict[str, Any]
 
     try:
         creation_flags = 0x08000000  # CREATE_NO_WINDOW
+        sub_env = os.environ.copy()
+        sub_env["PYTHONUNBUFFERED"] = "1"
+        sub_env["PYTHONIOENCODING"] = "utf-8"
         proc = subprocess.Popen(
             cmd,
             cwd=project_folder,
@@ -129,10 +128,23 @@ def _run_single_task_with_model(task: Dict[str, Any], model_info: Dict[str, Any]
             text=True,
             encoding="utf-8",
             errors="replace",
-            creationflags=creation_flags
+            creationflags=creation_flags,
+            env=sub_env
         )
         _active_process = proc
         output_lines: List[str] = []
+        hb_stop = threading.Event()
+        start_ts = time.time()
+
+        def _heartbeat():
+            while not hb_stop.wait(15.0):
+                if proc.poll() is not None or RUNNER_STATE["stop_requested"]:
+                    break
+                elapsed_s = int(time.time() - start_ts)
+                _log_event(f"⏳ [{model_name}] Procesando tarea #{task_id} en segundo plano ({elapsed_s}s)...")
+
+        hb_thread = threading.Thread(target=_heartbeat, daemon=True)
+        hb_thread.start()
 
         if proc.stdout:
             for line in proc.stdout:
@@ -142,8 +154,9 @@ def _run_single_task_with_model(task: Dict[str, Any], model_info: Dict[str, Any]
                 clean_ln = line.strip()
                 if clean_ln:
                     output_lines.append(clean_ln)
-                    _log_event(f"[{model_name}] {clean_ln[:120]}")
+                    _log_event(f"[{model_name}] {clean_ln[:140]}")
 
+        hb_stop.set()
         rc = proc.wait(timeout=30)
         _active_process = None
         full_output = "\n".join(output_lines)

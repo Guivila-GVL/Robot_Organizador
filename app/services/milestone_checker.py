@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from app.database import get_db_connection
 from app.services.telegram_service import notify_task_milestone
+from app.services.activity_logger import log_activity
 
 def check_and_complete_task(
     task_id: int,
@@ -145,6 +146,9 @@ def check_and_complete_task(
             milestone_comment=tg_comment,
             image_path=image_path
         )
+        log_activity("HITO", f"✅ #{task_id} completada [{task['project_name']}] -> {task['title'][:65]}")
+    elif new_status == "failed":
+        log_activity("HITO", f"❌ #{task_id} falló validación: {result_text[:90]}")
 
     return {
         "success": True,

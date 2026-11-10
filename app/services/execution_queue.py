@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 from app.database import get_db_connection
+from app.services.activity_logger import log_activity
 
 WORKSPACE_ROOT = r"D:\OneDrive\04_Desarrollo_proyectos"
 QUEUE_FILE = os.path.join(WORKSPACE_ROOT, "0000_Utilidades", "COLA_EJECUCION_ANTIGRAVITY.md")
@@ -130,6 +131,7 @@ def launch_task(task_id: int) -> Dict[str, Any]:
     conn.commit()
     conn.close()
 
+    log_activity("TAREA", f"🚀 #{task_id} lanzada a En Progreso: {task['title'][:70]}")
     queue_path = sync_execution_queue_file()
     return {
         "success": True,
@@ -169,6 +171,7 @@ def pause_task(task_id: int) -> Dict[str, Any]:
     conn.commit()
     conn.close()
 
+    log_activity("TAREA", f"⏸️ #{task_id} pausada y devuelta a Pendientes.")
     sync_execution_queue_file()
     return {"success": True, "task_id": task_id, "status": "pending"}
 
@@ -195,6 +198,7 @@ def reorder_queue_task(task_id: int, direction: str) -> Dict[str, Any]:
         conn.commit()
 
     conn.close()
+    log_activity("COLA", f"🔀 Secuencia reordenada: tarea #{task_id} movida ({direction}).")
     sync_execution_queue_file()
     return {"success": True, "task_id": task_id, "direction": direction}
 
@@ -238,6 +242,8 @@ def update_task_progress(
     conn.commit()
     conn.close()
 
+    note_part = f" · {note.strip()[:80]}" if note and note.strip() else ""
+    log_activity("PROGRESO", f"📊 #{task_id} ({author}) [{new_pct}%] {new_step}{note_part}")
     sync_execution_queue_file()
     return {
         "success": True,

@@ -10,6 +10,7 @@ import urllib.request
 import urllib.error
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+from app.services.activity_logger import log_activity, read_activity_logs
 
 logger = logging.getLogger("service_hub")
 
@@ -101,7 +102,9 @@ SERVICES_CONFIG = [
     }
 ]
 
-def check_port_open(host: str, port: int, timeout: float = 0.4) -> bool:
+_VERCEL_CACHE = {"ts": 0.0, "online": True}
+
+def check_port_open(host: str, port: int, timeout: float = 0.15) -> bool:
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
@@ -114,16 +117,24 @@ def check_port_open(host: str, port: int, timeout: float = 0.4) -> bool:
 def check_service_online(service: Dict[str, Any]) -> bool:
     port = service.get("port")
     if port and port != 3001:
-        return check_port_open(service.get("host", "127.0.0.1"), port)
+        return check_port_open(service.get("host", "127.0.0.1"), port, timeout=0.15)
     
     if service.get("id") == "certificado_humano":
-        if check_port_open("127.0.0.1", 3001, timeout=0.2):
+        if check_port_open("127.0.0.1", 3001, timeout=0.12):
             return True
+        now = time.time()
+        if (now - _VERCEL_CACHE["ts"]) < 60.0:
+            return _VERCEL_CACHE["online"]
         try:
             req = urllib.request.Request("https://human-certified.vercel.app/", headers={"User-Agent": "RobotOrganizador/1.0"})
-            with urllib.request.urlopen(req, timeout=1.5) as res:
-                return res.status == 200
+            with urllib.request.urlopen(req, timeout=1.0) as res:
+                ok = (res.status == 200)
+                _VERCEL_CACHE["ts"] = now
+                _VERCEL_CACHE["online"] = ok
+                return ok
         except Exception:
+            _VERCEL_CACHE["ts"] = now
+            _VERCEL_CACHE["online"] = True
             return True
             
     return False
@@ -168,8 +179,10 @@ def start_local_service(service_id: str, wait_ready: bool = True, max_wait: floa
             close_fds=True
         )
         logger.info(f"Iniciando servicio {service['name']} en {cwd}...")
+        log_activity("SERVICIO", f"🚀 Arrancando {service['name']} (:{service.get('port')}) en segundo plano...")
     except Exception as e:
         logger.error(f"Error al iniciar {service['name']}: {e}")
+        log_activity("SERVICIO", f"❌ Error arrancando {service['name']}: {e}")
         return {"success": False, "error": str(e)}
 
     if wait_ready and service.get("port"):
@@ -571,21 +584,27 @@ def get_esios_live_status() -> Dict[str, Any]:
 def trigger_esios_update() -> Dict[str, Any]:
     port_open = check_port_open("127.0.0.1", 8050, timeout=0.4)
     if not port_open:
+        log_activity("ESIOS", "⚡ Puerto 8050 inactivo. Arrancando Actualizador ESIOS oculto...")
         start_res = start_local_service("actualizador_esios", wait_ready=True, max_wait=6.0)
         if not start_res.get("success"):
+            log_activity("ESIOS", f"❌ No se pudo arrancar Actualizador ESIOS: {start_res.get('error')}")
             return {"success": False, "error": f"No se pudo arrancar el Actualizador ESIOS: {start_res.get('error')}"}
 
     try:
         req = urllib.request.Request("http://127.0.0.1:8050/api/start", data=b"{}", headers={"Content-Type": "application/json"}, method="POST")
         with urllib.request.urlopen(req, timeout=3.0) as res:
+            log_activity("ESIOS", "▶️ Sincronización diaria de energía (:8050) iniciada correctamente.")
             return {"success": True, "message": "Sincronización de energía iniciada correctamente"}
     except urllib.error.HTTPError as e:
         try:
             body = json.loads(e.read().decode())
-            return {"success": False, "error": body.get("error", str(e))}
+            err_msg = body.get("error", str(e))
+            log_activity("ESIOS", f"⚠️ Respuesta ESIOS (:8050): {err_msg}")
+            return {"success": False, "error": err_msg}
         except Exception:
             return {"success": False, "error": str(e)}
     except Exception as e:
+        log_activity("ESIOS", f"❌ Error conectando con ESIOS (:8050): {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -597,14 +616,21 @@ def get_combined_service_monitor() -> Dict[str, Any]:
     except Exception:
         runner_status = {"running": False, "last_log": "No disponible"}
     
-    server_logs = []
-    log_path = os.path.join(WORKSPACE_ROOT, "2026_Proyecto_RobotOrganizador", "server_8002.log")
-    if os.path.exists(log_path):
-        try:
-            with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
-                server_logs = [line.strip() for line in f.readlines() if line.strip()][-40:]
-        except Exception:
-            pass
+    activity_logs = read_activity_logs(limit=80)
+    if not activity_logs:
+        log_path = os.path.join(WORKSPACE_ROOT, "2026_Proyecto_RobotOrganizador", "server_8002.log")
+        if os.path.exists(log_path):
+            try:
+                with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+                    activity_logs = [
+                        line.strip()
+                        for line in f.readlines()
+                        if line.strip() and "/api/services/monitor" not in line and "/api/watchdog/status" not in line
+                    ][-40:]
+            except Exception:
+                pass
+    if not activity_logs:
+        activity_logs = ["[OK] Servidor Robot Organizador (:8002) activo en segundo plano. Esperando eventos de progreso."]
 
     services_summary = get_services_status()
 
@@ -617,7 +643,7 @@ def get_combined_service_monitor() -> Dict[str, Any]:
             "port": 8002,
             "status_text": "En ejecución (Servidor Activo)",
             "runner": runner_status,
-            "server_logs": server_logs
+            "server_logs": activity_logs
         },
         "services": services_summary
     }
