@@ -257,3 +257,4 @@ def get_launched_queue(project_id: Optional[str] = None) -> Dict[str, Any]:
         "master_prompt": master_prompt,
         "queue_file": QUEUE_FILE
     }
+

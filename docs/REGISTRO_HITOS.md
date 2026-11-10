@@ -51,3 +51,25 @@
 
 ---
 
+### [10/11/2026 18:08:32] ✅ Arranque automático al iniciar el PC (Robot Organizador + Energía ESIOS)
+
+- **ID Tarea:** `37`
+- **Prioridad:** ALTA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Arranque automático unificado al encender el PC implementado y verificado: creado script arranque_unificado_pc.py y acceso directo en Startup de Windows (Arranque_Robot_y_Energia_ESIOS.lnk) que inicia en segundo plano el Robot de Gestión (:8002) y el Actualizador Maestro ESIOS (:8050 con --autostart), integrándolo también en el Hub de Servicios.
+
+📋 <b>Protocolo Verificado:</b>
+  ✅ Documentado en /docs
+  ✅ OneNote actualizado
+  ✅ Git actualizado y subido
+  ✅ Skills y forma de trabajo revisadas
+  ✅ Check enviado a Telegram
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+

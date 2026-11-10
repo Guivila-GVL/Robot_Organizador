@@ -71,6 +71,18 @@ SERVICES_CONFIG = [
         "color": "#f59e0b"
     },
     {
+        "id": "actualizador_esios",
+        "name": "Actualizador ESIOS",
+        "description": "Ingesta diaria automática de precios y curvas de energía",
+        "host": "127.0.0.1",
+        "port": 8050,
+        "url": "http://127.0.0.1:8050",
+        "icon": "🔋",
+        "color": "#14b8a6",
+        "cwd": os.path.join(WORKSPACE_ROOT, "2026_Proyecto_Energia_Graficos", "02_Scripts_Python"),
+        "start_cmd": [PYTHON_EXE, "00_DASHBOARD_ACTUALIZADOR.py", "--autostart"]
+    },
+    {
         "id": "certificado_humano",
         "name": "Certificado Humano",
         "description": "Plataforma de Auditoría Técnica y Verificación",
