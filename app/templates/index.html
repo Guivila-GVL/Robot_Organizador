@@ -26,6 +26,12 @@
 
     <!-- Top Action Buttons -->
     <div class="nav-actions">
+      <button class="btn btn-outline" onclick="openProjectResource('onenote')" title="Abrir Bloc de notas en OneNote gestionado por el Robot">
+        <span>📓 OneNote</span>
+      </button>
+      <button class="btn btn-outline" onclick="openProjectResource('skills')" title="Abrir carpeta de Skills y patrones centralizada">
+        <span>🧠 Skills</span>
+      </button>
       <button class="btn btn-primary" id="btnOpenAllServices" title="Abrir todas las páginas de servicios activos">
         <span class="btn-icon">🌐</span> Abrir Todo
       </button>
@@ -114,11 +120,16 @@
         </div>
       </section>
 
-      <!-- General del Proyecto (Accesos Directos Interactivos) -->
+      <!-- General del Proyecto y Protocolo Centralizado (Accesos Directos Interactivos) -->
       <section class="protocol-card" id="protocolCard">
         <div class="protocol-header">
           <div class="protocol-title-group">
-            <h3>General del proyecto</h3>
+            <h3>Protocolo y Gestión Centralizada (Robot Organizado)</h3>
+          </div>
+          <div class="protocol-sync-actions">
+            <button type="button" class="btn btn-xs btn-outline" id="btnSyncOneNote" onclick="syncActiveProjectOneNote()" title="Sincronizar OneNote para este proyecto mediante el Robot">
+              🔄 Sincronizar OneNote
+            </button>
           </div>
         </div>
         <div class="protocol-grid" id="protocolGrid">
@@ -126,35 +137,35 @@
             <span class="protocol-item-icon">📁</span>
             <div class="protocol-item-text">
               <strong>Documentación /docs</strong>
-              <span>Abrir carpeta en Explorer</span>
+              <span>Historial REGISTRO_HITOS.md</span>
             </div>
           </div>
-          <div class="protocol-item" onclick="openProjectResource('onenote')" title="Abrir el bloc de notas del proyecto en OneNote">
+          <div class="protocol-item" onclick="openProjectResource('onenote')" title="Abrir OneNote sincronizado por el Robot de Gestión de Proyectos">
             <span class="protocol-item-icon">📓</span>
             <div class="protocol-item-text">
               <strong>OneNote / Bitácora</strong>
-              <span>Abrir proyecto en OneNote</span>
+              <span>Gestionado por Robot (Abrir/Sync)</span>
             </div>
           </div>
-          <div class="protocol-item" onclick="openProjectResource('git')" title="Abrir el repositorio del proyecto en GitHub">
+          <div class="protocol-item" onclick="openProjectResource('git')" title="Abrir el repositorio en GitHub">
             <span class="protocol-item-icon">🐙</span>
             <div class="protocol-item-text">
               <strong>Git Snapshot</strong>
-              <span>Abrir repositorio en GitHub</span>
+              <span>Snapshots & Push GitHub</span>
             </div>
           </div>
-          <div class="protocol-item" onclick="openProjectResource('skills')" title="Abrir la carpeta 01_Skills y el fichero índice de Skills">
+          <div class="protocol-item" onclick="openProjectResource('skills')" title="Abrir la carpeta 01_Skills y patrones de trabajo">
             <span class="protocol-item-icon">🧠</span>
             <div class="protocol-item-text">
               <strong>Patrones de Skills</strong>
-              <span>Abrir carpeta y guía Skills</span>
+              <span>01_Skills gestionado por Robot</span>
             </div>
           </div>
-          <div class="protocol-item" onclick="openProjectResource('validation')" title="Abrir carpeta de validación y protocolo de revisión general al acabar una tarea (Docs, OneNote, Git, Skills, Telegram)">
+          <div class="protocol-item" onclick="openProjectResource('validation')" title="Validación técnica de tareas y protocolo de 5 pasos">
             <span class="protocol-item-icon">🧪</span>
             <div class="protocol-item-text">
               <strong>Validación Técnica</strong>
-              <span>Revisión general y cierre</span>
+              <span>Protocolo de 5 Pasos</span>
             </div>
           </div>
         </div>
@@ -198,7 +209,7 @@
       <!-- Encabezado de la barra lateral -->
       <div class="sidebar-header activity-sidebar-header">
         <div class="activity-title-group">
-          <h2>Consola</h2>
+          <h2>Consola · Robot de Gestión</h2>
         </div>
       </div>
 
@@ -273,28 +284,25 @@
         </div>
       </div>
 
-      <!-- Visor de Consola CMD & Stream de Eventos -->
+      <!-- Visor de Consola CMD & Stream de Eventos Centralizado del Robot -->
       <div class="activity-terminal-section">
         <div class="activity-terminal-header">
           <div class="terminal-header-left">
-            <span>ACTIVIDAD</span>
+            <span>ACTIVIDAD ROBOT</span>
             <span class="cmd-log-counter" id="activityLogCount">0 líneas</span>
           </div>
           <div class="console-filter-buttons">
-            <button type="button" class="console-filter-btn" data-filter="esios" onclick="setConsoleFilter('esios')" title="Ver actividad de adquisición ESIOS">ESIOS</button>
-            <button type="button" class="console-filter-btn active" data-filter="project" onclick="setConsoleFilter('project')" title="Filtrar actividad del proyecto">Proyecto</button>
-            <button type="button" class="console-filter-btn" data-filter="runner" onclick="setConsoleFilter('runner')" title="Ver actividad de los Runners autónomos">Runners</button>
+            <button type="button" class="console-filter-btn active" data-filter="robot" onclick="setConsoleFilter('robot')" title="Ver actividad centralizada del Robot de Gestión de Proyectos">Robot / Todo</button>
+            <button type="button" class="console-filter-btn" data-filter="runner" onclick="setConsoleFilter('runner')" title="Ver actividad de los Runners autónomos y Cola Global">Runners</button>
+            <button type="button" class="console-filter-btn" data-filter="esios" onclick="setConsoleFilter('esios')" title="Ver actividad de telemetría ESIOS">ESIOS</button>
           </div>
         </div>
 
-        <!-- Sub-barra contextual de la terminal con selector de proyectos para el filtro Proyecto -->
+        <!-- Sub-barra contextual fija: Consola central del Robot de Gestión de Proyectos -->
         <div class="terminal-sub-bar" id="terminalSubBar">
-          <span class="terminal-sub-label" id="terminalContextLabel">📁 Actividad del Proyecto</span>
-          <div class="terminal-project-picker-wrap" id="terminalProjectPickerWrap">
-            <select id="consoleProjectFilterSelect" class="console-project-select" onchange="onConsoleProjectFilterChange(this.value)" title="Elegir proyecto para la consola">
-              <!-- Reemplazado dinámicamente -->
-            </select>
-            <button type="button" class="btn btn-xs btn-outline" id="btnGoToConsoleProject" onclick="goToConsoleSelectedProject()" title="Hacer este el proyecto activo del centro de mando">↗️ Ir</button>
+          <span class="terminal-sub-label" id="terminalContextLabel">🤖 Robot de Gestión de Proyectos · Puerto :8002</span>
+          <div class="terminal-actions-wrap">
+            <button type="button" class="btn btn-xs btn-outline" onclick="clearActivityTerminal()" title="Limpiar pantalla de la consola">🧹 Limpiar</button>
           </div>
         </div>
 

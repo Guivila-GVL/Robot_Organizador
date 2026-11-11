@@ -494,10 +494,7 @@ async function rescanProjects() {
 }
 
 async function openProjectResource(resourceKey) {
-  if (!state.activeProjectId) {
-    showToast('Selecciona primero un proyecto', 'error');
-    return;
-  }
+  const targetProjId = state.activeProjectId || 'gestion_proyectos';
 
   const isWebResource = (resourceKey === 'onenote' || resourceKey === 'git');
   let popupWin = null;
@@ -507,7 +504,7 @@ async function openProjectResource(resourceKey) {
 
   try {
     const query = (isWebResource && popupWin) ? '?open_browser=false' : '';
-    const res = await fetch(`/api/projects/${state.activeProjectId}/open-resource/${resourceKey}${query}`, {
+    const res = await fetch(`/api/projects/${targetProjId}/open-resource/${resourceKey}${query}`, {
       method: 'POST'
     });
     const data = await res.json();
@@ -518,7 +515,7 @@ async function openProjectResource(resourceKey) {
         } else {
           window.open(data.target, '_blank', 'noopener');
         }
-        const proj = state.projects.find(p => p.id === state.activeProjectId);
+        const proj = state.projects.find(p => p.id === targetProjId);
         if (proj && resourceKey === 'onenote') proj.onenote_url = data.target;
         if (proj && resourceKey === 'git') proj.git_url = data.target;
       } else if (popupWin) {
@@ -1746,7 +1743,7 @@ async function stopGlobalQueueNow() {
 // --------------------------------------------------------------------------
 // CONSOLA LATERAL DE ACTIVIDAD & SEGUIMIENTO EN VIVO EN LA PÁGINA PRINCIPAL
 // --------------------------------------------------------------------------
-state.consoleFilter = 'project';
+state.consoleFilter = 'robot';
 state.trackingMode = 'queue';
 state.sidebarTopTab = 'queue';
 state.consoleSelectedProject = 'active';
@@ -1803,24 +1800,21 @@ function goToConsoleSelectedProject() {
 }
 
 function setConsoleFilter(filter) {
-  if (filter === 'all') filter = 'project';
+  if (filter === 'all' || filter === 'project') filter = 'robot';
   state.consoleFilter = filter;
   document.querySelectorAll('.console-filter-btn').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
   });
 
   const contextLabel = document.getElementById('terminalContextLabel');
-  const pickerWrap = document.getElementById('terminalProjectPickerWrap');
-
-  if (filter === 'project') {
-    if (contextLabel) contextLabel.textContent = '📁 Actividad del Proyecto:';
-    if (pickerWrap) pickerWrap.style.display = 'flex';
-  } else if (filter === 'esios') {
-    if (contextLabel) contextLabel.textContent = '⚡ Stream en vivo: Ingesta ESIOS (:8050 · TimescaleDB)';
-    if (pickerWrap) pickerWrap.style.display = 'none';
-  } else if (filter === 'runner') {
-    if (contextLabel) contextLabel.textContent = '🤖 Runner Autónomo & Cola Global';
-    if (pickerWrap) pickerWrap.style.display = 'none';
+  if (contextLabel) {
+    if (filter === 'robot') {
+      contextLabel.textContent = '🤖 Robot de Gestión de Proyectos · Actividad Unificada';
+    } else if (filter === 'runner') {
+      contextLabel.textContent = '🤖 Runner Autónomo & Cola Global';
+    } else if (filter === 'esios') {
+      contextLabel.textContent = '⚡ Stream en vivo: Ingesta ESIOS (:8050 · TimescaleDB)';
+    }
   }
 
   renderConsoleTerminal();
@@ -1962,40 +1956,7 @@ async function updateActivityConsole() {
 
 function renderSelectedTrackingCard(data) {
   const progressAreaEl = document.getElementById('sidebarProgressArea');
-  const consoleProjectFilterSelect = document.getElementById('consoleProjectFilterSelect');
   const esiosStatusChip = document.getElementById('esiosStatusChip');
-
-  const currentProject = state.projects && state.projects.find(p => p.id === state.activeProjectId);
-
-  // Sincronizar selectores desplegables de proyectos para filtro de consola
-  if (consoleProjectFilterSelect && state.projects && state.projects.length > 0) {
-    const activeProjName = currentProject ? currentProject.name : 'Actual';
-    const curVal = state.consoleSelectedProject || 'active';
-    const robot = data.robot || {};
-    const runner = robot.runner || {};
-    const services = data.services || [];
-
-    let opts = `<option value="active" ${curVal === 'active' ? 'selected' : ''}>📌 Activo (${escapeHtml(activeProjName)})</option>`;
-    opts += state.projects.map(p => {
-      const isOnline = services.some(s => s.is_online && (s.id === p.id || (s.port && s.port === p.port)));
-      const isRunningTask = runner.running && runner.current_project_name && (
-        runner.current_project_name.toLowerCase().includes(p.name.toLowerCase()) ||
-        p.name.toLowerCase().includes(runner.current_project_name.toLowerCase())
-      );
-      let statusIndicator = '';
-      if (isRunningTask) {
-        statusIndicator = ' ⚡ [Ejecutando]';
-      } else if (isOnline) {
-        statusIndicator = ' 🟢 [En línea]';
-      }
-      return `<option value="${p.id}" ${curVal === p.id ? 'selected' : ''}>${p.icon} ${escapeHtml(p.name)}${statusIndicator}</option>`;
-    }).join('');
-
-    if (consoleProjectFilterSelect.innerHTML !== opts) {
-      consoleProjectFilterSelect.innerHTML = opts;
-      consoleProjectFilterSelect.value = curVal;
-    }
-  }
 
   const esios = data.esios || {};
   const isRunning = esios.status === 'running';
@@ -2015,23 +1976,6 @@ function renderSelectedTrackingCard(data) {
       esiosStatusChip.className = 'esios-status-chip';
       esiosStatusChip.textContent = '✅ Listo';
     }
-  }
-
-  // Si el usuario selecciona el proyecto de Energía/ESIOS, abrir automáticamente la pestaña superior de ESIOS
-  const isEsiosProject = currentProject && (
-    currentProject.id === 'actualizador_esios' ||
-    currentProject.folder_name === '2026_Proyecto_Energia_Graficos' ||
-    (currentProject.port && currentProject.port === 8050) ||
-    (currentProject.name && currentProject.name.toLowerCase().includes('energía'))
-  );
-
-  if (isEsiosProject && state.sidebarTopTab !== 'esios' && !state._esiosAutoOpened) {
-    state._esiosAutoOpened = true;
-    setSidebarTopTab('esios');
-    return;
-  }
-  if (!isEsiosProject) {
-    state._esiosAutoOpened = false;
   }
 
   if (!progressAreaEl) return;
@@ -2122,93 +2066,40 @@ function renderConsoleTerminal() {
     pushLine(tagged);
   });
 
-  const currentProject = (state.projects || []).find(p => p.id === state.activeProjectId);
-  const activeTaskIds = (state.tasks || []).map(t => `#${t.id}`);
-  const filter = (state.consoleFilter === 'all' || !state.consoleFilter) ? 'project' : state.consoleFilter;
+  const filter = (state.consoleFilter === 'all' || state.consoleFilter === 'project' || !state.consoleFilter)
+    ? 'robot'
+    : state.consoleFilter;
 
   let filtered = combined;
+  const contextLabel = document.getElementById('terminalContextLabel');
 
-  if (filter === 'project') {
-    const targetProjId = (state.consoleSelectedProject && state.consoleSelectedProject !== 'active')
-      ? state.consoleSelectedProject
-      : state.activeProjectId;
-    const targetProject = (state.projects || []).find(p => p.id === targetProjId) || currentProject;
-
-    if (targetProject) {
-      const projName = (targetProject.name || '').toLowerCase();
-      const projFolder = (targetProject.folder_name || '').toLowerCase();
-      const projId = (targetProject.id || '').toLowerCase();
-      const isTargetEsios = projFolder.includes('energia') || projName.includes('energía') || projId === 'actualizador_esios' || projId === 'energia_graficos';
-
-      // Comprobar si el Runner está ejecutando una tarea de este proyecto
-      const runnerProjName = (runner.current_project_name || '').toLowerCase();
-      const isRunnerOnThisProj = runner.running && (
-        (runnerProjName && (runnerProjName.includes(projName) || projName.includes(runnerProjName))) ||
-        (targetProject.id === state.activeProjectId && runner.current_task_id) ||
-        (runner.current_task_id && activeTaskIds.some(tid => tid.replace('#', '') === String(runner.current_task_id)))
-      );
-
-      // Comprobar si el servicio local asociado al proyecto está en línea
-      const matchingService = (data.services || []).find(s => s.id === targetProject.id || (s.port && s.port === targetProject.port));
-      const isServiceOnline = matchingService ? matchingService.is_online : false;
-
-      // Actualizar etiqueta contextual de seguimiento con lo que está funcionando en el proyecto
-      const contextLabel = document.getElementById('terminalContextLabel');
-      if (contextLabel) {
-        if (isRunnerOnThisProj) {
-          const shortTitle = (runner.current_task_title || '').slice(0, 26);
-          contextLabel.textContent = `⚡ Runner: #${runner.current_task_id} ${shortTitle}${shortTitle.length >= 26 ? '...' : ''}`;
-          contextLabel.title = `Runner autónomo ejecutando tarea #${runner.current_task_id}: ${runner.current_task_title || ''}`;
-        } else if (isServiceOnline) {
-          contextLabel.textContent = `🟢 En línea (:${matchingService.port || targetProject.port})`;
-          contextLabel.title = `Servicio activo en puerto :${matchingService.port || targetProject.port}`;
-        } else {
-          contextLabel.textContent = `📁 Actividad: ${targetProject.name}`;
-          contextLabel.title = `Filtrando por ${targetProject.name}`;
-        }
-      }
-
-      filtered = combined.filter(l => {
-        const lower = l.toLowerCase();
-        // Coincidencia por nombre o carpeta del proyecto
-        if (lower.includes(projName) || (projFolder && lower.includes(projFolder)) || lower.includes(`[${targetProject.name.toLowerCase()}]`)) {
-          return true;
-        }
-        // Coincidencia por ID de tarea del proyecto
-        if (activeTaskIds.some(tid => l.includes(tid))) {
-          return true;
-        }
-        // Si el Runner está trabajando activamente en este proyecto, incluir toda la actividad de ejecución
-        if (isRunnerOnThisProj && (
-          l.includes('[RUNNER]') ||
-          l.includes('[PROGRESO]') ||
-          l.includes('[PROTOCOLO]') ||
-          l.includes('[HITO]') ||
-          l.includes('Gemini') ||
-          l.includes('Claude') ||
-          (runner.current_task_id && l.includes(`#${runner.current_task_id}`))
-        )) {
-          return true;
-        }
-        return false;
-      });
-
-      if (isTargetEsios) {
-        filtered = [...filtered, ...esiosLogs].slice(-80);
-      }
-
-      if (filtered.length === 0) {
-        filtered = [
-          `[PROYECTO: ${targetProject.name}] ${isServiceOnline ? '🟢 Servicio en ejecución.' : 'En espera de actividad.'}`,
-          `📁 Carpeta: ${targetProject.folder_name || 'N/A'} · Puerto: ${targetProject.port ? `:${targetProject.port}` : 'N/A'}`
-        ];
-        if (isRunnerOnThisProj) {
-          filtered.push(`⚡ Runner autónomo activo procesando tarea #${runner.current_task_id}: ${runner.current_task_title || ''}`);
-        }
+  if (filter === 'runner') {
+    if (contextLabel) {
+      if (runner.running) {
+        contextLabel.textContent = `⚡ Runner: Tarea #${runner.current_task_id} (${runner.current_model || 'IA'})`;
+        contextLabel.title = `Runner activo en tarea #${runner.current_task_id}: ${runner.current_task_title || ''}`;
+      } else {
+        contextLabel.textContent = `🟢 Runner autónomo en espera`;
+        contextLabel.title = `Runner autónomo listo`;
       }
     }
+
+    filtered = combined.filter(l => (
+      l.includes('[RUNNER]') ||
+      l.includes('[PROGRESO]') ||
+      l.includes('[TAREA]') ||
+      l.includes('[HITO]') ||
+      l.includes('[PROTOCOLO]') ||
+      l.includes('🚀') ||
+      l.includes('📊') ||
+      l.includes('Gemini') ||
+      l.includes('Claude') ||
+      l.includes('Worker')
+    ));
+    if (filtered.length === 0) {
+      filtered = ['[RUNNER] En espera. No hay tareas en ejecución por el worker autónomo.'];
+    }
   } else if (filter === 'esios') {
-    const contextLabel = document.getElementById('terminalContextLabel');
     if (contextLabel) {
       if (esios.status === 'running') {
         contextLabel.textContent = `⚡ Ingesta ESIOS en curso (${esios.completed_tasks || 0}/${esios.total_tasks || 86})`;
@@ -2233,30 +2124,26 @@ function renderConsoleTerminal() {
         ];
       }
     }
-  } else if (filter === 'runner') {
-    const contextLabel = document.getElementById('terminalContextLabel');
+  } else {
+    // filter === 'robot' (Modo centralizado por defecto)
+    // Siempre muestra TODA la actividad del Robot de Gestión de Proyectos, sin cambiar cuando se cambia de proyecto
     if (contextLabel) {
       if (runner.running) {
-        contextLabel.textContent = `⚡ Runner: Tarea #${runner.current_task_id} (${runner.current_model || 'IA'})`;
+        const shortTitle = (runner.current_task_title || '').slice(0, 30);
+        contextLabel.textContent = `⚡ Runner: #${runner.current_task_id} ${shortTitle}${shortTitle.length >= 30 ? '...' : ''}`;
+        contextLabel.title = `Runner autónomo ejecutando tarea #${runner.current_task_id} (${runner.current_project_name || 'Robot'})`;
       } else {
-        contextLabel.textContent = `🟢 Runner autónomo en espera`;
+        contextLabel.textContent = '🤖 Robot de Gestión de Proyectos · Puerto :8002';
+        contextLabel.title = 'Consola central unificada del Robot de Gestión de Proyectos';
       }
     }
 
-    filtered = combined.filter(l => (
-      l.includes('[RUNNER]') ||
-      l.includes('[PROGRESO]') ||
-      l.includes('[TAREA]') ||
-      l.includes('[HITO]') ||
-      l.includes('[PROTOCOLO]') ||
-      l.includes('🚀') ||
-      l.includes('📊') ||
-      l.includes('Gemini') ||
-      l.includes('Claude') ||
-      l.includes('Worker')
-    ));
+    filtered = combined;
     if (filtered.length === 0) {
-      filtered = ['[RUNNER] En espera. No hay tareas en ejecución por el worker autónomo.'];
+      filtered = [
+        '[ROBOT DE GESTIÓN DE PROYECTOS] Servidor 8002 en línea.',
+        'Supervisando ejecución de tareas, Cola Global, sincronización OneNote y repositorios Git.'
+      ];
     }
   }
 
@@ -2352,6 +2239,24 @@ window.openServiceUrl = openServiceUrl;
 window.triggerEsiosSync = triggerEsiosSync;
 window.startService = startService;
 window.openAllServicesInBrowser = openAllServices;
+
+async function syncActiveProjectOneNote() {
+  const projId = state.activeProjectId || 'gestion_proyectos';
+  showToast('Iniciando sincronización de OneNote mediante el Robot...', 'info');
+  try {
+    const res = await fetch(`/api/projects/${projId}/sync-onenote`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✅ OneNote sincronizado con éxito por el Robot de Gestión de Proyectos', 'success');
+      updateActivityConsole();
+    } else {
+      showToast(data.error || 'Aviso en sincronización OneNote', 'warning');
+    }
+  } catch (e) {
+    showToast('Error de conexión al sincronizar OneNote', 'error');
+  }
+}
+window.syncActiveProjectOneNote = syncActiveProjectOneNote;
 
 // Close modals when clicking outside modal-dialog or on Escape key
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
