@@ -120,11 +120,16 @@ def _describe_tier_for_model(model_name: str) -> str:
 
 
 def _find_recent_transcripts(max_files: int = 8) -> List[str]:
-    if not os.path.exists(BRAIN_DIR):
-        return []
+    search_dirs = [
+        os.path.expanduser(r"~\.gemini\antigravity-cli\brain"),
+        os.path.expanduser(r"~\.gemini\antigravity\brain")
+    ]
+    candidates = []
+    for sdir in search_dirs:
+        if os.path.exists(sdir):
+            pattern = os.path.join(sdir, "*", ".system_generated", "logs", "transcript.jsonl")
+            candidates.extend(glob.glob(pattern))
 
-    pattern = os.path.join(BRAIN_DIR, "*", ".system_generated", "logs", "transcript.jsonl")
-    candidates = glob.glob(pattern)
     if not candidates:
         return []
 

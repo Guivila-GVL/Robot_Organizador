@@ -27,8 +27,10 @@ RUNNER_STATE: Dict[str, Any] = {
     "current_project_name": "",
     "current_model": "",
     "started_at": None,
-    "last_log": "En espera (pulsa ▶️ Ejecutar Secuencia Ahora para iniciar)",
-    "history": []
+    "last_log": "En espera (pulsa ▶️ Avanzar Secuencia para iniciar)",
+    "history": [],
+    "auto_advance": True,
+    "mode": "continuous"
 }
 
 
@@ -51,7 +53,9 @@ def get_runner_status() -> Dict[str, Any]:
         "started_at": RUNNER_STATE["started_at"],
         "last_log": RUNNER_STATE["last_log"],
         "history": list(RUNNER_STATE["history"][-30:]),
-        "agy_available": os.path.exists(AGY_EXE)
+        "agy_available": os.path.exists(AGY_EXE),
+        "auto_advance": RUNNER_STATE.get("auto_advance", True),
+        "mode": RUNNER_STATE.get("mode", "continuous")
     }
 
 
@@ -183,14 +187,14 @@ def _run_single_task_with_model(task: Dict[str, Any], model_info: Dict[str, Any]
 
 def _runner_loop() -> None:
     try:
-        _log_event("🔄 Worker Autónomo de Cola Global iniciado.")
+        _log_event("🔄 Worker Autónomo de Cola Global iniciado (Modo Continuo activo).")
         while not RUNNER_STATE["stop_requested"]:
             queue_data = get_launched_queue()
             tasks = queue_data.get("tasks", [])
             if not tasks:
-                _log_event("✅ Todas las tareas de la Cola Global han finalizado.")
+                _log_event("🏁 Todas las tareas de la Cola Global han finalizado con éxito.")
                 try:
-                    send_telegram_message("🎉 <b>Cola Global Completada:</b> No quedan tareas pendientes en ejecución.")
+                    send_telegram_message("🏁 <b>Cola Global Completada:</b> Se han ejecutado con éxito todas las tareas de la secuencia.")
                 except Exception:
                     pass
                 break
@@ -259,19 +263,42 @@ def _runner_loop() -> None:
                             force_status="completed"
                         )
                     _log_event(f"✅ Tarea #{task_id} completada con éxito.")
+                    
+                    # Verificación inmediata de siguientes tareas para avance continuo sin pausas
+                    next_q = get_launched_queue()
+                    remaining = next_q.get("tasks", [])
+                    if remaining:
+                        nxt = remaining[0]
+                        _log_event(f"🔄 Avanzando inmediatamente a la siguiente tarea: #{nxt['id']} [{nxt['project_name']}] {nxt['title'][:55]}...")
                     task_finished = True
                     break
                 else:
-                    _log_event(f"⚠️ Motor {model_info['name']} devolvió código {res.get('returncode')}. Probando respaldo o cerrando ciclo.")
+                    _log_event(f"⚠️ Motor {model_info['name']} devolvió código {res.get('returncode')}. Probando respaldo...")
                     # Si falló por error de modelo/red distinto de 429, intentar con el siguiente motor una vez
                     if len(tried_models) < 2:
                         continue
+
+                    # Para evitar bloquear la cola completa, apartar esta tarea a pendientes y continuar con la siguiente
+                    from app.services.execution_queue import pause_task
+                    _log_event(f"⚠️ Tarea #{task_id} apartada para revisión tras fallar motor {model_info['name']}. Continuando con la siguiente tarea de la cola...")
                     update_task_progress(
                         task_id,
                         current_step=f"⚠️ Revisión manual requerida ({model_info['name']})",
                         note=f"Error en ejecución automática: {res.get('output', '')[:250]}",
                         author="Cola Global"
                     )
+                    pause_task(task_id)
+                    try:
+                        send_telegram_message(
+                            f"⚠️ <b>Tarea #{task_id} Pausada por Incidencia:</b>\n"
+                            f"• Proyecto: {task['project_name']}\n"
+                            f"• Tarea: {task['title']}\n"
+                            f"• Detalle: Fallo en motor {model_info['name']}.\n"
+                            f"🔄 <b>Continuando automáticamente</b> con la siguiente tarea de la cola..."
+                        )
+                    except Exception:
+                        pass
+                    task_finished = True
                     break
 
             if not task_finished and RUNNER_STATE["stop_requested"]:
@@ -318,7 +345,12 @@ def stop_queue_runner() -> Dict[str, Any]:
             return {"success": True, "was_running": False, "status": get_runner_status()}
 
         RUNNER_STATE["stop_requested"] = True
-        _log_event("⏹️ Solicitada detención del worker autónomo...")
+        _log_event("⏸️ Cola Global puesta en pausa por el usuario.")
+        try:
+            send_telegram_message("⏸️ <b>Cola Global Pausada:</b> Ejecución detenida manualmente. Las tareas restantes quedan en cola a la espera de que pulses ▶️ Avanzar.")
+        except Exception:
+            pass
+
         if _active_process and _active_process.poll() is None:
             try:
                 _active_process.terminate()

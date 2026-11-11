@@ -1595,11 +1595,65 @@ input:checked + .slider:before {
 .queue-banner {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
-  background: rgba(139, 92, 246, 0.12);
-  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: 10px;
-  padding: 0.35rem 0.7rem;
+  padding: 0.45rem 0.85rem;
+  flex-wrap: wrap;
+}
+
+.queue-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.queue-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.queue-runner-chip {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+}
+
+.queue-runner-chip.running {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #34d399;
+  animation: pulse-border 2s infinite;
+}
+
+.queue-runner-chip.paused {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: #ffffff;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-weight: 600;
+}
+
+.btn-success:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
 }
 
 .queue-badge {

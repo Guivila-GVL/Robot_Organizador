@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 11:58:59] ✅ Ampliar un poco la capacidad de gestión de las tareas. Ahora lo que...
+
+- **ID Tarea:** `67`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Implementado el avance continuo e ininterrumpido de la Cola Global. Ahora al pulsar Avanzar o iniciar la cola, el sistema ejecuta todas las tareas en cola secuencialmente (#1, #2, #3...) sin detenerse entre tareas. La única forma de parar es pulsar Pausa explícitamente. Se añadieron controles directos de Avanzar y Pausa tanto en la barra superior como en el banner de la cola, y se reforzó el manejo de fallos para que una incidencia en una tarea no bloquee la secuencia global, continuando con la siguiente.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 11:42:34] ✅ Sí, con el UI, con la última tarea añadida de poner la consola a la...
 
 - **ID Tarea:** `63`

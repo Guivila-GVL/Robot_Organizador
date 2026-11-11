@@ -24,6 +24,12 @@
       <button class="btn btn-launch" id="btnOpenGlobalQueue" title="Ver y gestionar la secuencia global de tareas En Progreso de todos los proyectos">
         <span class="btn-icon">🚀</span> Cola Global (<span id="globalQueueTopCount">0</span>)
       </button>
+      <button class="btn btn-success" id="btnHeaderRunQueue" onclick="runGlobalQueueNow()" title="▶️ Avanzar / Ejecutar continuamente todas las tareas en cola" style="display:none;">
+        <span class="btn-icon">▶️</span> Avanzar
+      </button>
+      <button class="btn btn-danger" id="btnHeaderPauseQueue" onclick="stopGlobalQueueNow()" title="⏸️ Pausar la cola de ejecución" style="display:none; background:#e11d48; color:#fff; border:none;">
+        <span class="btn-icon">⏸️</span> Pausa
+      </button>
       <button class="btn btn-primary" id="btnOpenAllServices" title="Abrir todas las páginas de servicios activos">
         <span class="btn-icon">🌐</span> Abrir Todo
       </button>
@@ -184,10 +190,24 @@
           <button class="tab-btn" data-filter="all">Todas (<span id="countAll">0</span>)</button>
         </div>
         <div class="queue-banner" id="queueBanner" style="display:none;">
-          <span class="queue-badge">🚀 Cola en marcha: <strong id="queueCountText">0</strong></span>
-          <button class="btn btn-primary btn-small" id="btnCopyAllQueue" title="Copiar orden completa con todas las tareas lanzadas para pegarla en Antigravity">
-            📋 Copiar Orden para Antigravity
-          </button>
+          <div class="queue-banner-left">
+            <span class="queue-badge" id="queueBannerBadge">🚀 Cola Global: <strong id="queueCountText">0</strong></span>
+            <span class="queue-runner-chip" id="queueRunnerChip">🟢 En espera</span>
+          </div>
+          <div class="queue-banner-actions">
+            <button class="btn btn-success btn-small" id="btnBannerRunQueue" onclick="runGlobalQueueNow()" title="▶️ Avanzar: ejecuta todas las tareas en cola una tras otra de forma continua">
+              ▶️ Avanzar Cola
+            </button>
+            <button class="btn btn-danger btn-small" id="btnBannerPauseQueue" onclick="stopGlobalQueueNow()" style="display:none; background:#e11d48; color:#fff; border:none;" title="⏸️ Pausar la ejecución continua">
+              ⏸️ Pausar Cola
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="openGlobalQueueModal()" title="Ver y reordenar la secuencia global">
+              ⚙️ Secuencia
+            </button>
+            <button class="btn btn-primary btn-small" id="btnCopyAllQueue" title="Copiar orden completa con todas las tareas lanzadas para pegarla en Antigravity">
+              📋 Copiar Orden
+            </button>
+          </div>
         </div>
       </section>
 
@@ -526,7 +546,7 @@
         </div>
 
         <p class="field-help" style="margin-bottom: 0.75rem;">
-          Ordena con ⬆️ / ⬇️ la secuencia exacta en la que quieres que se ejecuten todas las tareas que pusiste <b>En Progreso</b> (#1 se realiza primero) y pulsa <b>▶️ Ejecutar Secuencia Ahora</b>:
+          Ordena con ⬆️ / ⬇️ la secuencia de tareas (#1 se realiza primero). Al pulsar <b>▶️ Avanzar Secuencia</b>, el sistema ejecutará automáticamente todas las tareas de la cola de principio a fin sin detenerse entre una y otra, salvo que tú pulses <b>⏸️ Pausar Cola</b>.
         </p>
 
         <div class="global-queue-list" id="globalQueueList">
@@ -536,13 +556,13 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('globalQueueModal')">Cerrar</button>
         <button class="btn btn-secondary" id="btnCopyGlobalSequence" title="Copiar orden escrita para pegar en el chat">
-          📋 Copiar Orden
+          📋 Copiar Secuencia
         </button>
         <button class="btn btn-danger" id="btnStopGlobalQueue" style="display:none; background:#e11d48; color:#fff; border:none;">
-          ⏹️ Detener Ejecución
+          ⏸️ Pausar Cola
         </button>
         <button class="btn btn-launch" id="btnRunGlobalQueue">
-          ▶️ Ejecutar Secuencia Ahora
+          ▶️ Avanzar Secuencia Completa
         </button>
       </div>
     </div>

@@ -1253,10 +1253,10 @@ async function launchTask(taskId) {
     const res = await fetch(`/api/tasks/${taskId}/launch`, { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast('🚀 Tarea lanzada a «En Progreso» y añadida a la Cola Global', 'success');
+      showToast(`🚀 Tarea añadida a la Cola Global (#${data.queue_order || 'en secuencia'})`, 'success');
       await loadTasks(state.activeProjectId);
       renderProjectsList(projectSearchEl.value.toLowerCase());
-      refreshGlobalQueueBadge();
+      await refreshGlobalQueueBadge();
     } else {
       showToast(data.error || 'No se pudo lanzar la tarea', 'error');
     }
@@ -1360,11 +1360,60 @@ async function refreshGlobalQueueBadge() {
     const runner = data.runner || {};
     const total = data.total_global ?? data.count ?? 0;
 
+    const btnHRun = document.getElementById('btnHeaderRunQueue');
+    const btnHPause = document.getElementById('btnHeaderPauseQueue');
+    const btnBRun = document.getElementById('btnBannerRunQueue');
+    const btnBPause = document.getElementById('btnBannerPauseQueue');
+    const chip = document.getElementById('queueRunnerChip');
+    const queueBanner = document.getElementById('queueBanner');
+    const queueCountText = document.getElementById('queueCountText');
+
     if (btn && data.success) {
       if (runner.running) {
+        btn.classList.add('pulse');
         btn.innerHTML = `<span class="btn-icon">⚙️</span> Ejecutando Cola (<span id="globalQueueTopCount">${total}</span>)`;
       } else {
+        btn.classList.remove('pulse');
         btn.innerHTML = `<span class="btn-icon">🚀</span> Cola Global (<span id="globalQueueTopCount">${total}</span>)`;
+      }
+    }
+
+    // Actualizar botones de cabecera y banner
+    if (runner.running) {
+      if (btnHRun) btnHRun.style.display = 'none';
+      if (btnHPause) btnHPause.style.display = 'inline-flex';
+      if (btnBRun) btnBRun.style.display = 'none';
+      if (btnBPause) btnBPause.style.display = 'inline-flex';
+      if (chip) {
+        chip.className = 'queue-runner-chip running';
+        chip.innerHTML = '⚡ Secuencia en marcha (avance continuo)';
+      }
+    } else {
+      if (btnHPause) btnHPause.style.display = 'none';
+      if (btnBPause) btnBPause.style.display = 'none';
+      if (total > 0) {
+        if (btnHRun) btnHRun.style.display = 'inline-flex';
+        if (btnBRun) btnBRun.style.display = 'inline-flex';
+        if (chip) {
+          chip.className = 'queue-runner-chip paused';
+          chip.innerHTML = '⏸️ En pausa · Pulsa ▶️ Avanzar';
+        }
+      } else {
+        if (btnHRun) btnHRun.style.display = 'none';
+        if (btnBRun) btnBRun.style.display = 'none';
+        if (chip) {
+          chip.className = 'queue-runner-chip';
+          chip.innerHTML = '🟢 Sin tareas';
+        }
+      }
+    }
+
+    if (queueBanner && queueCountText) {
+      if (total > 0) {
+        queueCountText.textContent = `${total} ${total === 1 ? 'tarea en cola' : 'tareas en cola'}`;
+        queueBanner.style.display = 'flex';
+      } else {
+        queueBanner.style.display = 'none';
       }
     }
   } catch (err) {
@@ -1527,13 +1576,16 @@ async function copyGlobalQueueSequence() {
 
 async function runGlobalQueueNow() {
   try {
-    showToast('▶️ Arrancando Worker Autónomo para ejecutar la secuencia...', 'info');
+    showToast('▶️ Iniciando avance continuo de la Cola Global...', 'info');
     const res = await fetch('/api/queue/run', { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast('🚀 ¡Ejecución autónoma iniciada! Verás el avance en directo.', 'success');
-      await loadGlobalQueueModal();
-      refreshGlobalQueueBadge();
+      showToast('🚀 ¡Secuencia en marcha! El robot ejecutará todas las tareas en cola automáticamente.', 'success');
+      await refreshGlobalQueueBadge();
+      const gqModal = document.getElementById('globalQueueModal');
+      if (gqModal && gqModal.classList.contains('open')) {
+        await loadGlobalQueueModal();
+      }
     } else {
       showToast(data.error || 'No se pudo iniciar la ejecución', 'error');
     }
@@ -1547,9 +1599,12 @@ async function stopGlobalQueueNow() {
     const res = await fetch('/api/queue/stop', { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast('⏹️ Deteniendo el worker autónomo...', 'info');
-      await loadGlobalQueueModal();
-      refreshGlobalQueueBadge();
+      showToast('⏸️ Cola puesta en pausa. Las tareas quedan preparadas para cuando pulses ▶️ Avanzar.', 'info');
+      await refreshGlobalQueueBadge();
+      const gqModal = document.getElementById('globalQueueModal');
+      if (gqModal && gqModal.classList.contains('open')) {
+        await loadGlobalQueueModal();
+      }
     }
   } catch (err) {
     showToast('Error al detener la ejecución', 'error');

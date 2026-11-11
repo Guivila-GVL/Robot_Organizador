@@ -126,15 +126,15 @@ def format_queue_for_telegram(queue_data: Dict[str, Any]) -> str:
         if total_pending > 0:
             return (
                 "🎯 <b>Cola Global de Ejecución:</b>\n"
-                f"🏁 <i>Sin más tareas en cola activa ({total_pending} tareas en backlog pendientes de lanzar).</i>"
+                f"✅ <i>Secuencia actual finalizada ({total_pending} tareas pendientes en backlog). Pulsa ▶️ Lanzar Tarea para añadir más a la cola.</i>"
             )
         else:
             return (
                 "🎯 <b>Cola Global de Ejecución:</b>\n"
-                "🎉 <i>¡Cola completada! No quedan más tareas pendientes en los proyectos.</i>"
+                "🎉 <i>¡Todas las tareas completadas! No quedan tareas pendientes en ningún proyecto.</i>"
             )
 
-    header = "🎯 <b>Siguiente en Cola Global:</b>" if total_in_queue == 1 else f"🎯 <b>Próximas en Cola Global ({total_in_queue}):</b>"
+    header = "🚀 <b>Continuando automáticamente con la siguiente tarea:</b>" if total_in_queue == 1 else f"🚀 <b>Secuencia en marcha — Continuando automáticamente ({total_in_queue} en cola):</b>"
     lines = [header]
 
     for idx, t in enumerate(tasks, 1):

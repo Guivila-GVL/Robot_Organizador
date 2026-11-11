@@ -435,10 +435,12 @@ async def move_queue_task_endpoint(task_id: int, direction: str):
     return reorder_queue_task(task_id, direction)
 
 @app.post("/api/queue/run")
+@app.post("/api/queue/advance")
 async def start_queue_runner_endpoint():
     return start_queue_runner()
 
 @app.post("/api/queue/stop")
+@app.post("/api/queue/pause")
 async def stop_queue_runner_endpoint():
     return stop_queue_runner()
 
