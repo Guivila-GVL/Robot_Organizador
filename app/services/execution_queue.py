@@ -317,10 +317,10 @@ def update_task_progress(
                     )
                     telegram_sent = tg_res.get("success", False)
                 log_activity("HITO", f"📱 Hito #{task_id} [{detected_stage}] notificado por Telegram (éxito={telegram_sent}).")
+                if telegram_sent:
+                    notified_set.add(detected_stage)
             except Exception as e:
                 log_activity("HITO", f"⚠️ Error al notificar hito #{task_id} [{detected_stage}] a Telegram: {e}")
-
-        notified_set.add(detected_stage)
 
     updated_notified_stages = ",".join(sorted(notified_set))
 

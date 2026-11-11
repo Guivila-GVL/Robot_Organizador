@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 15:16:43] ✅ Revisar
+
+- **ID Tarea:** `79`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Protocolo universal de hitos Telegram implementado: corregido bug de supresión de etapa plan en queue runner/execution queue, formalizada Skill protocolo-gestion-actividades en 01_Skills, actualizado índice y reglas globales GEMINI.md para todos los proyectos, y verificado con tests unitarios automatizados exitosos (6/6 OK).
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 13:47:35] ✅ Sí, me gustaría hacer un cambio en la parte de la consola de actividad,...
 
 - **ID Tarea:** `74`

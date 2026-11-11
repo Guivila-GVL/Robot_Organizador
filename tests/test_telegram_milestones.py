@@ -183,6 +183,62 @@ class TestTelegramMilestones(unittest.TestCase):
             conn.commit()
             conn.close()
 
+    def test_06_notify_telegram_false_does_not_suppress_stage(self):
+        """Verifica que si notify_telegram=False se usa (arranque runner), no marque como notificado el hito plan."""
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO tasks (project_id, title, status, progress_pct, created_at, notified_stages)
+            VALUES ('gestion_proyectos', 'Tarea Temporal Test No Suppress', 'in_progress', 10, datetime('now'), '')
+        """)
+        temp_id = c.lastrowid
+        conn.commit()
+        conn.close()
+
+        try:
+            # 1. Simular arranque del runner con notify_telegram=False
+            r1 = update_task_progress(
+                task_id=temp_id,
+                progress_pct=10,
+                current_step="⚡ Ejecutando con motor de prueba...",
+                note="Worker autónomo iniciado.",
+                author="Cola Global",
+                stage="started",
+                notify_telegram=False
+            )
+            self.assertTrue(r1["success"])
+            self.assertFalse(r1.get("telegram_notified"))
+
+            conn = get_db_connection()
+            row = conn.execute("SELECT notified_stages FROM tasks WHERE id = ?", (temp_id,)).fetchone()
+            conn.close()
+            notified_raw = row["notified_stages"] or ""
+            self.assertNotIn("plan", notified_raw.split(","))
+
+            # 2. Cuando el agente reporta Hito 1 (plan), debe notificar a Telegram exitosamente
+            r2 = update_task_progress(
+                task_id=temp_id,
+                progress_pct=20,
+                current_step="Ya se ha pensado en cómo implementarlo: arquitectura diseñada",
+                stage="plan"
+            )
+            self.assertTrue(r2["success"])
+            self.assertEqual(r2["stage"], "plan")
+            self.assertTrue(r2.get("telegram_notified"))
+
+            # 3. Y ahora sí debe estar en notified_stages
+            conn = get_db_connection()
+            row2 = conn.execute("SELECT notified_stages FROM tasks WHERE id = ?", (temp_id,)).fetchone()
+            conn.close()
+            self.assertIn("plan", (row2["notified_stages"] or "").split(","))
+
+        finally:
+            conn = get_db_connection()
+            conn.execute("DELETE FROM tasks WHERE id = ?", (temp_id,))
+            conn.execute("DELETE FROM comments WHERE task_id = ?", (temp_id,))
+            conn.commit()
+            conn.close()
+
 
 if __name__ == "__main__":
     unittest.main()

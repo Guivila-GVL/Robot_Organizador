@@ -135,10 +135,11 @@ def _run_single_task_with_model(task: Dict[str, Any], model_info: Dict[str, Any]
 
     update_task_progress(
         task_id=task_id,
-        progress_pct=max(25, task.get("progress_pct") or 10),
+        progress_pct=max(10, task.get("progress_pct") or 10),
         current_step=f"⚡ Ejecutando con {model_name}...",
         note=f"Worker autónomo iniciado con motor {model_name}.",
         author="Cola Global",
+        stage="started",
         notify_telegram=False
     )
 
