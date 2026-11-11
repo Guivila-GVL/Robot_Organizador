@@ -1242,3 +1242,189 @@ Traceback (most recent call last):
     """, (new_status, result_text, image_path, new_status, new_status, new_status, new_step, new_status, new_status, now, task_id))
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 12, and there are 11 supplied.
+[11:22:53] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (795s)...
+[11:23:08] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (810s)...
+[11:23:23] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (825s)...
+INFO:     127.0.0.1:55295 - "POST /api/tasks/62/check HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 410, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\applications.py", line 1215, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\applications.py", line 107, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\telemetry\_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\OneDrive\04_Desarrollo_proyectos\2026_Proyecto_RobotOrganizador\app\main.py", line 147, in disable_browser_cache
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py", line 2786, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py", line 1310, in handle
+    await super().handle(scope, receive, send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py", line 165, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py", line 151, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py", line 727, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "C:\Users\guill\AppData\Local\Programs\Python\Python314\Lib\site-packages\fastapi\routing.py", line 360, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\OneDrive\04_Desarrollo_proyectos\2026_Proyecto_RobotOrganizador\app\main.py", line 340, in run_task_check
+    result = check_and_complete_task(
+        task_id=task_id,
+    ...<2 lines>...
+        force_status=req.force_status
+    )
+  File "D:\OneDrive\04_Desarrollo_proyectos\2026_Proyecto_RobotOrganizador\app\services\milestone_checker.py", line 156, in check_and_complete_task
+    cursor.execute("""
+    ^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    """, (new_status, result_text, image_path, new_status, new_status, new_status, new_step, new_status, new_status, new_status, now, task_id))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.ProgrammingError: Incorrect number of bindings supplied. The current statement uses 12, and there are 11 supplied.
+[11:23:38] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (840s)...
+[11:23:53] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (855s)...
+[11:24:08] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (870s)...
+[11:24:23] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (885s)...
+[11:24:38] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (900s)...
+[11:24:53] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (915s)...
+INFO:     127.0.0.1:56139 - "POST /api/projects/robot_organizador/sync-onenote HTTP/1.1" 200 OK
+[11:25:08] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (930s)...
+[11:25:23] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (945s)...
+[11:25:25] [HITO] ✅ #62 completada [Robot de Gestión de Proyectos] -> La tarea va a ser añadir lo de la consola de seguimiento de la...
+INFO:     127.0.0.1:56470 - "POST /api/tasks/62/check HTTP/1.1" 200 OK
+[11:25:25] [PROTOCOLO] 📓 Sincronizando OneNote en segundo plano para 'Robot de Gestión de Proyectos' (Tarea #62)...
+INFO:     127.0.0.1:56568 - "GET /static/js/app.js?v=1794392731 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56566 - "GET /static/css/style.css?v=1794392731 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56642 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+[11:25:38] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (960s)...
+[11:25:48] [RUNNER] [Gemini 3.8 Flash (Medium)] Se ha completado y verificado con éxito la **Tarea #62** en el proyecto **Robot de Gestión de Proyectos** (`D:\OneDrive\04_Desarrollo_proyec
+[11:25:48] [RUNNER] [Gemini 3.8 Flash (Medium)] ---
+[11:25:48] [RUNNER] [Gemini 3.8 Flash (Medium)] ### Resumen Técnico de Cambios Implementados
+[11:25:48] [RUNNER] [Gemini 3.8 Flash (Medium)] 1. **Nueva Columna Lateral Derecha Permanente en la Página Principal (`index.html` y `style.css`)**:
+[11:25:49] [RUNNER] [Gemini 3.8 Flash (Medium)] - Se añadió el elemento lateral `<aside class="sidebar-right activity-sidebar" id="activitySidebar">` a la derecha del contenedor principal
+[11:25:49] [RUNNER] [Gemini 3.8 Flash (Medium)] - Se eliminó el botón superior `btnOpenCmdMonitor` ("🖥️ Consola CMD & Tareas") de la barra de navegación y se eliminó el modal flotante con
+[11:25:49] [RUNNER] [Gemini 3.8 Flash (Medium)] 2. **Visor en Tiempo Real del Avance del Proyecto Seleccionado (`app.js`)**:
+[11:25:50] [RUNNER] [Gemini 3.8 Flash (Medium)] - **Proyecto y Tarea en Curso**: Muestra en vivo la identidad del proyecto activo, el ID y título de la tarea en ejecución, el paso actual (
+[11:25:51] [RUNNER] [Gemini 3.8 Flash (Medium)] - **Soporte Especial para Ingesta ESIOS**: Si se selecciona el proyecto de energía (*ESIOS*), el panel conmuta a la telemetría en vivo del s
+[11:25:51] [RUNNER] [Gemini 3.8 Flash (Medium)] - **Estado en Reposo & Siguiente Tarea**: Si el proyecto seleccionado no tiene tareas en progreso, muestra el resumen de tareas pendientes/c
+[11:25:52] [RUNNER] [Gemini 3.8 Flash (Medium)] - **Aviso de Cola Global**: Muestra una notificación si el ejecutor autónomo global está procesando una tarea de otro proyecto.
+[11:25:52] [RUNNER] [Gemini 3.8 Flash (Medium)] 3. **Terminal CMD en Vivo con Filtros Dinámicos**:
+[11:25:52] [RUNNER] [Gemini 3.8 Flash (Medium)] - Stream de eventos en tiempo real con tipografía monospace (*JetBrains Mono*), resaltado de sintaxis por colores (`[HITO]`, `[RUNNER]`, `[P
+[11:25:53] [RUNNER] [Gemini 3.8 Flash (Medium)] - Botones de filtro rápido: **Todos**, **Proyecto** (filtra logs pertenecientes al proyecto seleccionado) y **Runner** (filtra ejecuciones y
+[11:25:53] [RUNNER] [Gemini 3.8 Flash (Medium)] - Controles de **Auto-scroll** y botón **Limpiar**.
+[11:25:53] [RUNNER] [Gemini 3.8 Flash (Medium)] 4. **Verificación y Protocolo de Cierre**:
+[11:25:53] [RUNNER] [Gemini 3.8 Flash (Medium)] - Se reportaron los hitos intermedios (20%, 50%, 80%) a `/api/tasks/62/progress`.
+[11:25:53] [RUNNER] [Gemini 3.8 Flash (Medium)] - Se verificó el funcionamiento visual y dinámico mediante capturas sin cabeza con Microsoft Edge a 1920x1080.
+[11:25:54] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #62 en segundo plano (975s)...
+[11:25:54] [RUNNER] [Gemini 3.8 Flash (Medium)] - Se ejecutó el cierre formal mediante POST a `/api/tasks/62/check`, activando el registro en [REGISTRO_HITOS.md](file:///D:/OneDrive/04_Des
+[11:25:54] [RUNNER] ✅ Tarea #62 completada con éxito.
+[11:25:56] [RUNNER] ✅ Todas las tareas de la Cola Global han finalizado.
+[11:26:28] [PROTOCOLO] ✅ OneNote actualizado para 'Robot de Gestión de Proyectos' (Tarea #62).
+[11:26:28] [PROTOCOLO] 🐙 Ejecutando Git commit & push para 'Robot de Gestión de Proyectos' (Tarea #62)...
+[11:26:31] [PROTOCOLO] ✅ Git commit & push completado para 'Robot de Gestión de Proyectos'.
+INFO:     127.0.0.1:53286 - "GET /static/css/style.css?v=1794393085 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53286 - "GET /static/js/app.js?v=1794393085 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53694 - "POST /api/projects/gestion_proyectos/open-resource/onenote?open_browser=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54598 - "POST /api/tasks/smart-create HTTP/1.1" 200 OK
+[11:34:05] [TAREA] 🚀 #63 lanzada a En Progreso: Sí, con el UI, con la última tarea añadida de poner la consola a la...
+INFO:     127.0.0.1:54598 - "POST /api/tasks/63/launch HTTP/1.1" 200 OK
+[11:34:18] [RUNNER] ▶️ Lanzando ejecución automática de 1 tarea(s) en secuencia...
+INFO:     127.0.0.1:54875 - "POST /api/queue/run HTTP/1.1" 200 OK
+[11:34:18] [RUNNER] 🔄 Worker Autónomo de Cola Global iniciado.
+[11:34:18] [RUNNER] 🚀 Ejecutando tarea #63 con motor: Gemini 3.8 Flash (Medium) (gemini-3.8-flash-medium)
+[11:34:18] [PROGRESO] 📊 #63 (Cola Global) [25%] ⚡ Ejecutando con Gemini 3.8 Flash (Medium)... · Worker autónomo iniciado con motor Gemini 3.8 Flash (Medium).
+[11:34:18] [RUNNER] [Gemini 3.8 Flash (Medium)] warning: --mode auto is not available because the terminal sandbox is not available on this host; continuing in the default mode.
+[11:34:33] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (15s)...
+[11:34:33] [PROGRESO] 📊 #63 (Agente) [20%] Analizando UI y sistema de logs/consola de proyectos y ESIOS
+INFO:     127.0.0.1:55196 - "PATCH /api/tasks/63/progress HTTP/1.1" 200 OK
+[11:34:48] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (30s)...
+[11:35:03] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (45s)...
+[11:35:18] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (60s)...
+[11:35:33] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (75s)...
+[11:35:48] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (90s)...
+[11:36:03] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (105s)...
+[11:36:18] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (120s)...
+[11:36:33] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (135s)...
+[11:36:48] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (150s)...
+[11:37:03] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (165s)...
+[11:37:10] [PROGRESO] 📊 #63 (Agente) [50%] Diseñando e integrando selector de proyecto y filtro/seguimiento dedicado de ESIOS en UI
+INFO:     127.0.0.1:57472 - "PATCH /api/tasks/63/progress HTTP/1.1" 200 OK
+[11:37:18] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (180s)...
+[11:37:33] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (195s)...
+[11:37:48] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (210s)...
+[11:38:03] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (225s)...
+[11:38:18] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (240s)...
+[11:38:33] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (255s)...
+[11:38:48] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (270s)...
+[11:39:03] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (285s)...
+[11:39:18] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (300s)...
+INFO:     127.0.0.1:58987 - "POST /api/tasks/smart-create HTTP/1.1" 200 OK
+[11:39:33] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (315s)...
+[11:39:48] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (330s)...
+INFO:service_hub:Iniciando servicio Comentarista X en D:\OneDrive\04_Desarrollo_proyectos\2026_Proyecto_Comentarista...
+[11:39:56] [SERVICIO] 🚀 Arrancando Comentarista X (:8000) en segundo plano...
+INFO:     127.0.0.1:59456 - "POST /api/services/comentarista/start?open_browser=true HTTP/1.1" 200 OK
+[11:40:03] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (345s)...
+[11:40:18] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (360s)...
+[11:40:33] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (375s)...
+INFO:     127.0.0.1:59714 - "POST /api/tasks/smart-create HTTP/1.1" 200 OK
+[11:40:48] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (390s)...
+[11:41:03] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (405s)...
+[11:41:18] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (420s)...
+[11:41:33] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (435s)...
+[11:41:48] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (450s)...
+[11:42:03] [RUNNER] ⏳ [Gemini 3.8 Flash (Medium)] Procesando tarea #63 en segundo plano (465s)...
+[11:42:10] [PROGRESO] 📊 #63 (Agente) [80%] Validando flujo completo de UI: selector de proyecto lateral y terminal en vivo de ESIOS
+INFO:     127.0.0.1:62233 - "PATCH /api/tasks/63/progress HTTP/1.1" 200 OK

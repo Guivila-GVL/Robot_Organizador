@@ -2388,6 +2388,40 @@ input:checked + .slider:before {
   letter-spacing: 0.05em;
 }
 
+/* Selector / Toggle de Modo de Seguimiento (Proyecto vs ESIOS) */
+.tracking-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.tracking-toggle-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tracking-toggle-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tracking-toggle-btn.active {
+  background: rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  font-weight: 700;
+}
+
 .selected-tracking-card {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -2412,6 +2446,7 @@ input:checked + .slider:before {
   align-items: center;
   gap: 0.5rem;
   overflow: hidden;
+  flex: 1;
 }
 
 .selected-proj-icon {
@@ -2423,9 +2458,18 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex: 1;
 }
 
-.selected-proj-info h4 {
+.selected-proj-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  overflow: hidden;
+}
+
+.selected-proj-title-row h4 {
   font-size: 0.86rem;
   font-weight: 700;
   color: var(--text-white);
@@ -2433,6 +2477,31 @@ input:checked + .slider:before {
   overflow: hidden;
   text-overflow: ellipsis;
   margin: 0;
+}
+
+.sidebar-project-select {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 5px;
+  color: #38bdf8;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.35rem;
+  cursor: pointer;
+  max-width: 140px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.sidebar-project-select:hover,
+.sidebar-project-select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
+}
+
+.sidebar-project-select option {
+  background: #0f172a;
+  color: #f1f5f9;
 }
 
 .selected-proj-sub {
@@ -2722,6 +2791,58 @@ input:checked + .slider:before {
   font-weight: 600;
 }
 
+/* Sub-barra contextual de la terminal */
+.terminal-sub-bar {
+  padding: 0.35rem 0.85rem;
+  background: rgba(10, 15, 28, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 28px;
+}
+
+.terminal-sub-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #94a3b8;
+  font-size: 0.67rem;
+  font-weight: 500;
+}
+
+.terminal-project-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.console-project-select {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 4px;
+  color: #e2e8f0;
+  font-size: 0.67rem;
+  padding: 0.12rem 0.4rem;
+  cursor: pointer;
+  max-width: 155px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.console-project-select:hover,
+.console-project-select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
+}
+
+.console-project-select option {
+  background: #0f172a;
+  color: #f1f5f9;
+}
+
 .activity-terminal-screen {
   flex: 1;
   padding: 0.65rem 0.85rem;
@@ -2750,4 +2871,16 @@ input:checked + .slider:before {
 
 .terminal-line.orange {
   color: #fb923c;
+}
+
+.terminal-line.teal {
+  color: #2dd4bf;
+}
+
+.terminal-line.cyan {
+  color: #38bdf8;
+}
+
+.terminal-line.yellow {
+  color: #facc15;
 }

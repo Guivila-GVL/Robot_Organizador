@@ -1560,14 +1560,69 @@ async function stopGlobalQueueNow() {
 // CONSOLA LATERAL DE ACTIVIDAD & SEGUIMIENTO EN VIVO EN LA PÁGINA PRINCIPAL
 // --------------------------------------------------------------------------
 state.consoleFilter = 'all';
+state.trackingMode = 'project';
+state.consoleSelectedProject = 'active';
 state.telemetry = null;
 let activityConsoleTicks = 0;
+
+function setTrackingMode(mode) {
+  state.trackingMode = mode;
+  const btnProj = document.getElementById('btnTrackProject');
+  const btnEsios = document.getElementById('btnTrackEsios');
+  if (btnProj) btnProj.classList.toggle('active', mode === 'project');
+  if (btnEsios) btnEsios.classList.toggle('active', mode === 'esios');
+  if (state.telemetry) {
+    renderSelectedTrackingCard(state.telemetry);
+  }
+}
+
+function onSidebarProjectSelectChange(projectId) {
+  if (projectId && projectId !== state.activeProjectId) {
+    state.trackingMode = 'project';
+    const btnProj = document.getElementById('btnTrackProject');
+    const btnEsios = document.getElementById('btnTrackEsios');
+    if (btnProj) btnProj.classList.add('active');
+    if (btnEsios) btnEsios.classList.remove('active');
+    selectProject(projectId);
+  }
+}
+
+function onConsoleProjectFilterChange(projectId) {
+  state.consoleSelectedProject = projectId;
+  renderConsoleTerminal();
+}
+
+function goToConsoleSelectedProject() {
+  const targetId = state.consoleSelectedProject === 'active' ? state.activeProjectId : state.consoleSelectedProject;
+  if (targetId && targetId !== state.activeProjectId) {
+    selectProject(targetId);
+    showToast('Cambiado al proyecto seleccionado', 'info');
+  }
+}
 
 function setConsoleFilter(filter) {
   state.consoleFilter = filter;
   document.querySelectorAll('.console-filter-btn').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
   });
+
+  const contextLabel = document.getElementById('terminalContextLabel');
+  const pickerWrap = document.getElementById('terminalProjectPickerWrap');
+
+  if (filter === 'all') {
+    if (contextLabel) contextLabel.textContent = '🌐 Flujo unificado: Servidor, Runner y Adquisición ESIOS';
+    if (pickerWrap) pickerWrap.style.display = 'none';
+  } else if (filter === 'project') {
+    if (contextLabel) contextLabel.textContent = '📁 Filtrando por Proyecto:';
+    if (pickerWrap) pickerWrap.style.display = 'flex';
+  } else if (filter === 'esios') {
+    if (contextLabel) contextLabel.textContent = '🔋 Stream en vivo: Ingesta ESIOS (:8050 · TimescaleDB)';
+    if (pickerWrap) pickerWrap.style.display = 'none';
+  } else if (filter === 'runner') {
+    if (contextLabel) contextLabel.textContent = '🤖 Logs del Worker Autónomo y Cola Global';
+    if (pickerWrap) pickerWrap.style.display = 'none';
+  }
+
   renderConsoleTerminal();
 }
 
@@ -1707,36 +1762,63 @@ function renderSelectedTrackingCard(data) {
   const progressAreaEl = document.getElementById('sidebarProgressArea');
   const globalWorkerNoticeEl = document.getElementById('globalWorkerNotice');
   const globalWorkerTaskInfoEl = document.getElementById('globalWorkerTaskInfo');
+  const sidebarProjectSelect = document.getElementById('sidebarProjectSelect');
+  const consoleProjectFilterSelect = document.getElementById('consoleProjectFilterSelect');
 
   if (!progressAreaEl) return;
 
   const currentProject = state.projects.find(p => p.id === state.activeProjectId);
-  if (!currentProject) {
+
+  // Sincronizar selectores desplegables de proyectos
+  if (state.projects && state.projects.length > 0) {
+    if (sidebarProjectSelect && sidebarProjectSelect.options.length !== state.projects.length) {
+      sidebarProjectSelect.innerHTML = state.projects.map(p =>
+        `<option value="${p.id}" ${p.id === state.activeProjectId ? 'selected' : ''}>${p.icon} ${escapeHtml(p.name)}</option>`
+      ).join('');
+    } else if (sidebarProjectSelect && sidebarProjectSelect.value !== state.activeProjectId) {
+      sidebarProjectSelect.value = state.activeProjectId || '';
+    }
+
+    if (consoleProjectFilterSelect) {
+      const activeProjName = currentProject ? currentProject.name : 'Actual';
+      const expectedCount = state.projects.length + 1;
+      if (consoleProjectFilterSelect.options.length !== expectedCount) {
+        let opts = `<option value="active" ${state.consoleSelectedProject === 'active' ? 'selected' : ''}>📌 Activo (${escapeHtml(activeProjName)})</option>`;
+        opts += state.projects.map(p =>
+          `<option value="${p.id}" ${state.consoleSelectedProject === p.id ? 'selected' : ''}>${p.icon} ${escapeHtml(p.name)}</option>`
+        ).join('');
+        consoleProjectFilterSelect.innerHTML = opts;
+      }
+    }
+  }
+
+  if (!currentProject && state.trackingMode !== 'esios') {
     if (projIconEl) projIconEl.textContent = '📁';
     if (projNameEl) projNameEl.textContent = 'Selecciona un Proyecto';
     if (projCatEl) projCatEl.textContent = 'General';
     if (projBadgeEl) projBadgeEl.textContent = '0 tareas';
-    progressAreaEl.innerHTML = '<div class="selected-idle-state">Elige un proyecto del menú izquierdo para ver cómo avanza su actividad en tiempo real.</div>';
+    progressAreaEl.innerHTML = '<div class="selected-idle-state">Elige un proyecto del menú izquierdo o superior para ver su actividad en tiempo real.</div>';
     if (globalWorkerNoticeEl) globalWorkerNoticeEl.style.display = 'none';
     return;
   }
-
-  // Identidad del proyecto
-  if (projIconEl) projIconEl.textContent = currentProject.icon || '📁';
-  if (projNameEl) projNameEl.textContent = currentProject.name || 'Proyecto';
-  if (projCatEl) projCatEl.textContent = currentProject.category || 'General';
 
   const esios = data.esios || {};
   const robot = data.robot || {};
   const runner = robot.runner || {};
 
-  const isEsiosProject = currentProject.id === 'actualizador_esios' ||
-                         currentProject.folder_name === '2026_Proyecto_Energia_Graficos' ||
-                         (currentProject.port && currentProject.port === 8050) ||
-                         (currentProject.name && currentProject.name.toLowerCase().includes('energía'));
+  const isEsiosProject = currentProject && (
+    currentProject.id === 'actualizador_esios' ||
+    currentProject.folder_name === '2026_Proyecto_Energia_Graficos' ||
+    (currentProject.port && currentProject.port === 8050) ||
+    (currentProject.name && currentProject.name.toLowerCase().includes('energía'))
+  );
 
-  // A. Si el proyecto seleccionado es ESIOS (Ingesta de Energía)
-  if (isEsiosProject) {
+  // A. Si se activa la pestaña ESIOS o el proyecto seleccionado es ESIOS (Ingesta de Energía)
+  if (state.trackingMode === 'esios' || isEsiosProject) {
+    if (projIconEl) projIconEl.textContent = '🔋';
+    if (projNameEl) projNameEl.textContent = isEsiosProject ? (currentProject.name || 'Energía & Gráficos') : 'Actualizador ESIOS (:8050)';
+    if (projCatEl) projCatEl.textContent = 'Ingesta de Energía · TimescaleDB';
+
     const isRunning = esios.status === 'running';
     let statusClass = 'online';
     let statusLabel = '✅ Listo / Al día';
@@ -1752,7 +1834,7 @@ function renderSelectedTrackingCard(data) {
     }
 
     if (projBadgeEl) {
-      projBadgeEl.textContent = isRunning ? '⚡ Ingesta Activa' : '86 Tareas ESIOS';
+      projBadgeEl.textContent = isRunning ? '⚡ Ingesta Activa' : `${esios.completed_tasks || 86}/${esios.total_tasks || 86} Tareas`;
       projBadgeEl.className = isRunning ? 'badge badge-accent' : 'badge';
     }
 
@@ -1768,7 +1850,7 @@ function renderSelectedTrackingCard(data) {
           </button>
         </div>
         <div class="active-task-step-row">
-          <span class="active-task-step">${escapeHtml(esios.current_step || 'En espera de órdenes')}</span>
+          <span class="active-task-step" title="${escapeHtml(esios.current_step || 'En espera de órdenes')}">${escapeHtml(esios.current_step || 'En espera de órdenes')}</span>
           <span class="active-task-pct">${pct}%</span>
         </div>
         <div class="active-task-bar-bg">
@@ -1780,11 +1862,23 @@ function renderSelectedTrackingCard(data) {
           <div><label>Tareas</label> <strong>${esios.completed_tasks || 0}/${esios.total_tasks || 86}</strong></div>
           <div><label>Añadidos</label> <strong style="color:#10b981;">+${esios.total_added || 0}</strong></div>
         </div>
+        <div class="esios-actions-row" style="display:flex; gap:0.4rem; margin-top:0.35rem;">
+          <button type="button" class="btn btn-xs btn-outline" onclick="setConsoleFilter('esios')" style="flex:1; justify-content:center;" title="Ver registros detallados de descarga de cada indicador en la terminal">
+            🖥️ Terminal ESIOS
+          </button>
+          <button type="button" class="btn btn-xs btn-outline" onclick="openServiceUrl('http://127.0.0.1:8050')" style="flex:1; justify-content:center;" title="Abrir panel web local del Actualizador ESIOS">
+            🔗 Panel :8050
+          </button>
+        </div>
       </div>
     `;
   }
   // B. Proyecto estándar con tareas
   else {
+    if (projIconEl) projIconEl.textContent = currentProject.icon || '📁';
+    if (projNameEl) projNameEl.textContent = currentProject.name || 'Proyecto';
+    if (projCatEl) projCatEl.textContent = currentProject.category || 'General';
+
     const tasks = state.tasks || [];
     const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
     const runnerMatchesProject = runner.running && (
@@ -1869,7 +1963,7 @@ function renderSelectedTrackingCard(data) {
   }
 
   // Aviso si el worker de la cola global está ejecutando OTRA tarea de OTRO proyecto
-  if (runner.running && !isEsiosProject && runner.current_project_name && runner.current_project_name !== currentProject.name) {
+  if (runner.running && !isEsiosProject && runner.current_project_name && runner.current_project_name !== (currentProject?.name || '')) {
     if (globalWorkerNoticeEl) {
       globalWorkerNoticeEl.style.display = 'flex';
       if (globalWorkerTaskInfoEl) {
@@ -1899,16 +1993,24 @@ function renderConsoleTerminal() {
   const runLogs = runner.history || [];
   const esiosLogs = esios.logs || [];
 
-  // Combinación y orden cronológico
+  // Combinación y orden cronológico de streams
   const combined = [];
   const seen = new Set();
 
-  [...srvLogs, ...runLogs].forEach(l => {
-    const trimmed = l.trim();
+  const pushLine = (line) => {
+    const trimmed = (line || '').trim();
     if (trimmed && !seen.has(trimmed)) {
       seen.add(trimmed);
       combined.push(trimmed);
     }
+  };
+
+  srvLogs.forEach(pushLine);
+  runLogs.forEach(pushLine);
+  // Integrar últimos eventos de ESIOS en el flujo unificado para que no se pierdan
+  esiosLogs.slice(-40).forEach(l => {
+    const tagged = l.startsWith('[') ? l : `[ESIOS] ${l}`;
+    pushLine(tagged);
   });
 
   const currentProject = state.projects.find(p => p.id === state.activeProjectId);
@@ -1916,21 +2018,50 @@ function renderConsoleTerminal() {
   const filter = state.consoleFilter || 'all';
 
   let filtered = combined;
+
   if (filter === 'project') {
-    if (currentProject) {
-      const projName = currentProject.name.toLowerCase();
-      const projFolder = (currentProject.folder_name || '').toLowerCase();
+    const targetProjId = (state.consoleSelectedProject && state.consoleSelectedProject !== 'active')
+      ? state.consoleSelectedProject
+      : state.activeProjectId;
+    const targetProject = state.projects.find(p => p.id === targetProjId) || currentProject;
+
+    if (targetProject) {
+      const projName = targetProject.name.toLowerCase();
+      const projFolder = (targetProject.folder_name || '').toLowerCase();
+      const isTargetEsios = projFolder.includes('energia') || projName.includes('energía') || targetProject.id === 'actualizador_esios' || targetProject.id === 'energia_graficos';
+
       filtered = combined.filter(l => {
         const lower = l.toLowerCase();
         return lower.includes(projName) ||
                (projFolder && lower.includes(projFolder)) ||
                activeTaskIds.some(tid => l.includes(tid)) ||
-               l.includes('[PROGRESO]') ||
-               l.includes('[TAREA]') ||
-               l.includes('[HITO]');
+               l.includes(`[${targetProject.name}]`);
       });
-      if (projFolder.includes('energia') || projName.includes('energía') || currentProject.id === 'actualizador_esios') {
-        filtered = [...filtered, ...esiosLogs].slice(-70);
+
+      if (isTargetEsios) {
+        filtered = [...filtered, ...esiosLogs].slice(-80);
+      }
+
+      if (filtered.length === 0) {
+        filtered = [
+          `[PROYECTO: ${targetProject.name}] En espera de actividad.`,
+          `📁 Carpeta: ${targetProject.folder_name || 'N/A'} · Puerto: ${targetProject.port ? `:${targetProject.port}` : 'N/A'}`
+        ];
+      }
+    }
+  } else if (filter === 'esios') {
+    filtered = esiosLogs.map(l => l.trim()).filter(Boolean);
+    if (filtered.length === 0) {
+      if (!esios.online) {
+        filtered = [
+          '[ESIOS] 🔴 Servicio de adquisición detenido (puerto :8050 no responde).',
+          'Pulsa "▶️ Iniciar Sincronización" o arranca el Actualizador ESIOS desde Configuración.'
+        ];
+      } else {
+        filtered = [
+          '[ESIOS] 🟢 Conectado con Actualizador ESIOS (:8050 · TimescaleDB).',
+          '[ESIOS] Esperando siguiente ciclo diario de ingesta o pulsa "Iniciar Sincronización".'
+        ];
       }
     }
   } else if (filter === 'runner') {
@@ -1945,9 +2076,12 @@ function renderConsoleTerminal() {
       l.includes('Claude') ||
       l.includes('Worker')
     ));
+    if (filtered.length === 0) {
+      filtered = ['[RUNNER] En espera. No hay tareas en ejecución por el worker autónomo.'];
+    }
   }
 
-  const finalLogs = filtered.slice(-80);
+  const finalLogs = filtered.slice(-100);
   if (logCountEl) {
     logCountEl.textContent = `${finalLogs.length} líneas`;
   }
@@ -1961,13 +2095,17 @@ function renderConsoleTerminal() {
     let cls = 'terminal-line';
     if (line.includes('ERROR') || line.includes('❌') || line.includes('Falló') || line.includes('⚠️')) {
       cls += ' error';
-    } else if (line.includes('[HITO]') || line.includes('✅') || line.includes('200 OK') || line.includes('completada') || line.includes('🟢')) {
+    } else if (line.includes('[HITO]') || line.includes('✅') || line.includes('200 OK') || line.includes('completada') || line.includes('🟢') || line.includes('[OK]')) {
       cls += ' success';
-    } else if (line.includes('[RUNNER]') || line.includes('[PROGRESO]') || line.includes('⚡') || line.includes('▶️')) {
+    } else if (line.includes('Descargando') || line.includes('Insertado/Actualizado') || line.includes('filas afectadas')) {
+      cls += ' cyan';
+    } else if (line.includes('POTENCIA') || line.includes('Nuclear:') || line.includes('Hidraulica:') || line.includes('Eolica:') || line.includes('Fotovoltaica:') || line.includes('Ciclo_Combinado:')) {
+      cls += ' teal';
+    } else if (line.includes('[RUNNER]') || line.includes('[PROGRESO]') || line.includes('⚡') || line.includes('▶️') || line.includes('Procesando')) {
       cls += ' info';
-    } else if (line.includes('[TAREA]') || line.includes('🚀')) {
+    } else if (line.includes('[TAREA]') || line.includes('🚀') || line.includes('PVPC') || line.includes('SPOT')) {
       cls += ' purple';
-    } else if (line.includes('[ESIOS]') || line.includes('🔋')) {
+    } else if (line.includes('[ESIOS]') || line.includes('🔋') || line.includes('TimescaleDB') || line.includes('OneDrive')) {
       cls += ' orange';
     }
     return `<div class="${cls}">${escapeHtml(line)}</div>`;
@@ -2022,6 +2160,10 @@ window.moveModelSequence = moveModelSequence;
 window.clearActivityTerminal = clearActivityTerminal;
 window.clearConsoleView = clearConsoleView;
 window.setConsoleFilter = setConsoleFilter;
+window.setTrackingMode = setTrackingMode;
+window.onSidebarProjectSelectChange = onSidebarProjectSelectChange;
+window.onConsoleProjectFilterChange = onConsoleProjectFilterChange;
+window.goToConsoleSelectedProject = goToConsoleSelectedProject;
 window.updateActivityConsole = updateActivityConsole;
 window.loadCmdTelemetry = updateActivityConsole;
 window.openServiceUrl = openServiceUrl;

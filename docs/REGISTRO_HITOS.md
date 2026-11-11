@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 11:42:34] ✅ Sí, con el UI, con la última tarea añadida de poner la consola a la...
+
+- **ID Tarea:** `63`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Implementado y verificado el selector de proyectos y seguimiento de adquisición de datos ESIOS en la consola lateral y panel de actividad: 1) Selector de proyectos interactivo integrado tanto en la cabecera de seguimiento como en la sub-barra de la terminal con navegación directa. 2) Conmutador de seguimiento rápido entre Proyecto y 🔋 ESIOS para supervisar en cualquier momento la ingesta de datos de energía (puerto 8050, 86 tareas, ETA, transcurrido y registros en TimescaleDB). 3) Botones de filtro de la terminal actualizados a «Todas», «Proyecto», «🔋 ESIOS» y «Runners», incluyendo integración completa de logs de ESIOS en el flujo unificado y un stream dedicado. 4) Resaltado sintáctico en vivo en la terminal para indicadores, descargas, precios y conexiones a base de datos.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 11:25:25] ✅ La tarea va a ser añadir lo de la consola de seguimiento de la...
 
 - **ID Tarea:** `62`
