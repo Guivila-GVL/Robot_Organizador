@@ -43,7 +43,7 @@ def _run_heavy_protocol_async(task_dict: Dict[str, Any], result_text: str) -> No
         summary_msg = (
             f"📋 PROTOCOLO DE CIERRE COMPLETADO:\n"
             f"• 📁 Docs: ✅ Registrado en docs/REGISTRO_HITOS.md\n"
-            f"• 📓 OneNote: {'✅ Sincronizado en OneNote (Resumen y Actividades)' if onenote_res.get('success') else '⚠️ Sincronización pendiente'}\n"
+            f"• 📓 OneNote: {'✅ Sincronizado en OneNote (Resumen, Actividades y Siguientes Pasos)' if onenote_res.get('success') else '⚠️ Sincronización pendiente'}\n"
             f"• 🐙 Git: {'✅ Commit y Push a GitHub completado' if git_res.get('push_done') else ('ℹ️ Commit local realizado' if git_res.get('commit_done') else 'ℹ️ Sin cambios pendientes')}\n"
             f"• 🧠 Skills: ✅ Patrones verificados"
         )

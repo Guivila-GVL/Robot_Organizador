@@ -135,7 +135,7 @@ DEFAULT_PROJECTS = [
             },
             {
                 "title": "Protocolo Automatizado de Cierre de Tareas (Docs, OneNote, Git, Skills)",
-                "description": "Al completar cualquier tarea de cualquier proyecto, se ejecuta automáticamente el protocolo de cierre: 1) Registro en docs/REGISTRO_HITOS.md, 2) Sincronización en OneNote (Resumen y Actividades), 3) Commit y Push a GitHub, 4) Revisión de Skills y 5) Alerta a Telegram.",
+                "description": "Al completar cualquier tarea de cualquier proyecto, se ejecuta automáticamente el protocolo de cierre: 1) Registro en docs/REGISTRO_HITOS.md, 2) Sincronización en OneNote (Resumen, Actividades y Siguientes Pasos), 3) Commit y Push a GitHub, 4) Revisión de Skills y 5) Alerta a Telegram.",
                 "priority": "alta",
                 "status": "in_progress",
                 "milestone_type": "manual",

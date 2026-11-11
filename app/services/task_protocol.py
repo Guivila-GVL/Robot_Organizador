@@ -43,7 +43,7 @@ def update_project_docs(project_folder: str, project_name: str, task: dict, mile
             f"- **Resultado Técnico:** {milestone_result}\n"
             f"- **Checklist de Protocolo General:**\n"
             f"  - [x] Documentación en `/docs` registrada\n"
-            f"  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)\n"
+            f"  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Actividades y 03. Siguientes Pasos)\n"
             f"  - [x] Git Snapshot y Push a repositorio remoto procesado\n"
             f"  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`\n\n"
             f"---\n\n"
@@ -96,11 +96,18 @@ def sync_onenote_project(project_id: str) -> Dict[str, Any]:
         if not os.path.exists(ONENOTE_SYNC_SCRIPT):
             return {"success": False, "error": f"No se encontró el script de OneNote en {ONENOTE_SYNC_SCRIPT}"}
 
+        cmd = [py_exe, ONENOTE_SYNC_SCRIPT]
+        timeout_val = 75
+        if project_id and project_id != "all":
+            cmd.extend(["--project", project_id])
+        else:
+            timeout_val = 300
+
         res = subprocess.run(
-            [py_exe, ONENOTE_SYNC_SCRIPT, "--project", project_id],
+            cmd,
             capture_output=True,
             text=True,
-            timeout=75,
+            timeout=timeout_val,
             creationflags=CREATE_NO_WINDOW
         )
         if res.returncode == 0:
@@ -205,7 +212,7 @@ def execute_automated_task_completion_protocol(
     protocol_summary = (
         f"📋 PROTOCOLO DE CIERRE COMPLETADO:\n"
         f"• 📁 Docs: {'✅ Registrado en docs/REGISTRO_HITOS.md' if docs_res.get('success') else '⚠️ Error en docs'}\n"
-        f"• 📓 OneNote: {'✅ Sincronizado en OneNote (Resumen y Actividades)' if onenote_res.get('success') else '⚠️ Sincronización pendiente'}\n"
+        f"• 📓 OneNote: {'✅ Sincronizado en OneNote (Resumen, Actividades y Siguientes Pasos)' if onenote_res.get('success') else '⚠️ Sincronización pendiente'}\n"
         f"• 🐙 Git: {'✅ Commit y Push a GitHub completado' if git_res.get('push_done') else ('ℹ️ Commit local realizado' if git_res.get('commit_done') else '⚠️ Git pendiente')}\n"
         f"• 🧠 Skills: ✅ Patrones verificados ({len(skills_res['skills_applied'])} habilidades)"
     )
