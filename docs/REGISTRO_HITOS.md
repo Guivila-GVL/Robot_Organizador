@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 12:36:44] ✅ Cuando comencemos una nueva tarea, me gustaría que también se informase...
+
+- **ID Tarea:** `69`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Implementado sistema integral de seguimiento de tareas por Telegram con aviso de inicio y 3 hitos intermedios: 1) Notificación inmediata al arrancar cada nueva tarea indicando nombre, ID, hora exacta de inicio, motor IA asignado y resumen de la Cola Global. 2) Hito intermedio plan (Ya se ha pensado en cómo implementarlo) al concebir la arquitectura/estrategia (~20-25%). 3) Hito intermedio development (Comienza el desarrollo) al iniciar la implementación en código (~50%). 4) Hito intermedio validation (Ha acabado el desarrollo y ahora comienza la validación) al finalizar la codificación e iniciar pruebas (~80%). 5) Deduplicación inteligente vía columna notified_stages en tasks para evitar alertas repetidas. 6) Presets y selector actualizados en la interfaz Web (progressModal) e instrucciones añadidas a los prompts de ejecución autónoma (COLA_EJECUCION_ANTIGRAVITY.md y queue_runner.py). Verificado con suite de pruebas tests/test_telegram_milestones.py (5/5 tests pasados) y entrega en tiempo real por Telegram.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 12:26:51] ✅ Hacer un pequeño cambio en esta última parte que hemos añadido de la...
 
 - **ID Tarea:** `72`

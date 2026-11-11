@@ -78,10 +78,12 @@ def sync_execution_queue_file() -> str:
 
     lines.extend([
         "---",
-        "### 📡 Instrucciones para el Agente (Tracking en Vivo + Cierre):",
+        "### 📡 Instrucciones para el Agente (Tracking de Hitos Telegram + Cierre):",
         "1. Ejecuta las tareas estrictamente en el orden `#1 -> #2 -> #3...` definido arriba.",
-        "2. Para reportar progreso mientras trabajas en una tarea:",
-        "   `PATCH http://127.0.0.1:8002/api/tasks/{id}/progress` con `{\"progress_pct\": 50, \"current_step\": \"Implementando...\", \"note\": \"...\"}`",
+        "2. Reporta los hitos intermedios obligatorios por Telegram vía `PATCH http://127.0.0.1:8002/api/tasks/{id}/progress`:",
+        "   - Hito 1 (~20-25%): `{\"progress_pct\": 20, \"stage\": \"plan\", \"current_step\": \"Ya se ha pensado en cómo implementarlo: [estrategia]\"}`",
+        "   - Hito 2 (~50%): `{\"progress_pct\": 50, \"stage\": \"development\", \"current_step\": \"Comienza el desarrollo: [implementación]\"}`",
+        "   - Hito 3 (~80%): `{\"progress_pct\": 80, \"stage\": \"validation\", \"current_step\": \"Ha acabado el desarrollo y ahora comienza la validación: [pruebas]\"}`",
         "3. Al terminar y validar la tarea, ciérrala llamando a:",
         "   `POST http://127.0.0.1:8002/api/tasks/{id}/check` con `{\"force_status\": \"completed\", \"comment\": \"...\"}`",
         "   (Esto disparará automáticamente el protocolo en /docs, OneNote, GitHub, Skills y Telegram)."
@@ -203,16 +205,54 @@ def reorder_queue_task(task_id: int, direction: str) -> Dict[str, Any]:
     return {"success": True, "task_id": task_id, "direction": direction}
 
 
+def normalize_stage(stage_or_step: Optional[str], pct: Optional[int] = None) -> Optional[str]:
+    txt = (stage_or_step or "").lower().strip()
+    if txt in ("started", "inicio", "comienzo", "start"):
+        return "started"
+    if txt in ("plan", "pensado", "pensar", "diseno", "diseño", "analisis", "análisis"):
+        return "plan"
+    if txt in ("development", "desarrollo", "dev", "implementacion", "implementación", "codificacion", "codificación"):
+        return "development"
+    if txt in ("validation", "validacion", "validación", "test", "pruebas", "verificacion", "verificación"):
+        return "validation"
+
+    # Detección por palabras clave en la descripción del paso
+    if "comienza la validaci" in txt or "comenzando validaci" in txt or "acabado el desarrollo" in txt or "fin del desarrollo" in txt or "validación técnica" in txt:
+        return "validation"
+    if "comienza el desarrollo" in txt or "iniciando desarrollo" in txt or "fase de desarrollo" in txt or "implementando" in txt:
+        return "development"
+    if "pensado en c" in txt or "pensado como" in txt or "estrategia definida" in txt or "planificaci" in txt or "diseño t" in txt:
+        return "plan"
+
+    # Mapeo según el porcentaje de progreso estándar (20-25% plan, 50% dev, 80% val)
+    if pct is not None:
+        if 15 <= pct <= 35:
+            return "plan"
+        elif 45 <= pct <= 65:
+            return "development"
+        elif 75 <= pct <= 90:
+            return "validation"
+
+    return None
+
+
 def update_task_progress(
     task_id: int,
     progress_pct: Optional[int] = None,
     current_step: Optional[str] = None,
     note: Optional[str] = None,
-    author: str = "Agente"
+    author: str = "Agente",
+    stage: Optional[str] = None,
+    notify_telegram: Optional[bool] = None
 ) -> Dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    cursor.execute("""
+        SELECT t.*, p.name as project_name
+        FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        WHERE t.id = ?
+    """, (task_id,))
     task = cursor.fetchone()
     if not task:
         conn.close()
@@ -246,14 +286,53 @@ def update_task_progress(
 
     new_status = "in_progress" if task["status"] == "pending" and new_pct > 0 else task["status"]
 
+    # Procesar y notificar hito intermedio a Telegram si corresponde
+    detected_stage = normalize_stage(stage, new_pct) or normalize_stage(new_step, new_pct)
+    raw_stages = task["notified_stages"] if "notified_stages" in task.keys() and task["notified_stages"] else ""
+    notified_set = set(s.strip() for s in raw_stages.split(",") if s.strip())
+    telegram_sent = False
+
+    if detected_stage and detected_stage not in notified_set:
+        should_notify = notify_telegram if notify_telegram is not None else True
+        if should_notify:
+            try:
+                if detected_stage == "started":
+                    from app.services.telegram_service import notify_task_started
+                    tg_res = notify_task_started(
+                        project_name=task["project_name"],
+                        task_title=task["title"],
+                        task_id=task_id
+                    )
+                    telegram_sent = tg_res.get("success", False)
+                else:
+                    from app.services.telegram_service import notify_task_intermediate_stage
+                    desc = (note.strip() if note and note.strip() else "") or new_step
+                    tg_res = notify_task_intermediate_stage(
+                        project_name=task["project_name"],
+                        task_title=task["title"],
+                        stage=detected_stage,
+                        stage_description=desc,
+                        task_id=task_id,
+                        progress_pct=new_pct
+                    )
+                    telegram_sent = tg_res.get("success", False)
+                log_activity("HITO", f"📱 Hito #{task_id} [{detected_stage}] notificado por Telegram (éxito={telegram_sent}).")
+            except Exception as e:
+                log_activity("HITO", f"⚠️ Error al notificar hito #{task_id} [{detected_stage}] a Telegram: {e}")
+
+        notified_set.add(detected_stage)
+
+    updated_notified_stages = ",".join(sorted(notified_set))
+
     cursor.execute("""
         UPDATE tasks
         SET status = ?,
             progress_pct = ?,
             current_step = ?,
+            notified_stages = ?,
             launched_at = COALESCE(launched_at, ?)
         WHERE id = ?
-    """, (new_status, new_pct, new_step, now, task_id))
+    """, (new_status, new_pct, new_step, updated_notified_stages, now, task_id))
 
     if note and note.strip():
         cursor.execute("""
@@ -265,14 +344,17 @@ def update_task_progress(
     conn.close()
 
     note_part = f" · {note.strip()[:80]}" if note and note.strip() else ""
-    log_activity("PROGRESO", f"📊 #{task_id} ({author}) [{new_pct}%] {new_step}{note_part}")
+    stage_part = f" [{detected_stage}]" if detected_stage else ""
+    log_activity("PROGRESO", f"📊 #{task_id} ({author}) [{new_pct}%]{stage_part} {new_step}{note_part}")
     sync_execution_queue_file()
     return {
         "success": True,
         "task_id": task_id,
         "status": new_status,
         "progress_pct": new_pct,
-        "current_step": new_step
+        "current_step": new_step,
+        "stage": detected_stage,
+        "telegram_notified": telegram_sent
     }
 
 

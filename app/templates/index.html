@@ -501,10 +501,10 @@
           <label for="progressRange">Porcentaje de avance: <strong id="progressPctLabel">25%</strong></label>
           <input type="range" id="progressRange" min="0" max="100" step="5" value="25" style="width:100%; accent-color: var(--accent-purple);">
           <div style="display:flex; gap:0.4rem; margin-top:0.5rem; flex-wrap:wrap;">
-            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(25, '🔍 Analizando requisitos y código')">25% Analizando</button>
-            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(50, '⚙️ Implementando solución')">50% En desarrollo</button>
-            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(75, '🧪 Probando y validando')">75% Probando</button>
-            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(90, '📋 Lista para revisión final')">90% Casi lista</button>
+            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(25, '💡 Ya se ha pensado en cómo implementarlo', 'plan')">💡 25% Estrategia pensada</button>
+            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(50, '⚙️ Comienza el desarrollo', 'development')">⚙️ 50% Comienza desarrollo</button>
+            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(80, '🧪 Ha acabado el desarrollo y ahora comienza la validación', 'validation')">🧪 80% Comienza validación</button>
+            <button type="button" class="btn btn-secondary btn-small" onclick="setProgressPreset(95, '📋 Lista para revisión y protocolo de cierre', 'validation')">📋 95% Lista para cierre</button>
           </div>
         </div>
         <div class="form-group">
@@ -514,6 +514,12 @@
         <div class="form-group">
           <label for="progressNoteInput">Nota de Bitácora (Opcional)</label>
           <textarea id="progressNoteInput" rows="2" placeholder="Detalles sobre lo que se ha avanzado hasta ahora..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="protocol-check-label" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-size:0.9rem;">
+            <input type="checkbox" id="progressNotifyTelegram" checked>
+            <span>📱 <b>Informar este hito por Telegram</b></span>
+          </label>
         </div>
       </div>
       <div class="modal-footer">

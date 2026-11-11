@@ -130,6 +130,8 @@ class ProgressUpdate(BaseModel):
     current_step: Optional[str] = None
     note: Optional[str] = None
     author: Optional[str] = "Agente"
+    stage: Optional[str] = None
+    notify_telegram: Optional[bool] = None
 
 class ModelMoveRequest(BaseModel):
     model_name: str
@@ -427,12 +429,15 @@ async def pause_task_endpoint(task_id: int):
 
 @app.patch("/api/tasks/{task_id}/progress")
 async def update_progress_endpoint(task_id: int, req: ProgressUpdate):
-    return update_task_progress(
+    import app.services.execution_queue as eq
+    return eq.update_task_progress(
         task_id=task_id,
         progress_pct=req.progress_pct,
         current_step=req.current_step,
         note=req.note,
-        author=req.author or "Agente"
+        author=req.author or "Agente",
+        stage=req.stage,
+        notify_telegram=req.notify_telegram
     )
 
 @app.get("/api/queue")

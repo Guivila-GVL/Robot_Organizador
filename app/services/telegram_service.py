@@ -4,6 +4,7 @@ import html
 import logging
 import urllib.request
 import urllib.parse
+from datetime import datetime
 from typing import Optional, Dict, Any, List
 from app.database import get_db_connection
 
@@ -222,3 +223,156 @@ def notify_task_milestone(
         return send_telegram_photo(image_path, caption)
     else:
         return send_telegram_message(caption)
+
+
+STAGE_CONFIG: Dict[str, Dict[str, str]] = {
+    "plan": {
+        "title": "💡 <b>Hito Intermedio: Ya se ha pensado en cómo implementarlo</b>",
+        "badge": "💡 Estrategia concebida",
+        "default_desc": "Se ha definido la arquitectura, los componentes a modificar y la estrategia técnica de implementación."
+    },
+    "development": {
+        "title": "⚙️ <b>Hito Intermedio: Comienza el Desarrollo</b>",
+        "badge": "🛠️ Implementación en marcha",
+        "default_desc": "Comienza la fase de desarrollo, codificación y edición de archivos del proyecto."
+    },
+    "validation": {
+        "title": "🧪 <b>Hito Intermedio: Comienza la Validación</b>",
+        "badge": "🔬 Fin desarrollo ➔ Inicio validación",
+        "default_desc": "Ha acabado el desarrollo y ahora comienza la fase de validación técnica y pruebas."
+    }
+}
+
+
+def notify_task_started(
+    project_name: str,
+    task_title: str,
+    task_id: Optional[int] = None,
+    model_name: Optional[str] = None,
+    started_at: Optional[str] = None,
+    queue_data: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """
+    Informa por Telegram del arranque de una nueva tarea:
+    - Nombre del proyecto y de la tarea (con ID).
+    - Hora exacta en la que comienza la tarea.
+    - Motor de IA asignado.
+    - Estado de la Cola Global y siguientes tareas programadas.
+    """
+    enabled = get_setting("notify_telegram_enabled", "true").lower() == "true"
+    if not enabled:
+        return {"success": True, "message": "Notificaciones desactivadas"}
+
+    start_str = started_at or datetime.now().strftime("%H:%M:%S (%d/%m/%Y)")
+    safe_project = html.escape(project_name, quote=False)
+    safe_title = html.escape(task_title, quote=False)
+    id_badge = f" <i>(ID #{task_id})</i>" if task_id else ""
+    model_line = f"\n🧠 <b>Motor IA:</b> {html.escape(model_name, quote=False)}" if model_name else ""
+
+    if queue_data is None:
+        try:
+            from app.services.execution_queue import get_next_global_queue_tasks
+            queue_data = get_next_global_queue_tasks(exclude_task_id=task_id, limit=3)
+        except Exception as e:
+            logger.warning(f"No se pudo consultar la Cola Global para aviso de inicio: {e}")
+            queue_data = {"tasks": [], "total_in_queue": 0, "total_pending": 0}
+
+    queue_section = format_queue_for_telegram(queue_data)
+
+    text = (
+        f"🚀 <b>Nueva Tarea Iniciada: {safe_project}</b>\n\n"
+        f"📌 <b>Tarea:</b> {safe_title}{id_badge}\n"
+        f"⏰ <b>Hora de inicio:</b> {start_str}"
+        f"{model_line}\n\n"
+        f"{queue_section}\n\n"
+        f"⏱ <i>Robot Organizador 2026</i>"
+    )
+
+    use_n8n = get_setting("notify_via_n8n", "false").lower() == "true"
+    if use_n8n:
+        payload = {
+            "event": "task_started",
+            "project": project_name,
+            "task": task_title,
+            "task_id": task_id,
+            "model": model_name,
+            "started_at": start_str,
+            "caption": text,
+            "next_tasks": queue_data.get("tasks", []),
+            "total_in_queue": queue_data.get("total_in_queue", 0)
+        }
+        res = trigger_n8n_webhook(payload)
+        if not res.get("success"):
+            return send_telegram_message(text)
+        return res
+
+    return send_telegram_message(text)
+
+
+def notify_task_intermediate_stage(
+    project_name: str,
+    task_title: str,
+    stage: str,
+    stage_description: str = "",
+    task_id: Optional[int] = None,
+    progress_pct: Optional[int] = None,
+    current_time: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Informa por Telegram de un hito intermedio de la tarea en curso:
+    - 'plan': Ya se ha pensado en cómo implementarlo (estrategia técnica definida).
+    - 'development': Comienza el desarrollo (codificación en curso).
+    - 'validation': Ha acabado el desarrollo y ahora comienza la validación.
+    """
+    enabled = get_setting("notify_telegram_enabled", "true").lower() == "true"
+    if not enabled:
+        return {"success": True, "message": "Notificaciones desactivadas"}
+
+    now_str = current_time or datetime.now().strftime("%H:%M:%S (%d/%m/%Y)")
+    safe_project = html.escape(project_name, quote=False)
+    safe_title = html.escape(task_title, quote=False)
+    id_badge = f" <i>(ID #{task_id})</i>" if task_id else ""
+    pct_badge = f" <b>[{progress_pct}%]</b>" if progress_pct is not None else ""
+
+    stage_key = stage.lower().strip() if stage else "custom"
+    cfg = STAGE_CONFIG.get(stage_key, {
+        "title": f"📊 <b>Hito Intermedio de Avance{pct_badge}</b>",
+        "badge": "📌 Avance registrado",
+        "default_desc": stage_description or "Paso intermedio en curso."
+    })
+
+    header = cfg["title"]
+    badge_label = cfg["badge"]
+    detail = stage_description.strip() if stage_description and stage_description.strip() else cfg["default_desc"]
+    safe_detail = html.escape(detail, quote=False)
+
+    text = (
+        f"{header}\n\n"
+        f"📁 <b>Proyecto:</b> {safe_project}\n"
+        f"📌 <b>Tarea:</b> {safe_title}{id_badge}\n"
+        f"🏷️ <b>Hito:</b> {badge_label}{pct_badge}\n"
+        f"📝 <b>Detalle:</b>\n{safe_detail}\n\n"
+        f"⏰ <b>Hora:</b> {now_str}\n"
+        f"⏱ <i>Robot Organizador 2026</i>"
+    )
+
+    use_n8n = get_setting("notify_via_n8n", "false").lower() == "true"
+    if use_n8n:
+        payload = {
+            "event": f"task_stage_{stage_key}",
+            "stage": stage_key,
+            "project": project_name,
+            "task": task_title,
+            "task_id": task_id,
+            "progress_pct": progress_pct,
+            "detail": detail,
+            "time": now_str,
+            "caption": text
+        }
+        res = trigger_n8n_webhook(payload)
+        if not res.get("success"):
+            return send_telegram_message(text)
+        return res
+
+    return send_telegram_message(text)
+

@@ -1269,11 +1269,13 @@ async function pauseTask(taskId) {
 }
 
 let activeProgressTaskId = null;
+let activeProgressStage = null;
 
 function openProgressModal(taskId) {
   const task = state.tasks.find(t => t.id === taskId);
   if (!task) return;
   activeProgressTaskId = taskId;
+  activeProgressStage = null;
 
   const pct = task.progress_pct || 10;
   document.getElementById('progressTaskTitle').textContent = `Tarea: "${task.title}"`;
@@ -1281,14 +1283,17 @@ function openProgressModal(taskId) {
   document.getElementById('progressPctLabel').textContent = `${pct}%`;
   document.getElementById('progressStepInput').value = task.current_step || '';
   document.getElementById('progressNoteInput').value = '';
+  const notifBox = document.getElementById('progressNotifyTelegram');
+  if (notifBox) notifBox.checked = true;
 
   document.getElementById('progressModal').classList.add('open');
 }
 
-function setProgressPreset(pct, stepText) {
+function setProgressPreset(pct, stepText, stage = null) {
   document.getElementById('progressRange').value = pct;
   document.getElementById('progressPctLabel').textContent = `${pct}%`;
   document.getElementById('progressStepInput').value = stepText;
+  activeProgressStage = stage;
 }
 
 async function saveTaskProgress() {
@@ -1296,6 +1301,8 @@ async function saveTaskProgress() {
   const pct = parseInt(document.getElementById('progressRange').value, 10);
   const step = document.getElementById('progressStepInput').value.trim();
   const note = document.getElementById('progressNoteInput').value.trim();
+  const notifBox = document.getElementById('progressNotifyTelegram');
+  const notifyTg = notifBox ? notifBox.checked : true;
 
   try {
     const res = await fetch(`/api/tasks/${activeProgressTaskId}/progress`, {
@@ -1305,16 +1312,20 @@ async function saveTaskProgress() {
         progress_pct: pct,
         current_step: step,
         note: note,
+        stage: activeProgressStage,
+        notify_telegram: notifyTg,
         author: 'Guillermo'
       })
     });
     const data = await res.json();
     if (data.success) {
       closeModal('progressModal');
+      activeProgressStage = null;
       if (data.auto_completed || pct >= 100) {
         showToast('¡Tarea al 100% completada automáticamente y enviada a Telegram!', 'success');
       } else {
-        showToast(`Progreso actualizado (${pct}%)`, 'success');
+        const tgMsg = data.telegram_notified ? ' (📱 notificado a Telegram)' : '';
+        showToast(`Progreso actualizado (${pct}%)${tgMsg}`, 'success');
       }
       await loadProjects();
       await loadTasks(state.activeProjectId);

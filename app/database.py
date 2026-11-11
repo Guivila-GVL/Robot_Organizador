@@ -85,7 +85,8 @@ def init_db():
         "queue_order INTEGER DEFAULT 0",
         "progress_pct INTEGER DEFAULT 0",
         "current_step TEXT DEFAULT ''",
-        "launched_at TEXT DEFAULT NULL"
+        "launched_at TEXT DEFAULT NULL",
+        "notified_stages TEXT DEFAULT ''"
     ]:
         try:
             cursor.execute(f"ALTER TABLE tasks ADD COLUMN {col_def}")

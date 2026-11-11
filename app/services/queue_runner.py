@@ -84,8 +84,10 @@ def _build_headless_prompt(task: Dict[str, Any]) -> str:
         f"1. Implementa los cambios necesarios en `{folder}` y pruébalos con comandos reales.\n"
         f"2. IMPORTANTE: NO detengas ni reinicies el servidor FastAPI del puerto 8002 (`pythonw.exe` / `uvicorn` de RobotOrganizador), "
         f"porque ese proceso aloja el ejecutor de la Cola Global que te está supervisando.\n"
-        f"3. Durante la ejecución, reporta avances parciales (20%, 50%, 80%) a `http://127.0.0.1:8002/api/tasks/{task['id']}/progress` "
-        f"(con Python urllib PATCH `{{\"progress_pct\": 50, \"current_step\": \"...\"}}`).\n"
+        f"3. Durante la ejecución, reporta avances obligatorios por Telegram a `http://127.0.0.1:8002/api/tasks/{task['id']}/progress` (urllib PATCH):\n"
+        f"   - Hito 1 (~20%): {{\"progress_pct\": 20, \"stage\": \"plan\", \"current_step\": \"Ya se ha pensado en cómo implementarlo: [diseño/estrategia]\"}}\n"
+        f"   - Hito 2 (~50%): {{\"progress_pct\": 50, \"stage\": \"development\", \"current_step\": \"Comienza el desarrollo: [cambios en código]\"}}\n"
+        f"   - Hito 3 (~80%): {{\"progress_pct\": 80, \"stage\": \"validation\", \"current_step\": \"Ha acabado el desarrollo y ahora comienza la validación: [pruebas]\"}}\n"
         f"4. Al terminar y verificar que todo funciona, CIERRA la tarea llamando por HTTP POST a "
         f"`http://127.0.0.1:8002/api/tasks/{task['id']}/check` con JSON `{{\"force_status\": \"completed\", \"comment\": \"Resumen técnico de lo realizado y verificado\"}}` "
         f"y devuelve un resumen conciso."
@@ -105,12 +107,39 @@ def _run_single_task_with_model(task: Dict[str, Any], model_info: Dict[str, Any]
     RUNNER_STATE["current_model"] = model_name
     _log_event(f"🚀 Ejecutando tarea #{task_id} con motor: {model_name} ({cli_id})")
 
+    # Notificar por Telegram el arranque de la nueva tarea con hora exacta y motor
+    start_time_str = datetime.now().strftime("%H:%M:%S (%d/%m/%Y)")
+    try:
+        from app.services.telegram_service import notify_task_started
+        notify_task_started(
+            project_name=task["project_name"],
+            task_title=task["title"],
+            task_id=task_id,
+            model_name=model_name,
+            started_at=start_time_str
+        )
+        conn = get_db_connection()
+        conn.execute("""
+            UPDATE tasks
+            SET notified_stages = CASE
+                WHEN notified_stages IS NULL OR notified_stages = '' THEN 'started'
+                WHEN notified_stages NOT LIKE '%started%' THEN notified_stages || ',started'
+                ELSE notified_stages
+            END
+            WHERE id = ?
+        """, (task_id,))
+        conn.commit()
+        conn.close()
+    except Exception as _e_tg:
+        _log_event(f"Aviso Telegram al arrancar tarea #{task_id}: {_e_tg}")
+
     update_task_progress(
         task_id=task_id,
         progress_pct=max(25, task.get("progress_pct") or 10),
         current_step=f"⚡ Ejecutando con {model_name}...",
         note=f"Worker autónomo iniciado con motor {model_name}.",
-        author="Cola Global"
+        author="Cola Global",
+        notify_telegram=False
     )
 
     prompt = _build_headless_prompt(task)
