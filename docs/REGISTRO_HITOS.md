@@ -1,12 +1,12 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
-### [11/11/2026 19:40:59] ✅ Me da la impresión de que aquí en el Watchdog que tenemos
+### [11/11/2026 20:28:00] ✅ Me da la impresión de que aquí en el Watchdog que tenemos
 
 - **ID Tarea:** `105`
 - **Prioridad:** MEDIA
 - **Tipo de Hito:** `manual`
-- **Objetivo / Target:** ``
-- **Resultado Técnico:** Corregida la sincronización y cálculo de cuotas de motores en el Watchdog de Antigravity: 1) Solucionado el borrado prematuro de motores en exhausted_map; 2) Implementado parseo de la duración real de renovación reportada por agy CLI (ej. 89h15m) con soporte de formato días/horas; 3) Sincronizado el modelo activo con RUNNER_STATE de la Cola Global; 4) Eliminado el suelo forzado del 15% para reflejar el consumo real; 5) Mejorada la visualización en la UI (chips con color, distintivo de alerta y botón de desbloqueo manual). Verificado con tests unitarios e integrados.
+- **Objetivo / Target:** `Verificar que el Watchdog de Antigravity actualiza con precisión el motor activo, su porcentaje de cuota restante, la previsión de los motores alternativos y los saltos de agotamiento 429.`
+- **Resultado Técnico:** Resuelto de principio a fin el seguimiento de modelos y cuotas en el Watchdog de Antigravity: 1) Normalización canónica universal (`canonical_model_name`) que unifica alias (ej. Gemini 3.5/3.8 Flash, CLI IDs) garantizando que las alertas de Telegram, la BD `model_exhausted_until` y la UI del Watchdog compartan las mismas claves exactas; 2) Eliminación del suelo artificial del 15% para que la cuota descienda de forma continua y proporcional según el número de pasos en la ventana de 5h, cayendo a 1% por agotamiento de presupuesto empírico y a 0% (rojo) ante error 429 real; 3) Condicionamiento estricto de error 429 a `returncode != 0` en el runner para prevenir saltos falsos de motor por menciones en texto técnico; 4) Mapeo combinado de sesiones y logs CLI e IDE (`~/.gemini/antigravity*/log`) con lectura segura de metadatos en transcripciones; 5) Claridad visual en frontend (`app.js`) con chips inequívocos (`Flash High`, `Flash Med`, `Flash Low`, `Argon 4`, `Sonnet 5.5`, `Opus 5.5`, `GPT-OSS`), badges claros en modal y tooltip con métricas de pasos; 6) Verificación completa mediante suite de 7 pruebas unitarias en `tests/test_watchdog_model_quota.py`.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
   - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
