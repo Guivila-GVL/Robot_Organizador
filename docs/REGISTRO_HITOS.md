@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 12:26:51] ✅ Hacer un pequeño cambio en esta última parte que hemos añadido de la...
+
+- **ID Tarea:** `72`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Centralizada la gestión y control de la Cola Global en la parte superior de la columna derecha (Consola & Actividad). Se eliminaron los botones de Ejecutando Cola y Pausa de la cabecera superior, y el banner de cola de cada proyecto individual. Se añadieron los botones unificados (Avanzar, Pausa, Secuencia, Copiar Orden) y un visor detallado en vivo del avance (proyecto, tarea activa, paso actual en tiempo real, barra porcentual animada, motor IA, cronómetro y vista previa de próximas tareas en cola). Verificado mediante tests/test_queue_sidebar_reorg.py y respuesta HTTP 200 en servidor en vivo.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 12:26:00] ✅ Hacer un pequeño cambio en esta última parte que hemos añadido de la...
 
 - **ID Tarea:** `72`
