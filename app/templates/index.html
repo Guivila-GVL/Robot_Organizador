@@ -204,7 +204,18 @@
         </div>
       </div>
 
-      <!-- PANEL SUPERIOR: Gestión y Control de la Cola Global -->
+      <!-- Selector de Pestañas Superiores: Cola Global vs Seguimiento ESIOS -->
+      <div class="sidebar-top-tabs" id="sidebarTopTabs">
+        <button type="button" class="sidebar-top-tab active" id="tabBtnQueue" onclick="setSidebarTopTab('queue')" title="Panel y control de ejecución de la Cola Global">
+          <span class="tab-icon">🚀</span> Cola Global
+        </button>
+        <button type="button" class="sidebar-top-tab" id="btnTrackEsios" onclick="setSidebarTopTab('esios')" title="Pestaña de seguimiento e ingesta en vivo de ESIOS (:8050)">
+          <span class="tab-icon">🔋</span> Seguimiento ESIOS
+          <span class="esios-status-chip" id="esiosStatusChip">✅ Listo</span>
+        </button>
+      </div>
+
+      <!-- PANEL A: Gestión y Control de la Cola Global -->
       <div class="global-queue-panel" id="globalQueuePanel">
         <div class="queue-panel-header">
           <div class="queue-panel-top-row">
@@ -227,6 +238,9 @@
             <button class="btn btn-primary btn-xs" id="btnSidebarCopyQueue" onclick="copyGlobalQueueSequence()" title="Copiar orden completa para pegarla en Antigravity">
               <span class="btn-icon">📋</span> Copiar Orden
             </button>
+            <button class="btn btn-outline btn-xs btn-open-esios" id="btnQuickOpenEsios" onclick="setSidebarTopTab('esios')" title="Abrir pestaña de Seguimiento ESIOS">
+              <span class="btn-icon">🔋</span> ESIOS
+            </button>
           </div>
         </div>
 
@@ -238,46 +252,25 @@
         </div>
       </div>
 
-      <!-- Tarjeta de Seguimiento del Proyecto / Tarea Seleccionada -->
-      <div class="activity-tracking-section">
-        <div class="tracking-section-title">
-          <span class="section-label">Avance y Seguimiento</span>
-          <div class="tracking-mode-toggle" id="trackingModeToggle">
-            <button type="button" class="tracking-toggle-btn active" id="btnTrackProject" onclick="setTrackingMode('project')" title="Ver avance y tareas del proyecto">📁 Proyecto</button>
-            <button type="button" class="tracking-toggle-btn" id="btnTrackEsios" onclick="setTrackingMode('esios')" title="Ver estado e ingesta en vivo de ESIOS">🔋 ESIOS</button>
-          </div>
-        </div>
-        
-        <div class="selected-tracking-card" id="selectedTrackingCard">
-          <div class="selected-project-banner-mini">
-            <div class="selected-proj-identity">
-              <span class="selected-proj-icon" id="sidebarProjIcon">📁</span>
-              <div class="selected-proj-info">
-                <div class="selected-proj-title-row">
-                  <h4 id="sidebarProjName">Selecciona un Proyecto</h4>
-                  <!-- Selector rápido de proyecto directamente desde la barra lateral -->
-                  <select id="sidebarProjectSelect" class="sidebar-project-select" onchange="onSidebarProjectSelectChange(this.value)" title="Cambiar de proyecto"></select>
-                </div>
-                <span class="selected-proj-sub" id="sidebarProjCategory">General</span>
-              </div>
-            </div>
-            <span class="badge" id="sidebarProjBadge">0 tareas</span>
-          </div>
-
-          <!-- Contenedor dinámico de progreso del elemento seleccionado -->
-          <div class="selected-progress-area" id="sidebarProgressArea">
-            <div class="selected-idle-state">
-              <span>Elige un proyecto para ver cómo avanza su actividad en tiempo real.</span>
+      <!-- PANEL B: Pestaña Superior de Seguimiento ESIOS -->
+      <div class="esios-tracking-panel" id="esiosTrackingPanel" style="display: none;">
+        <div class="esios-panel-header">
+          <div class="esios-panel-identity">
+            <span class="esios-panel-icon">🔋</span>
+            <div class="esios-panel-titles">
+              <h4>Actualizador ESIOS (:8050)</h4>
+              <span class="esios-panel-sub">Ingesta de Energía · TimescaleDB</span>
             </div>
           </div>
+          <button type="button" class="btn btn-xs btn-primary" id="btnEsiosQuickSync" onclick="triggerEsiosSync()">
+            ▶️ Iniciar Sincronización
+          </button>
         </div>
 
-        <!-- Banner de aviso si el Worker Global está ocupado en otro proyecto -->
-        <div class="global-worker-notice" id="globalWorkerNotice" style="display: none;">
-          <span class="worker-pulse-mini">⚡</span>
-          <div class="global-worker-info">
-            <span class="worker-label">Cola Global ejecutando en:</span>
-            <strong id="globalWorkerTaskInfo">#0 — ...</strong>
+        <!-- Contenedor dinámico de progreso del servicio ESIOS -->
+        <div class="selected-progress-area" id="sidebarProgressArea">
+          <div class="selected-idle-state">
+            <span>Cargando telemetría de ESIOS...</span>
           </div>
         </div>
       </div>

@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 13:47:35] ✅ Sí, me gustaría hacer un cambio en la parte de la consola de actividad,...
+
+- **ID Tarea:** `74`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Reorganización de la consola de actividad completada: Se eliminó la tarjeta redundante de seguimiento de proyecto que duplicaba el panel de Cola Global, se integraron pestañas superiores para alternar entre Cola Global y Seguimiento ESIOS (:8050) con chips dinámicos en vivo, y se amplió el espacio vertical útil de la terminal inferior. Verificado con tests automatizados y peticiones HTTP reales al servidor.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 12:36:44] ✅ Cuando comencemos una nueva tarea, me gustaría que también se informase...
 
 - **ID Tarea:** `69`

@@ -1747,29 +1747,44 @@ async function stopGlobalQueueNow() {
 // CONSOLA LATERAL DE ACTIVIDAD & SEGUIMIENTO EN VIVO EN LA PÁGINA PRINCIPAL
 // --------------------------------------------------------------------------
 state.consoleFilter = 'all';
-state.trackingMode = 'project';
+state.trackingMode = 'queue';
+state.sidebarTopTab = 'queue';
 state.consoleSelectedProject = 'active';
 state.telemetry = null;
 let activityConsoleTicks = 0;
 
-function setTrackingMode(mode) {
-  state.trackingMode = mode;
-  const btnProj = document.getElementById('btnTrackProject');
-  const btnEsios = document.getElementById('btnTrackEsios');
-  if (btnProj) btnProj.classList.toggle('active', mode === 'project');
-  if (btnEsios) btnEsios.classList.toggle('active', mode === 'esios');
+function setSidebarTopTab(tab) {
+  state.sidebarTopTab = tab;
+  state.trackingMode = tab === 'esios' ? 'esios' : 'queue';
+
+  const tabQueue = document.getElementById('tabBtnQueue');
+  const tabEsios = document.getElementById('btnTrackEsios');
+  const queuePanel = document.getElementById('globalQueuePanel');
+  const esiosPanel = document.getElementById('esiosTrackingPanel');
+
+  if (tab === 'esios') {
+    if (tabQueue) tabQueue.classList.remove('active');
+    if (tabEsios) tabEsios.classList.add('active');
+    if (queuePanel) queuePanel.style.display = 'none';
+    if (esiosPanel) esiosPanel.style.display = 'flex';
+  } else {
+    if (tabQueue) tabQueue.classList.add('active');
+    if (tabEsios) tabEsios.classList.remove('active');
+    if (queuePanel) queuePanel.style.display = 'flex';
+    if (esiosPanel) esiosPanel.style.display = 'none';
+  }
+
   if (state.telemetry) {
     renderSelectedTrackingCard(state.telemetry);
   }
 }
 
+function setTrackingMode(mode) {
+  setSidebarTopTab(mode === 'esios' ? 'esios' : 'queue');
+}
+
 function onSidebarProjectSelectChange(projectId) {
   if (projectId && projectId !== state.activeProjectId) {
-    state.trackingMode = 'project';
-    const btnProj = document.getElementById('btnTrackProject');
-    const btnEsios = document.getElementById('btnTrackEsios');
-    if (btnProj) btnProj.classList.add('active');
-    if (btnEsios) btnEsios.classList.remove('active');
     selectProject(projectId);
   }
 }
@@ -1948,57 +1963,46 @@ async function updateActivityConsole() {
 }
 
 function renderSelectedTrackingCard(data) {
-  const projIconEl = document.getElementById('sidebarProjIcon');
-  const projNameEl = document.getElementById('sidebarProjName');
-  const projCatEl = document.getElementById('sidebarProjCategory');
-  const projBadgeEl = document.getElementById('sidebarProjBadge');
   const progressAreaEl = document.getElementById('sidebarProgressArea');
-  const globalWorkerNoticeEl = document.getElementById('globalWorkerNotice');
-  const globalWorkerTaskInfoEl = document.getElementById('globalWorkerTaskInfo');
-  const sidebarProjectSelect = document.getElementById('sidebarProjectSelect');
   const consoleProjectFilterSelect = document.getElementById('consoleProjectFilterSelect');
+  const esiosStatusChip = document.getElementById('esiosStatusChip');
 
-  if (!progressAreaEl) return;
+  const currentProject = state.projects && state.projects.find(p => p.id === state.activeProjectId);
 
-  const currentProject = state.projects.find(p => p.id === state.activeProjectId);
-
-  // Sincronizar selectores desplegables de proyectos
-  if (state.projects && state.projects.length > 0) {
-    if (sidebarProjectSelect && sidebarProjectSelect.options.length !== state.projects.length) {
-      sidebarProjectSelect.innerHTML = state.projects.map(p =>
-        `<option value="${p.id}" ${p.id === state.activeProjectId ? 'selected' : ''}>${p.icon} ${escapeHtml(p.name)}</option>`
+  // Sincronizar selectores desplegables de proyectos para filtro de consola
+  if (consoleProjectFilterSelect && state.projects && state.projects.length > 0) {
+    const activeProjName = currentProject ? currentProject.name : 'Actual';
+    const expectedCount = state.projects.length + 1;
+    if (consoleProjectFilterSelect.options.length !== expectedCount) {
+      let opts = `<option value="active" ${state.consoleSelectedProject === 'active' ? 'selected' : ''}>📌 Activo (${escapeHtml(activeProjName)})</option>`;
+      opts += state.projects.map(p =>
+        `<option value="${p.id}" ${state.consoleSelectedProject === p.id ? 'selected' : ''}>${p.icon} ${escapeHtml(p.name)}</option>`
       ).join('');
-    } else if (sidebarProjectSelect && sidebarProjectSelect.value !== state.activeProjectId) {
-      sidebarProjectSelect.value = state.activeProjectId || '';
+      consoleProjectFilterSelect.innerHTML = opts;
     }
-
-    if (consoleProjectFilterSelect) {
-      const activeProjName = currentProject ? currentProject.name : 'Actual';
-      const expectedCount = state.projects.length + 1;
-      if (consoleProjectFilterSelect.options.length !== expectedCount) {
-        let opts = `<option value="active" ${state.consoleSelectedProject === 'active' ? 'selected' : ''}>📌 Activo (${escapeHtml(activeProjName)})</option>`;
-        opts += state.projects.map(p =>
-          `<option value="${p.id}" ${state.consoleSelectedProject === p.id ? 'selected' : ''}>${p.icon} ${escapeHtml(p.name)}</option>`
-        ).join('');
-        consoleProjectFilterSelect.innerHTML = opts;
-      }
-    }
-  }
-
-  if (!currentProject && state.trackingMode !== 'esios') {
-    if (projIconEl) projIconEl.textContent = '📁';
-    if (projNameEl) projNameEl.textContent = 'Selecciona un Proyecto';
-    if (projCatEl) projCatEl.textContent = 'General';
-    if (projBadgeEl) projBadgeEl.textContent = '0 tareas';
-    progressAreaEl.innerHTML = '<div class="selected-idle-state">Elige un proyecto del menú izquierdo o superior para ver su actividad en tiempo real.</div>';
-    if (globalWorkerNoticeEl) globalWorkerNoticeEl.style.display = 'none';
-    return;
   }
 
   const esios = data.esios || {};
-  const robot = data.robot || {};
-  const runner = robot.runner || {};
+  const isRunning = esios.status === 'running';
 
+  // Actualizar chip en la pestaña superior
+  if (esiosStatusChip) {
+    if (isRunning) {
+      esiosStatusChip.className = 'esios-status-chip running';
+      esiosStatusChip.textContent = '⚡ Ingesta Activa';
+    } else if (esios.status === 'failed') {
+      esiosStatusChip.className = 'esios-status-chip stopped';
+      esiosStatusChip.textContent = '❌ Error';
+    } else if (!esios.online) {
+      esiosStatusChip.className = 'esios-status-chip stopped';
+      esiosStatusChip.textContent = '🔴 Apagado';
+    } else {
+      esiosStatusChip.className = 'esios-status-chip';
+      esiosStatusChip.textContent = '✅ Listo';
+    }
+  }
+
+  // Si el usuario selecciona el proyecto de Energía/ESIOS, abrir automáticamente la pestaña superior de ESIOS
   const isEsiosProject = currentProject && (
     currentProject.id === 'actualizador_esios' ||
     currentProject.folder_name === '2026_Proyecto_Energia_Graficos' ||
@@ -2006,159 +2010,67 @@ function renderSelectedTrackingCard(data) {
     (currentProject.name && currentProject.name.toLowerCase().includes('energía'))
   );
 
-  // A. Si se activa la pestaña ESIOS o el proyecto seleccionado es ESIOS (Ingesta de Energía)
-  if (state.trackingMode === 'esios' || isEsiosProject) {
-    if (projIconEl) projIconEl.textContent = '🔋';
-    if (projNameEl) projNameEl.textContent = isEsiosProject ? (currentProject.name || 'Energía & Gráficos') : 'Actualizador ESIOS (:8050)';
-    if (projCatEl) projCatEl.textContent = 'Ingesta de Energía · TimescaleDB';
+  if (isEsiosProject && state.sidebarTopTab !== 'esios' && !state._esiosAutoOpened) {
+    state._esiosAutoOpened = true;
+    setSidebarTopTab('esios');
+    return;
+  }
+  if (!isEsiosProject) {
+    state._esiosAutoOpened = false;
+  }
 
-    const isRunning = esios.status === 'running';
-    let statusClass = 'online';
-    let statusLabel = '✅ Listo / Al día';
-    if (isRunning) {
-      statusClass = 'running';
-      statusLabel = '⚡ Sincronizando';
-    } else if (esios.status === 'failed') {
-      statusClass = 'stopped';
-      statusLabel = '❌ Error';
-    } else if (!esios.online) {
-      statusClass = 'stopped';
-      statusLabel = '🔴 Servicio Apagado';
-    }
+  if (!progressAreaEl) return;
 
-    if (projBadgeEl) {
-      projBadgeEl.textContent = isRunning ? '⚡ Ingesta Activa' : `${esios.completed_tasks || 86}/${esios.total_tasks || 86} Tareas`;
-      projBadgeEl.className = isRunning ? 'badge badge-accent' : 'badge';
-    }
+  // Renderizar la pestaña de seguimiento en vivo de ESIOS
+  let statusClass = 'online';
+  let statusLabel = '✅ Listo / Al día';
+  if (isRunning) {
+    statusClass = 'running';
+    statusLabel = '⚡ Sincronizando';
+  } else if (esios.status === 'failed') {
+    statusClass = 'stopped';
+    statusLabel = '❌ Error';
+  } else if (!esios.online) {
+    statusClass = 'stopped';
+    statusLabel = '🔴 Servicio Apagado';
+  }
 
-    const pct = esios.progress || (isRunning ? 20 : (esios.status === 'completed' ? 100 : 0));
-    const elapsedStr = formatElapsedSeconds(esios.elapsed_time || 0);
+  const pct = esios.progress || (isRunning ? 20 : (esios.status === 'completed' ? 100 : 0));
+  const elapsedStr = formatElapsedSeconds(esios.elapsed_time || 0);
 
-    progressAreaEl.innerHTML = `
-      <div class="esios-live-card">
-        <div class="esios-live-header">
-          <span class="cmd-status-badge ${statusClass}">${statusLabel}</span>
-          <button type="button" class="btn btn-xs btn-primary" id="btnEsiosQuickSync" onclick="triggerEsiosSync()" ${isRunning ? 'disabled' : ''}>
-            ${isRunning ? '⏳ Sincronizando...' : '▶️ Iniciar Sincronización'}
-          </button>
-        </div>
-        <div class="active-task-step-row">
-          <span class="active-task-step" title="${escapeHtml(esios.current_step || 'En espera de órdenes')}">${escapeHtml(esios.current_step || 'En espera de órdenes')}</span>
-          <span class="active-task-pct">${pct}%</span>
-        </div>
-        <div class="active-task-bar-bg">
-          <div class="active-task-bar-fill" style="width: ${pct}%;"></div>
-        </div>
-        <div class="esios-metrics-mini-grid">
-          <div><label>Transcurrido</label> <strong>${elapsedStr}</strong></div>
-          <div><label>ETA</label> <strong>${esios.eta_text || '--'}</strong></div>
-          <div><label>Tareas</label> <strong>${esios.completed_tasks || 0}/${esios.total_tasks || 86}</strong></div>
-          <div><label>Añadidos</label> <strong style="color:#10b981;">+${esios.total_added || 0}</strong></div>
-        </div>
-        <div class="esios-actions-row" style="display:flex; gap:0.4rem; margin-top:0.35rem;">
-          <button type="button" class="btn btn-xs btn-outline" onclick="setConsoleFilter('esios')" style="flex:1; justify-content:center;" title="Ver registros detallados de descarga de cada indicador en la terminal">
-            🖥️ Terminal ESIOS
-          </button>
-          <button type="button" class="btn btn-xs btn-outline" onclick="openServiceUrl('http://127.0.0.1:8050')" style="flex:1; justify-content:center;" title="Abrir panel web local del Actualizador ESIOS">
-            🔗 Panel :8050
-          </button>
-        </div>
+  progressAreaEl.innerHTML = `
+    <div class="esios-live-card">
+      <div class="esios-live-header">
+        <span class="cmd-status-badge ${statusClass}">${statusLabel}</span>
+        <span style="font-size:0.68rem; color:#94a3b8;">${esios.completed_tasks || 86}/${esios.total_tasks || 86} Indicadores</span>
       </div>
-    `;
-  }
-  // B. Proyecto estándar con tareas
-  else {
-    if (projIconEl) projIconEl.textContent = currentProject.icon || '📁';
-    if (projNameEl) projNameEl.textContent = currentProject.name || 'Proyecto';
-    if (projCatEl) projCatEl.textContent = currentProject.category || 'General';
-
-    const tasks = state.tasks || [];
-    const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
-    const runnerMatchesProject = runner.running && (
-      runner.current_project_name === currentProject.name ||
-      tasks.some(t => t.id === runner.current_task_id)
-    );
-
-    // Si hay una tarea en curso en este proyecto
-    if (runnerMatchesProject || inProgressTasks.length > 0) {
-      const activeTask = inProgressTasks.find(t => runner.current_task_id && t.id === runner.current_task_id) ||
-                         inProgressTasks[0] ||
-                         { id: runner.current_task_id, title: runner.current_task_title, progress_pct: 35, current_step: runner.last_log };
-
-      const pct = activeTask.progress_pct || 15;
-      const stepText = activeTask.current_step || (runnerMatchesProject && runner.last_log ? runner.last_log : 'Ejecutando tarea en segundo plano...');
-      const modelName = runnerMatchesProject ? (runner.current_model || 'Motor Autónomo') : 'Agente Antigravity';
-
-      let elapsedStr = '';
-      if (runnerMatchesProject && runner.started_at) {
-        try {
-          const startMs = new Date(runner.started_at).getTime();
-          const diffSec = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
-          elapsedStr = formatElapsedSeconds(diffSec);
-        } catch (_) {}
-      }
-
-      if (projBadgeEl) {
-        projBadgeEl.textContent = inProgressTasks.length > 1 ? `${inProgressTasks.length} en curso` : '⚡ En progreso';
-        projBadgeEl.className = 'badge badge-accent';
-      }
-
-      progressAreaEl.innerHTML = `
-        <div class="active-task-live-card">
-          <div class="active-task-header-row">
-            <span class="badge badge-accent">#${activeTask.id}</span>
-            <strong class="active-task-title" title="${escapeHtml(activeTask.title)}">${escapeHtml(activeTask.title)}</strong>
-          </div>
-          <div class="active-task-step-row">
-            <span class="active-task-step">${escapeHtml(stepText)}</span>
-            <span class="active-task-pct">${pct}%</span>
-          </div>
-          <div class="active-task-bar-bg">
-            <div class="active-task-bar-fill" style="width: ${pct}%;"></div>
-          </div>
-          <div class="active-task-meta-row">
-            <span>🤖 ${escapeHtml(modelName)}</span>
-            ${elapsedStr ? `<span>⏱️ ${elapsedStr}</span>` : `<span>⚡ Activo</span>`}
-          </div>
-        </div>
-      `;
-    }
-    // Si no hay tarea en curso
-    else {
-      const pendingTasks = tasks.filter(t => t.status === 'pending');
-      const completedTasks = tasks.filter(t => t.status === 'completed');
-      const nextPending = pendingTasks[0];
-
-      if (projBadgeEl) {
-        projBadgeEl.textContent = `${tasks.length} tareas`;
-        projBadgeEl.className = 'badge';
-      }
-
-      progressAreaEl.innerHTML = `
-        <div class="project-idle-card">
-          <div class="idle-status-row">
-            <span class="idle-badge">⚪ En espera de ejecución</span>
-            <span class="idle-task-stats">${pendingTasks.length} pendientes · ${completedTasks.length} listas</span>
-          </div>
-          ${nextPending ? `
-            <div class="next-task-box">
-              <span class="next-task-label">Siguiente tarea pendiente:</span>
-              <div class="next-task-content" title="${escapeHtml(nextPending.title)}">
-                <strong>#${nextPending.id}</strong> — ${escapeHtml(nextPending.title)}
-              </div>
-            </div>
-          ` : `
-            <div class="all-completed-note">🎉 ¡Todas las tareas de este proyecto han sido completadas!</div>
-          `}
-        </div>
-      `;
-    }
-  }
-
-  // Ocultar aviso redundantemente duplicado (gestionado en el panel superior de cola global)
-  if (globalWorkerNoticeEl) {
-    globalWorkerNoticeEl.style.display = 'none';
-  }
+      <div class="active-task-step-row">
+        <span class="active-task-step" title="${escapeHtml(esios.current_step || 'En espera de órdenes')}">${escapeHtml(esios.current_step || 'En espera de órdenes')}</span>
+        <span class="active-task-pct">${pct}%</span>
+      </div>
+      <div class="active-task-bar-bg">
+        <div class="active-task-bar-fill" style="width: ${pct}%;"></div>
+      </div>
+      <div class="esios-metrics-mini-grid">
+        <div><label>Transcurrido</label> <strong>${elapsedStr}</strong></div>
+        <div><label>ETA</label> <strong>${esios.eta_text || '--'}</strong></div>
+        <div><label>Tareas</label> <strong>${esios.completed_tasks || 0}/${esios.total_tasks || 86}</strong></div>
+        <div><label>Añadidos</label> <strong style="color:#10b981;">+${esios.total_added || 0}</strong></div>
+      </div>
+      <div class="esios-actions-row" style="display:flex; gap:0.4rem; margin-top:0.35rem;">
+        <button type="button" class="btn btn-xs btn-outline" onclick="setConsoleFilter('esios')" style="flex:1; justify-content:center;" title="Ver registros detallados de descarga de cada indicador en la terminal">
+          🖥️ Terminal ESIOS
+        </button>
+        <button type="button" class="btn btn-xs btn-outline" onclick="openServiceUrl('http://127.0.0.1:8050')" style="flex:1; justify-content:center;" title="Abrir panel web local del Actualizador ESIOS">
+          🔗 Panel :8050
+        </button>
+        <button type="button" class="btn btn-xs btn-secondary" onclick="setSidebarTopTab('queue')" style="flex:1; justify-content:center;" title="Volver a la vista de Cola Global">
+          🚀 Cola Global
+        </button>
+      </div>
+    </div>
+  `;
+}
 }
 
 function renderConsoleTerminal() {
@@ -2343,6 +2255,7 @@ window.moveModelSequence = moveModelSequence;
 window.clearActivityTerminal = clearActivityTerminal;
 window.clearConsoleView = clearConsoleView;
 window.setConsoleFilter = setConsoleFilter;
+window.setSidebarTopTab = setSidebarTopTab;
 window.setTrackingMode = setTrackingMode;
 window.onSidebarProjectSelectChange = onSidebarProjectSelectChange;
 window.onConsoleProjectFilterChange = onConsoleProjectFilterChange;
