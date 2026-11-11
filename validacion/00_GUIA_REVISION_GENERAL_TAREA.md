@@ -23,7 +23,7 @@ Este checklist define la revisión técnica obligatoria que debe ejecutarse al c
    - Verificar que la arquitectura y limpieza del código sean consistentes con el estándar.
 
 5. **📱 Check y envío a Telegram:**
-   - Último paso de confirmación: enviar el check de esta revisión general con su imagen/captura al canal de Telegram (@Bot2_Video_bot).
+   - Último paso de confirmación: enviar el check de esta revisión general con su imagen/captura al canal de Telegram (@Bot2_Video_bot), detallando el hito completado, el protocolo de cierre y las siguientes tareas de la Cola Global.
 
 ---
 *Automatización: En el Robot de Gestión de Proyectos, esta secuencia se ejecuta automáticamente al completar cualquier tarea.*

@@ -150,7 +150,8 @@ def check_and_complete_task(
             project_name=task["project_name"],
             task_title=task["title"],
             milestone_comment=tg_comment,
-            image_path=image_path
+            image_path=image_path,
+            completed_task_id=task_id
         )
         log_activity("HITO", f"✅ #{task_id} completada [{task['project_name']}] -> {task['title'][:65]}")
     elif new_status == "failed":

@@ -415,7 +415,7 @@ def open_project_resource(project_id: str, resource_key: str, open_browser: bool
                 f"   - Consultar las directrices de `0000_Utilidades/01_Skills` (`03_Gestion_Proyecto`, `02_OneNote_Management`, etc.).\n"
                 f"   - Verificar que la arquitectura y limpieza del código sean consistentes con el estándar.\n\n"
                 f"5. **📱 Check y envío a Telegram:**\n"
-                f"   - Último paso de confirmación: enviar el check de esta revisión general con su imagen/captura al canal de Telegram (@Bot2_Video_bot).\n\n"
+                f"   - Último paso de confirmación: enviar el check de esta revisión general con su imagen/captura al canal de Telegram (@Bot2_Video_bot), incluyendo el resultado, el protocolo de cierre y las siguientes tareas de la Cola Global.\n\n"
                 f"---\n"
                 f"*Automatización: En el Robot de Gestión de Proyectos, esta secuencia se ejecuta automáticamente al completar cualquier tarea.*\n"
             )

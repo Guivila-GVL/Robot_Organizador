@@ -464,10 +464,17 @@ async def update_settings(settings: SettingsUpdate):
 
 @app.post("/api/telegram/test")
 async def test_telegram():
+    from app.services.telegram_service import format_queue_for_telegram
+    from app.services.execution_queue import get_next_global_queue_tasks
+
+    queue_data = get_next_global_queue_tasks(limit=3)
+    queue_section = format_queue_for_telegram(queue_data)
+
     sample_text = (
-        "🤖 <b>Robot Organizador: Prueba de Conexión Exitosa</b>\n\n"
+        "🤖 <b>Robot Organizador: Prueba de Conexión y Reportes</b>\n\n"
         "✅ El bot @Bot2_Video_bot está correctamente enlazado con tu panel de control.\n"
-        "📱 A partir de ahora recibirás aquí los checks completados de cada proyecto con sus comentarios y capturas de pantalla.\n\n"
+        "📱 Los reportes automáticos incluyen el hito completado, el protocolo de cierre y las siguientes tareas en cola.\n\n"
+        f"{queue_section}\n\n"
         f"⏱ <i>Hora: {datetime.now().strftime('%H:%M:%S - %d/%m/%Y')}</i>"
     )
     res = send_telegram_message(sample_text)

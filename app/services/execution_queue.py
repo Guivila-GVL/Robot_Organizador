@@ -254,6 +254,47 @@ def update_task_progress(
     }
 
 
+def get_next_global_queue_tasks(exclude_task_id: Optional[int] = None, limit: int = 5) -> Dict[str, Any]:
+    """
+    Obtiene las próximas tareas en la Cola Global ('in_progress')
+    ordenadas por la secuencia de ejecución global (queue_order),
+    excluyendo opcionalmente una tarea (por ejemplo la recién completada).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    params: List[Any] = []
+    where_clause = "WHERE t.status = 'in_progress'"
+    if exclude_task_id is not None:
+        where_clause += " AND t.id != ?"
+        params.append(exclude_task_id)
+
+    query = f"""
+        SELECT t.id, t.title, t.priority, t.progress_pct, t.current_step,
+               COALESCE(t.queue_order, 0) as queue_order,
+               p.name as project_name, p.folder_name, p.icon as project_icon
+        FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        {where_clause}
+        {QUEUE_ORDER_SQL}
+    """
+    cursor.execute(query, tuple(params))
+    all_queue = [dict(r) for r in cursor.fetchall()]
+
+    total_in_queue = len(all_queue)
+    tasks_to_show = all_queue[:limit] if (limit and limit > 0) else all_queue
+
+    cursor.execute("SELECT COUNT(*) as total FROM tasks WHERE status = 'pending'")
+    total_pending = cursor.fetchone()["total"]
+    conn.close()
+
+    return {
+        "tasks": tasks_to_show,
+        "total_in_queue": total_in_queue,
+        "total_pending": total_pending
+    }
+
+
 def get_launched_queue(project_id: Optional[str] = None) -> Dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
