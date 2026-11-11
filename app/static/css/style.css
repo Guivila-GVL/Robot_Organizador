@@ -1961,6 +1961,26 @@ input:checked + .slider:before {
   border-radius: 5px;
   padding: 0.08rem 0.35rem;
   white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.quota-mini-chip.chip-exhausted {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #f87171;
+  font-weight: 600;
+}
+
+.quota-mini-chip.chip-low {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.quota-mini-chip.chip-green {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.28);
+  color: #a7f3d0;
 }
 
 .model-active-pill {

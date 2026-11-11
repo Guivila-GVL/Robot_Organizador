@@ -119,37 +119,85 @@ def _describe_tier_for_model(model_name: str) -> str:
     return "Motor Antigravity"
 
 
-def _find_recent_transcripts(max_files: int = 8) -> List[str]:
+def parse_reset_duration(text: str) -> Optional[timedelta]:
+    """Extrae la duración exacta de renovación reportada por agy CLI o APIs (ej. 'Resets in 89h15m13s')."""
+    if not text:
+        return None
+    m = re.search(
+        r"resets?\s+in\s+(?:(\d+)\s*d(?:ays?)?\s*)?(?:(\d+)\s*h(?:ours?)?\s*)?(?:(\d+)\s*m(?:in(?:utes?)?)?\s*)?(?:(\d+)\s*s(?:ec(?:onds?)?)?)?",
+        text,
+        re.IGNORECASE
+    )
+    if m:
+        days = int(m.group(1) or 0)
+        hours = int(m.group(2) or 0)
+        mins = int(m.group(3) or 0)
+        secs = int(m.group(4) or 0)
+        total_seconds = days * 86400 + hours * 3600 + mins * 60 + secs
+        if total_seconds > 0:
+            return timedelta(seconds=total_seconds)
+    return None
+
+
+def _find_recent_transcripts(max_files: int = 60, window_hours: int = QUOTA_WINDOW_HOURS) -> List[str]:
     search_dirs = [
         os.path.expanduser(r"~\.gemini\antigravity-cli\brain"),
         os.path.expanduser(r"~\.gemini\antigravity\brain")
     ]
     candidates = []
+    cutoff_ts = (datetime.now(timezone.utc) - timedelta(hours=window_hours + 1)).timestamp()
     for sdir in search_dirs:
         if os.path.exists(sdir):
             pattern = os.path.join(sdir, "*", ".system_generated", "logs", "transcript.jsonl")
-            candidates.extend(glob.glob(pattern))
+            for p in glob.glob(pattern):
+                try:
+                    if os.path.getmtime(p) >= cutoff_ts:
+                        candidates.append(p)
+                except Exception:
+                    pass
 
     if not candidates:
-        return []
+        for sdir in search_dirs:
+            if os.path.exists(sdir):
+                pattern = os.path.join(sdir, "*", ".system_generated", "logs", "transcript.jsonl")
+                candidates.extend(glob.glob(pattern))
 
     candidates.sort(key=lambda p: os.path.getmtime(p), reverse=True)
     return candidates[:max_files]
 
 
-def _read_jsonl_lines(filepath: str, max_bytes: int = 350000) -> List[Dict[str, Any]]:
+def _read_jsonl_lines(filepath: str, max_bytes: int = 450000) -> List[Dict[str, Any]]:
     try:
         with open(filepath, "rb") as f:
             f.seek(0, os.SEEK_END)
             size = f.tell()
-            block_size = min(size, max_bytes)
-            f.seek(size - block_size)
-            data = f.read().decode("utf-8", errors="ignore")
-        lines = [ln.strip() for ln in data.splitlines() if ln.strip()]
+            if size <= max_bytes:
+                f.seek(0)
+                data = f.read().decode("utf-8", errors="ignore")
+                all_raw = data.splitlines()
+            else:
+                # Leer primeros 16KB para asegurar inclusión del paso 0 (Model Selection)
+                f.seek(0)
+                head_data = f.read(16384).decode("utf-8", errors="ignore")
+                head_lines = head_data.splitlines()
+                # Leer el final para turnos recientes
+                f.seek(size - max_bytes)
+                tail_data = f.read().decode("utf-8", errors="ignore")
+                tail_lines = tail_data.splitlines()
+                all_raw = head_lines + tail_lines
+
         parsed = []
-        for ln in lines:
+        seen_keys = set()
+        for ln in all_raw:
+            ln = ln.strip()
+            if not ln:
+                continue
             try:
-                parsed.append(json.loads(ln))
+                obj = json.loads(ln)
+                k = (obj.get("step_index"), obj.get("type"), obj.get("created_at"))
+                if k not in seen_keys:
+                    seen_keys.add(k)
+                    parsed.append(obj)
             except Exception:
                 continue
         return parsed
@@ -268,15 +316,30 @@ def _clear_model_exhausted(model_name: str) -> None:
         set_setting("model_exhausted_until", json.dumps(ex_map, ensure_ascii=False))
 
 
+def clear_model_exhausted(model_name: str) -> None:
+    """Función pública para restablecer o desbloquear manualmente la cuota de un motor."""
+    _clear_model_exhausted(model_name)
+
+
 def mark_model_exhausted_hours(model_name: str, hours: int = QUOTA_WINDOW_HOURS) -> None:
     _mark_model_exhausted(model_name, datetime.now(timezone.utc) + timedelta(hours=hours))
 
 
-def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool) -> Dict[str, Any]:
+def mark_model_exhausted_from_output(model_name: str, output_text: str, default_hours: int = QUOTA_WINDOW_HOURS) -> datetime:
+    """Registra el agotamiento de un motor usando la duración exacta reportada por agy (ej. 89h15m) o el valor por defecto."""
+    delta = parse_reset_duration(output_text)
+    if delta is None:
+        delta = timedelta(hours=default_hours)
+    reset_dt = datetime.now(timezone.utc) + delta
+    _mark_model_exhausted(model_name, reset_dt)
+    return reset_dt
+
+
+def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool, forced_active_model: Optional[str] = None) -> Dict[str, Any]:
     now_utc = datetime.now(timezone.utc)
     window_start_cutoff = now_utc - timedelta(hours=QUOTA_WINDOW_HOURS)
 
-    active_model = "Gemini 3.8 Flash (Medium)"
+    active_model = forced_active_model or "Gemini 3.8 Flash (Medium)"
     discovered: List[str] = []
     model_steps: Dict[str, List[datetime]] = {}
     last_response_dt_per_model: Dict[str, datetime] = {}
@@ -305,7 +368,7 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
                     if next_m and next_m.lower() != "none":
                         discovered.append(next_m)
                         current_conv_model = next_m
-                        if idx == 0:
+                        if idx == 0 and not forced_active_model:
                             active_model = next_m
 
             if e.get("type") == "PLANNER_RESPONSE":
@@ -314,6 +377,9 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
                     model_steps.setdefault(current_conv_model, []).append(dt)
                     if current_conv_model not in last_response_dt_per_model or dt > last_response_dt_per_model[current_conv_model]:
                         last_response_dt_per_model[current_conv_model] = dt
+
+    if forced_active_model:
+        active_model = forced_active_model
 
     if active_model not in discovered:
         discovered.append(active_model)
@@ -327,11 +393,6 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
         reset_dt = (ts_list[0] + timedelta(hours=QUOTA_WINDOW_HOURS)) if ts_list else (now_utc + timedelta(hours=QUOTA_WINDOW_HOURS))
         _mark_model_exhausted(active_model, reset_dt)
         exhausted_map = _get_exhausted_map()
-    else:
-        # Si el modelo activo respondió recientemente sin error 429, asegurarse de que no esté marcado agotado
-        if active_model in exhausted_map:
-            _clear_model_exhausted(active_model)
-            exhausted_map = _get_exhausted_map()
 
     models_status = []
     active_model_info = None
@@ -351,12 +412,15 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
             reset_dt = None
         else:
             raw_pct = int(round((1.0 - (steps_used / float(budget))) * 100))
-            # Si todavía responde sin error 429, nunca reportar 0% falso; mantener un suelo operativo de 15%
-            remaining_pct = max(15, min(100, raw_pct))
+            if raw_pct <= 0:
+                # Si ha superado el presupuesto empírico pero aún responde sin 429, indicar cuota crítica
+                remaining_pct = 3
+            else:
+                remaining_pct = min(100, max(1, raw_pct))
             reset_dt = ts_list[0] + timedelta(hours=QUOTA_WINDOW_HOURS)
 
-        if remaining_pct < 20:
-            color = "red" if is_exhausted else "orange"
+        if remaining_pct < 20 or is_exhausted:
+            color = "red"
         elif remaining_pct <= 50:
             color = "orange"
         else:
@@ -364,10 +428,14 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
 
         if reset_dt:
             remaining_secs = max(0, int((reset_dt - now_utc).total_seconds()))
-            hours = remaining_secs // 3600
+            days = remaining_secs // 86400
+            hours = (remaining_secs % 86400) // 3600
             mins = (remaining_secs % 3600) // 60
             reset_clock = reset_dt.astimezone().strftime("%H:%M")
-            if hours > 0:
+            date_str = reset_dt.astimezone().strftime("%d/%m")
+            if days > 0:
+                reset_text = f"Renueva en {days}d {hours}h ({reset_clock} {date_str})"
+            elif hours > 0:
                 reset_text = f"Renueva en {hours}h {mins:02d}m ({reset_clock})"
             else:
                 reset_text = f"Renueva en {mins}m ({reset_clock})"
@@ -397,9 +465,11 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
         if not is_exhausted and remaining_pct > 0 and m_name != active_model and recommended_fallback is None:
             recommended_fallback = item
 
-    # Si todos estuvieran agotados salvo ninguno, buscar el que antes renueva
+    # Si todos los de respaldo estuvieran agotados salvo ninguno, buscar el que antes renueva
     if recommended_fallback is None and models_status:
-        candidates = [m for m in models_status if m["name"] != active_model]
+        candidates = [m for m in models_status if m["name"] != active_model and not m["is_exhausted"]]
+        if not candidates:
+            candidates = [m for m in models_status if m["name"] != active_model]
         if candidates:
             candidates.sort(key=lambda x: x["reset_in_seconds"])
             recommended_fallback = candidates[0]
@@ -423,13 +493,25 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
 def get_watchdog_status() -> Dict[str, Any]:
     global _last_alerted_quota_key
 
+    runner_model = None
+    runner_running = False
+    runner_task_id = None
+    try:
+        from app.services.queue_runner import RUNNER_STATE
+        if RUNNER_STATE.get("running"):
+            runner_running = True
+            runner_model = RUNNER_STATE.get("current_model")
+            runner_task_id = RUNNER_STATE.get("current_task_id")
+    except Exception:
+        pass
+
     transcripts = _find_recent_transcripts()
     if not transcripts:
-        models_info = _compute_all_models_metrics([], False)
+        models_info = _compute_all_models_metrics([], False, forced_active_model=runner_model)
         return {
             "active": False,
-            "state": "idle",
-            "label": "Sin sesión detectada",
+            "state": "working" if runner_running else "idle",
+            "label": f"⚡ Ejecutando Tarea #{runner_task_id} ({runner_model})" if runner_running else "Sin sesión detectada",
             "detail": "No se encontró transcript.jsonl",
             "conversation_id": None,
             "quota_alert": False,
@@ -445,11 +527,11 @@ def get_watchdog_status() -> Dict[str, Any]:
     entries = _read_jsonl_lines(transcript_path, max_bytes=65536)
 
     if not entries:
-        models_info = _compute_all_models_metrics(transcripts, False)
+        models_info = _compute_all_models_metrics(transcripts, False, forced_active_model=runner_model)
         return {
             "active": True,
-            "state": "idle",
-            "label": "Esperando órdenes",
+            "state": "working" if runner_running else "idle",
+            "label": f"⚡ Ejecutando Tarea #{runner_task_id} ({runner_model})" if runner_running else "Esperando órdenes",
             "detail": f"Sesión {conv_id[:8]}...",
             "conversation_id": conv_id,
             "age_seconds": age_seconds,
@@ -471,7 +553,7 @@ def get_watchdog_status() -> Dict[str, Any]:
                 quota_detected = True
                 break
 
-    models_info = _compute_all_models_metrics(transcripts, quota_detected)
+    models_info = _compute_all_models_metrics(transcripts, quota_detected, forced_active_model=runner_model)
 
     if quota_detected:
         alert_key = f"{conv_id}:{step_index}"
@@ -506,7 +588,10 @@ def get_watchdog_status() -> Dict[str, Any]:
             **models_info
         }
 
-    if age_seconds <= 25 and (step_status in ("IN_PROGRESS", "RUNNING") or step_type == "USER_INPUT"):
+    if runner_running:
+        label = f"⚡ Trabajando #{runner_task_id} ({runner_model})"
+        state = "working"
+    elif age_seconds <= 25 and (step_status in ("IN_PROGRESS", "RUNNING") or step_type == "USER_INPUT"):
         label = f"⚡ Trabajando (Paso #{step_index})"
         state = "working"
     elif age_seconds <= 120:

@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 19:40:59] ✅ Me da la impresión de que aquí en el Watchdog que tenemos
+
+- **ID Tarea:** `105`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Corregida la sincronización y cálculo de cuotas de motores en el Watchdog de Antigravity: 1) Solucionado el borrado prematuro de motores en exhausted_map; 2) Implementado parseo de la duración real de renovación reportada por agy CLI (ej. 89h15m) con soporte de formato días/horas; 3) Sincronizado el modelo activo con RUNNER_STATE de la Cola Global; 4) Eliminado el suelo forzado del 15% para reflejar el consumo real; 5) Mejorada la visualización en la UI (chips con color, distintivo de alerta y botón de desbloqueo manual). Verificado con tests unitarios e integrados.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 19:28:04] ✅ Existir la opción de que
 
 - **ID Tarea:** `104`

@@ -251,8 +251,10 @@ async function loadWatchdogStatus() {
     if (othersEl && Array.isArray(data.models)) {
       const others = data.models.filter(m => !m.is_active);
       othersEl.innerHTML = others.map(m => {
-        const shortName = m.name.replace('Gemini ', '').replace(' (Medium)', '').replace(' (High)', '');
-        return `<span class="quota-mini-chip" title="${m.name}: ${m.reset_text}">${shortName}: <b>${m.quota_remaining_pct}%</b></span>`;
+        const shortName = m.name.replace('Gemini ', '').replace(' (Medium)', '').replace(' (High)', '').replace(' (Low)', '');
+        const statusClass = m.is_exhausted ? 'chip-exhausted' : (m.quota_remaining_pct <= 20 ? 'chip-low' : 'chip-green');
+        const badge = m.is_exhausted ? '⚠️ ' : '';
+        return `<span class="quota-mini-chip ${statusClass}" title="${m.name}: ${m.reset_text}">${badge}${shortName}: <b>${m.is_exhausted ? '0%' : m.quota_remaining_pct + '%'}</b></span>`;
       }).join('');
     }
 
@@ -309,6 +311,7 @@ function renderModelsModal() {
         </div>
       </div>
       <div class="gq-actions">
+        ${m.is_exhausted ? `<button class="btn btn-secondary btn-small" onclick="resetModelQuota('${m.name.replace(/'/g, "\\'")}')" title="Restablecer o desbloquear cuota de este motor">🔄 Reintentar</button>` : ''}
         <button class="btn btn-secondary btn-small" onclick="moveModelSequence('${m.name.replace(/'/g, "\\'")}', 'up')" ${isFirst ? 'disabled style="opacity:0.35;cursor:not-allowed;"' : ''} title="Subir prioridad en la secuencia de fallback">⬆️</button>
         <button class="btn btn-secondary btn-small" onclick="moveModelSequence('${m.name.replace(/'/g, "\\'")}', 'down')" ${isLast ? 'disabled style="opacity:0.35;cursor:not-allowed;"' : ''} title="Bajar prioridad en la secuencia de fallback">⬇️</button>
       </div>
@@ -332,6 +335,25 @@ async function moveModelSequence(modelName, direction) {
     }
   } catch (err) {
     showToast('Error al reordenar motores', 'error');
+  }
+}
+
+async function resetModelQuota(modelName) {
+  try {
+    const res = await fetch('/api/watchdog/models/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model_name: modelName })
+    });
+    const data = await res.json();
+    if (data.success && data.status) {
+      state.watchdogData = data.status;
+      renderModelsModal();
+      loadWatchdogStatus();
+      showToast(`Cuota de ${modelName} restablecida`, 'success');
+    }
+  } catch (err) {
+    showToast('Error al restablecer cuota del motor', 'error');
   }
 }
 

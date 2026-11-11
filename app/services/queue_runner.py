@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List
 
 from app.database import get_db_connection
 from app.services.execution_queue import get_launched_queue, update_task_progress
-from app.services.watchdog_service import get_watchdog_status, mark_model_exhausted_hours, QUOTA_KEYWORDS
+from app.services.watchdog_service import get_watchdog_status, mark_model_exhausted_hours, mark_model_exhausted_from_output, QUOTA_KEYWORDS
 from app.services.milestone_checker import check_and_complete_task
 from app.services.telegram_service import send_telegram_message
 from app.services.activity_logger import log_activity
@@ -264,13 +264,20 @@ def _runner_loop() -> None:
 
                 if res.get("quota_error"):
                     _log_event(f"⚠️ {model_info['name']} alcanzó límite de cuota (429). Saltando al siguiente motor...")
-                    mark_model_exhausted_hours(model_info["name"], 5)
+                    reset_dt = mark_model_exhausted_from_output(model_info["name"], res.get("output", ""))
+                    from datetime import timezone
+                    now_u = datetime.now(timezone.utc)
+                    rem_secs = max(0, int((reset_dt - now_u).total_seconds()))
+                    days = rem_secs // 86400
+                    hrs = (rem_secs % 86400) // 3600
+                    mins = (rem_secs % 3600) // 60
+                    reset_desc = f"{days}d {hrs}h" if days > 0 else (f"{hrs}h {mins:02d}m" if hrs > 0 else f"{mins}m")
                     next_m = _pick_next_available_model(tried_models)
                     if next_m:
                         try:
                             send_telegram_message(
                                 f"🔀 <b>Salto Automático de Motor:</b>\n"
-                                f"• Agotado: {model_info['name']}\n"
+                                f"• Agotado: <b>{model_info['name']}</b> (⏳ Renueva en {reset_desc})\n"
                                 f"• Continuando con: <b>{next_m['name']}</b> ({next_m['quota_remaining_pct']}%)"
                             )
                         except Exception:
