@@ -9,7 +9,7 @@
 - **Resultado Técnico:** Implementada y verificada la creación sistemática de la hoja 03. Siguientes Pasos y Evolución en OneNote para todos los proyectos: incluye visión general, tareas inmediatas, roadmap en 3 horizontes interactivo, banco de ideas y cuaderno de reflexión personal. Se garantiza la preservación de notas manuales del usuario y reenumeración ordenada en cascada.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -24,7 +24,7 @@
 - **Resultado Técnico:** Implementación completa del nuevo nombre e identidad visual de la aplicación: JARVIS (Just A Rather Very Intelligent System / Asistente IA de Proyectos). Se ha sustituido el emoji/icono genérico por un diseño profesional de Núcleo IA/Arc Reactor en SVG con animación sutil y resplandor neón. Se actualizaron templates HTML, estilos CSS, manifest.json PWA, etiquetas de consola en app.js y metadata en main.py. Validado con tests unitarios pasando al 100% y respuestas HTTP 200 en servidor activo.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -39,7 +39,7 @@
 - **Resultado Técnico:** Eliminados accesos OneNote y Skills de la cabecera general (se mantienen dentro de cada proyecto). Renombrada la barra lateral a Consola. Simplificadas las pestañas a Tareas (con cohete) y ESIOS (sin check Listo). Eliminados los botones cruzados redundantes entre Cola Global y ESIOS.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -54,7 +54,7 @@
 - **Resultado Técnico:** Implementado motor avanzado de síntesis y análisis semántico de títulos en synthesize_smart_title (app/services/project_scanner.py). Se eliminaron atajos y reglas frágiles que truncaban a primeras palabras o dejaban frases huérfanas, añadiendo detección de intenciones, normalización verbal a infinitivo, extracción de pares acción-objeto, supresión de preámbulos conversacionales/de dictado y ubicación, e integración en UI (toast descriptivo y botón de síntesis en modal de tareas). Verificado con test_smart_title.py (12/12 tests exitosos) y pruebas en vivo sobre la API REST.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -69,7 +69,7 @@
 - **Resultado Técnico:** Consola lateral derecha fijada permanentemente en la visualizacion y actividad centralizada del Robot de Gestion de Proyectos (puerto 8002). Se elimino el autoswitch a ESIOS y el borrado/filtrado de logs al cambiar de proyecto en el menu izquierdo, consolidando la visualizacion unificada de servidores, runner y cola global, e integrando la gestion centralizada de OneNote, Skills y Git desde el Robot.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -84,7 +84,7 @@
 - **Resultado Técnico:** Sección de actividad simplificada con éxito: 1) Cabecera renombrada a ACTIVIDAD. 2) Filtro Todas eliminado. 3) Filtros reconfigurados limpiamente a ESIOS (sin icono de pila), Proyecto y Runners. 4) Filtro Proyecto optimizado con detección dinámica de servicios online y ejecución activa del runner, mostrando el estado en la sub-barra contextual y opciones desplegables con indicadores de estado.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -99,7 +99,7 @@
 - **Resultado Técnico:** Simplificación y reducción de la cabecera de la Consola completada exitosamente. Se renombró el título a «Consola», se eliminaron los elementos e indicadores «Ejecutando», «Limpiar» y «Auto», y se compactaron los estilos CSS del encabezado. Verificaciones unitarias y en vivo satisfactorias.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -114,7 +114,7 @@
 - **Resultado Técnico:** Protocolo universal de hitos Telegram implementado: corregido bug de supresión de etapa plan en queue runner/execution queue, formalizada Skill protocolo-gestion-actividades en 01_Skills, actualizado índice y reglas globales GEMINI.md para todos los proyectos, y verificado con tests unitarios automatizados exitosos (6/6 OK).
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -129,7 +129,7 @@
 - **Resultado Técnico:** Reorganización de la consola de actividad completada: Se eliminó la tarjeta redundante de seguimiento de proyecto que duplicaba el panel de Cola Global, se integraron pestañas superiores para alternar entre Cola Global y Seguimiento ESIOS (:8050) con chips dinámicos en vivo, y se amplió el espacio vertical útil de la terminal inferior. Verificado con tests automatizados y peticiones HTTP reales al servidor.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -144,7 +144,7 @@
 - **Resultado Técnico:** Implementado sistema integral de seguimiento de tareas por Telegram con aviso de inicio y 3 hitos intermedios: 1) Notificación inmediata al arrancar cada nueva tarea indicando nombre, ID, hora exacta de inicio, motor IA asignado y resumen de la Cola Global. 2) Hito intermedio plan (Ya se ha pensado en cómo implementarlo) al concebir la arquitectura/estrategia (~20-25%). 3) Hito intermedio development (Comienza el desarrollo) al iniciar la implementación en código (~50%). 4) Hito intermedio validation (Ha acabado el desarrollo y ahora comienza la validación) al finalizar la codificación e iniciar pruebas (~80%). 5) Deduplicación inteligente vía columna notified_stages en tasks para evitar alertas repetidas. 6) Presets y selector actualizados en la interfaz Web (progressModal) e instrucciones añadidas a los prompts de ejecución autónoma (COLA_EJECUCION_ANTIGRAVITY.md y queue_runner.py). Verificado con suite de pruebas tests/test_telegram_milestones.py (5/5 tests pasados) y entrega en tiempo real por Telegram.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -159,7 +159,7 @@
 - **Resultado Técnico:** Centralizada la gestión y control de la Cola Global en la parte superior de la columna derecha (Consola & Actividad). Se eliminaron los botones de Ejecutando Cola y Pausa de la cabecera superior, y el banner de cola de cada proyecto individual. Se añadieron los botones unificados (Avanzar, Pausa, Secuencia, Copiar Orden) y un visor detallado en vivo del avance (proyecto, tarea activa, paso actual en tiempo real, barra porcentual animada, motor IA, cronómetro y vista previa de próximas tareas en cola). Verificado mediante tests/test_queue_sidebar_reorg.py y respuesta HTTP 200 en servidor en vivo.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -174,7 +174,7 @@
 - **Resultado Técnico:** Reorganización completa de la gestión y seguimiento de la Cola Global: 1) Eliminación de los botones de cola (`btnHeaderRunQueue` y `btnHeaderPauseQueue`) de la cabecera superior y del banner de cola de cada proyecto específico (`queueBanner` en `task-toolbar`), centralizando el control de la secuencia global como un recurso unificado. 2) Creación del panel general de control de Cola Global en la parte superior de la columna derecha («Consola & Actividad»), dotándolo de botones unificados: «▶️ Avanzar», «⏸️ Pausa», «⚙️ Secuencia» y «📋 Copiar Orden». 3) Ampliación sustancial del detalle de seguimiento en tiempo real (`queueLiveDetail`), mostrando proyecto activo con icono y etiqueta, ID y título de tarea en ejecución, cuadro de paso actual destacado con detalle de acción, barra de progreso animada con porcentaje en vivo, motor/modelo asignado, tiempo transcurrido y vista previa de las siguientes tareas en espera en la cola. 4) Validación automatizada con suite de pruebas `tests/test_queue_sidebar_reorg.py` y verificación HTTP 200 en servidor en ejecución.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -189,7 +189,7 @@
 - **Resultado Técnico:** Implementado motor avanzado de análisis sintáctico y extracción semántica de títulos en synthesize_smart_title y smart_breakdown_task (app/services/project_scanner.py y app/main.py). Se eliminan muletillas recursivas, rodeos conversacionales (me gustaría, un poco, cuando le demos al..., una vez que...), se normalizan verbos al infinitivo, se extraen objetivos técnicos directos y se genera un título corto (máx 72 caracteres), conciso y centrado en la acción sin dejar primeras palabras ni cortar arbitrariamente con '...'. Verificado con suite de pruebas automatizada cubriendo dictado por voz, bugs, endpoints y específicamente el prompt de la Tarea 68.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -204,7 +204,7 @@
 - **Resultado Técnico:** Implementado el avance continuo e ininterrumpido de la Cola Global. Ahora al pulsar Avanzar o iniciar la cola, el sistema ejecuta todas las tareas en cola secuencialmente (#1, #2, #3...) sin detenerse entre tareas. La única forma de parar es pulsar Pausa explícitamente. Se añadieron controles directos de Avanzar y Pausa tanto en la barra superior como en el banner de la cola, y se reforzó el manejo de fallos para que una incidencia en una tarea no bloquee la secuencia global, continuando con la siguiente.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -219,7 +219,7 @@
 - **Resultado Técnico:** Implementado y verificado el selector de proyectos y seguimiento de adquisición de datos ESIOS en la consola lateral y panel de actividad: 1) Selector de proyectos interactivo integrado tanto en la cabecera de seguimiento como en la sub-barra de la terminal con navegación directa. 2) Conmutador de seguimiento rápido entre Proyecto y 🔋 ESIOS para supervisar en cualquier momento la ingesta de datos de energía (puerto 8050, 86 tareas, ETA, transcurrido y registros en TimescaleDB). 3) Botones de filtro de la terminal actualizados a «Todas», «Proyecto», «🔋 ESIOS» y «Runners», incluyendo integración completa de logs de ESIOS en el flujo unificado y un stream dedicado. 4) Resaltado sintáctico en vivo en la terminal para indicadores, descargas, precios y conexiones a base de datos.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -234,7 +234,7 @@
 - **Resultado Técnico:** Se integró la consola de actividad y seguimiento en vivo como columna lateral derecha permanente en index.html, eliminando el botón superior y el modal emergente con pestañas. Se añadió visor de avance en tiempo real para el proyecto y tarea seleccionada (porcentaje, paso actual, barra animada de gradiente, motor y tiempo transcurrido), integración de telemetría ESIOS e indicador de cola global, además de terminal CMD con filtros dinámicos (Todos, Proyecto, Runner) y auto-scroll.
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -256,7 +256,7 @@
   ✅ Check enviado a Telegram
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 
@@ -278,7 +278,7 @@
   ✅ Check enviado a Telegram
 - **Checklist de Protocolo General:**
   - [x] Documentación en `/docs` registrada
-  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Listado de Actividades y 03. Siguientes Pasos y Evolución)
   - [x] Git Snapshot y Push a repositorio remoto procesado
   - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
 

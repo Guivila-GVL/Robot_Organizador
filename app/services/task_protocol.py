@@ -72,7 +72,7 @@ def update_project_docs(project_folder: str, project_name: str, task: dict, mile
         return {"success": False, "error": str(e)}
 
 
-def sync_onenote_project(project_id: str) -> Dict[str, Any]:
+def sync_onenote_project(project_id: str, force_next_steps: bool = False) -> Dict[str, Any]:
     try:
         import importlib
         if "app.services.project_scanner" in sys.modules:
@@ -102,6 +102,9 @@ def sync_onenote_project(project_id: str) -> Dict[str, Any]:
             cmd.extend(["--project", project_id])
         else:
             timeout_val = 300
+
+        if force_next_steps:
+            cmd.append("--force-next-steps")
 
         res = subprocess.run(
             cmd,

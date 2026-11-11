@@ -210,9 +210,15 @@ async def open_project_resource_endpoint(project_id: str, resource_key: str, ope
     return open_project_resource(project_id, resource_key, open_browser=open_browser)
 
 @app.post("/api/projects/{project_id}/sync-onenote")
-async def sync_onenote_endpoint(project_id: str):
+async def sync_onenote_endpoint(project_id: str, force_next_steps: bool = False):
     from app.services.task_protocol import sync_onenote_project
-    res = sync_onenote_project(project_id)
+    res = sync_onenote_project(project_id, force_next_steps=force_next_steps)
+    return res
+
+@app.post("/api/onenote/sync-all")
+async def sync_all_onenote_endpoint(force_next_steps: bool = False):
+    from app.services.task_protocol import sync_onenote_project
+    res = sync_onenote_project("all", force_next_steps=force_next_steps)
     return res
 
 @app.get("/api/projects/{project_id}/tasks")
