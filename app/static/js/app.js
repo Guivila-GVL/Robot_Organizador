@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Service & Watchdog polling every 8s + live activity console polling
   updateActivityConsole();
+  refreshGlobalQueueBadge();
   setInterval(updateActivityConsole, 1800);
 
   setInterval(() => {
@@ -564,18 +565,6 @@ function updateTaskCounters() {
 
   statCompletedEl.textContent = completed;
   statTotalEl.textContent = total;
-
-  // Actualizar banner de Cola Activa
-  const queueBanner = document.getElementById('queueBanner');
-  const queueCountText = document.getElementById('queueCountText');
-  if (queueBanner && queueCountText) {
-    if (inProgress > 0) {
-      queueCountText.textContent = `${inProgress} ${inProgress === 1 ? 'tarea activa' : 'tareas activas'}`;
-      queueBanner.style.display = 'flex';
-    } else {
-      queueBanner.style.display = 'none';
-    }
-  }
 }
 
 function updateBannerProgress() {
@@ -1356,51 +1345,36 @@ async function refreshGlobalQueueBadge() {
   try {
     const res = await fetch('/api/queue');
     const data = await res.json();
-    const btn = document.getElementById('btnOpenGlobalQueue');
+    if (!data.success) return;
+    state.lastQueueData = data;
+
     const runner = data.runner || {};
-    const total = data.total_global ?? data.count ?? 0;
+    const total = data.total_global ?? data.count ?? (data.tasks ? data.tasks.length : 0);
 
-    const btnHRun = document.getElementById('btnHeaderRunQueue');
-    const btnHPause = document.getElementById('btnHeaderPauseQueue');
-    const btnBRun = document.getElementById('btnBannerRunQueue');
-    const btnBPause = document.getElementById('btnBannerPauseQueue');
+    const btnSRun = document.getElementById('btnSidebarRunQueue');
+    const btnSPause = document.getElementById('btnSidebarPauseQueue');
     const chip = document.getElementById('queueRunnerChip');
-    const queueBanner = document.getElementById('queueBanner');
-    const queueCountText = document.getElementById('queueCountText');
+    const countEl = document.getElementById('globalQueueCount');
+    if (countEl) countEl.textContent = total;
 
-    if (btn && data.success) {
-      if (runner.running) {
-        btn.classList.add('pulse');
-        btn.innerHTML = `<span class="btn-icon">⚙️</span> Ejecutando Cola (<span id="globalQueueTopCount">${total}</span>)`;
-      } else {
-        btn.classList.remove('pulse');
-        btn.innerHTML = `<span class="btn-icon">🚀</span> Cola Global (<span id="globalQueueTopCount">${total}</span>)`;
-      }
-    }
-
-    // Actualizar botones de cabecera y banner
+    // Actualizar botones de la barra lateral derecha
     if (runner.running) {
-      if (btnHRun) btnHRun.style.display = 'none';
-      if (btnHPause) btnHPause.style.display = 'inline-flex';
-      if (btnBRun) btnBRun.style.display = 'none';
-      if (btnBPause) btnBPause.style.display = 'inline-flex';
+      if (btnSRun) btnSRun.style.display = 'none';
+      if (btnSPause) btnSPause.style.display = 'inline-flex';
       if (chip) {
         chip.className = 'queue-runner-chip running';
-        chip.innerHTML = '⚡ Secuencia en marcha (avance continuo)';
+        chip.innerHTML = '⚡ En marcha (avance continuo)';
       }
     } else {
-      if (btnHPause) btnHPause.style.display = 'none';
-      if (btnBPause) btnBPause.style.display = 'none';
+      if (btnSPause) btnSPause.style.display = 'none';
       if (total > 0) {
-        if (btnHRun) btnHRun.style.display = 'inline-flex';
-        if (btnBRun) btnBRun.style.display = 'inline-flex';
+        if (btnSRun) btnSRun.style.display = 'inline-flex';
         if (chip) {
           chip.className = 'queue-runner-chip paused';
           chip.innerHTML = '⏸️ En pausa · Pulsa ▶️ Avanzar';
         }
       } else {
-        if (btnHRun) btnHRun.style.display = 'none';
-        if (btnBRun) btnBRun.style.display = 'none';
+        if (btnSRun) btnSRun.style.display = 'inline-flex';
         if (chip) {
           chip.className = 'queue-runner-chip';
           chip.innerHTML = '🟢 Sin tareas';
@@ -1408,16 +1382,163 @@ async function refreshGlobalQueueBadge() {
       }
     }
 
-    if (queueBanner && queueCountText) {
-      if (total > 0) {
-        queueCountText.textContent = `${total} ${total === 1 ? 'tarea en cola' : 'tareas en cola'}`;
-        queueBanner.style.display = 'flex';
-      } else {
-        queueBanner.style.display = 'none';
-      }
-    }
+    renderGlobalQueueLiveDetail(data, state.telemetry);
   } catch (err) {
     // silent fail on background poll
+  }
+}
+
+function renderGlobalQueueLiveDetail(queueData, telemetryData) {
+  const container = document.getElementById('queueLiveDetail');
+  if (!container) return;
+
+  const qData = queueData || state.lastQueueData || {};
+  const tData = telemetryData || state.telemetry || {};
+  const robot = tData.robot || {};
+  const runner = robot.runner || qData.runner || {};
+  const tasks = qData.tasks || [];
+  const total = qData.total_global ?? qData.count ?? tasks.length ?? 0;
+  const isRunning = !!runner.running;
+
+  // Actualizar también el contador en el botón de secuencia
+  const countEl = document.getElementById('globalQueueCount');
+  if (countEl) countEl.textContent = total;
+  const chip = document.getElementById('queueRunnerChip');
+
+  if (isRunning) {
+    if (chip) {
+      chip.className = 'queue-runner-chip running';
+      chip.innerHTML = '⚡ En marcha (avance continuo)';
+    }
+
+    const activeTaskId = runner.current_task_id;
+    const activeTask = tasks.find(t => t.id === activeTaskId) ||
+                       (state.tasks && state.tasks.find(t => t.id === activeTaskId)) ||
+                       {
+                         id: activeTaskId,
+                         title: runner.current_task_title || 'Tarea en proceso',
+                         project_name: runner.current_project_name || 'Robot de Gestión de Proyectos',
+                         progress_pct: 35,
+                         current_step: runner.last_log
+                       };
+
+    const projName = activeTask.project_name || runner.current_project_name || 'Proyecto';
+    const proj = state.projects && state.projects.find(p => p.name === projName || p.id === activeTask.project_id || p.folder_name === activeTask.folder_name);
+    const projIcon = proj?.icon || '📁';
+
+    // Determinar porcentaje y paso actual
+    let pct = 20;
+    if (activeTask.progress_pct !== undefined && activeTask.progress_pct !== null && activeTask.progress_pct > 0) {
+      pct = activeTask.progress_pct;
+    }
+
+    // Obtener texto del paso actual
+    let stepText = activeTask.current_step;
+    if (!stepText || stepText === '🚀 En cola de lanzamiento (lista para ejecutar)') {
+      stepText = runner.last_log || 'Ejecutando tarea autónoma en segundo plano...';
+    }
+    // Limpiar timestamp del log si viene con formato [12:00:00] [RUNNER]
+    stepText = stepText.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*(\[RUNNER\])?\s*/i, '');
+
+    const modelName = runner.current_model || 'Gemini 3.8 Flash (Medium)';
+
+    let elapsedStr = '';
+    if (runner.started_at) {
+      try {
+        const startMs = new Date(runner.started_at).getTime();
+        const diffSec = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+        elapsedStr = formatElapsedSeconds(diffSec);
+      } catch (_) {}
+    }
+
+    // Próxima tarea en cola de ejecución
+    const upcomingTasks = tasks.filter(t => t.id !== activeTaskId);
+    let nextPreviewHtml = '';
+    if (upcomingTasks.length > 0) {
+      const nextTask = upcomingTasks[0];
+      const nextProj = state.projects && state.projects.find(p => p.name === nextTask.project_name || p.id === nextTask.project_id);
+      const nextIcon = nextProj?.icon || '📁';
+      const extraCount = upcomingTasks.length - 1;
+      const extraText = extraCount > 0 ? ` <strong style="color:#a855f7;">(+${extraCount} más en espera)</strong>` : '';
+      nextPreviewHtml = `
+        <div class="queue-next-preview" title="Siguiente en cola: #${nextTask.id} - ${escapeHtml(nextTask.title)} (${escapeHtml(nextTask.project_name || '')})">
+          <span>⏭️ <b>Siguiente:</b> #${nextTask.id} ${escapeHtml(nextTask.title)} <small style="opacity:0.85;">[${nextIcon} ${escapeHtml(nextTask.project_name || '')}]</small>${extraText}</span>
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div class="queue-live-running-card">
+        <div class="queue-live-proj-row">
+          <span class="queue-live-proj-badge" title="${escapeHtml(projName)}">
+            <span>${projIcon}</span> <span>${escapeHtml(projName)}</span>
+          </span>
+          <span class="badge badge-accent">#${activeTask.id}</span>
+        </div>
+        <div class="queue-live-task-title" title="${escapeHtml(activeTask.title)}">
+          ${escapeHtml(activeTask.title)}
+        </div>
+        <div class="queue-live-step-box">
+          <span class="queue-live-step-label">⚡ Detalle en tiempo real:</span>
+          <span class="queue-live-step-text">${escapeHtml(stepText)}</span>
+        </div>
+        <div class="queue-live-progress-row">
+          <span style="font-size:0.68rem; color:#94a3b8;">Progreso de la tarea</span>
+          <span class="active-task-pct">${pct}%</span>
+        </div>
+        <div class="active-task-bar-bg">
+          <div class="active-task-bar-fill" style="width: ${pct}%;"></div>
+        </div>
+        <div class="queue-live-meta-row">
+          <span>🤖 ${escapeHtml(modelName)}</span>
+          ${elapsedStr ? `<span>⏱️ ${elapsedStr}</span>` : '<span>⚡ En marcha</span>'}
+          <span style="color:#34d399; font-weight:600;">● Ejecutando</span>
+        </div>
+        ${nextPreviewHtml}
+      </div>
+    `;
+  } else if (total > 0) {
+    if (chip) {
+      chip.className = 'queue-runner-chip paused';
+      chip.innerHTML = '⏸️ En pausa · Pulsa ▶️ Avanzar';
+    }
+
+    const nextTask = tasks[0];
+    const projName = nextTask?.project_name || 'Proyecto';
+    const proj = state.projects && state.projects.find(p => p.name === projName || p.id === nextTask?.project_id);
+    const projIcon = proj?.icon || '📁';
+    const remainingCount = tasks.length > 1 ? tasks.length - 1 : 0;
+    const moreText = remainingCount > 0 ? ` <span style="color:#a855f7;">(+${remainingCount} más en cola)</span>` : '';
+
+    container.innerHTML = `
+      <div class="queue-idle-box">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.25rem;">
+          <span style="font-weight:700; color:#cbd5e1;">⏸️ Cola en pausa (${total} ${total === 1 ? 'tarea' : 'tareas'})</span>
+          <span class="badge" style="background:rgba(255,255,255,0.06); font-size:0.65rem;">Lista</span>
+        </div>
+        ${nextTask ? `
+          <div class="queue-next-preview" style="text-align:left; border-left-color:#38bdf8;" title="${escapeHtml(nextTask.title)}">
+            <span>▶️ <b>Próxima a ejecutar:</b> #${nextTask.id} ${escapeHtml(nextTask.title)} <small style="opacity:0.85;">[${projIcon} ${escapeHtml(projName)}]</small>${moreText}</span>
+          </div>
+        ` : ''}
+        <div style="font-size:0.68rem; color:#94a3b8; margin-top:0.35rem;">
+          Pulsa <b>▶️ Avanzar</b> para iniciar la ejecución continua de la secuencia.
+        </div>
+      </div>
+    `;
+  } else {
+    if (chip) {
+      chip.className = 'queue-runner-chip';
+      chip.innerHTML = '🟢 Sin tareas';
+    }
+
+    container.innerHTML = `
+      <div class="queue-idle-box">
+        <div style="font-size:1.15rem; margin-bottom:0.15rem;">🟢</div>
+        <strong style="color:#e2e8f0; font-size:0.75rem;">Cola de Ejecución Vacía</strong>
+        <span>No hay tareas en progreso en la cola global. Pulsa 🚀 Lanzar Tarea en cualquier proyecto para poner tareas en cola.</span>
+      </div>
+    `;
   }
 }
 
@@ -1787,11 +1908,17 @@ async function updateActivityConsole() {
       }
     }
 
-    // 2. Actualizar tarjeta de seguimiento del proyecto / tarea seleccionada
+    // 2. Actualizar panel de cola global y tarjeta de seguimiento
+    renderGlobalQueueLiveDetail(state.lastQueueData, data);
     renderSelectedTrackingCard(data);
 
     // 3. Renderizar consola de logs con filtros
     renderConsoleTerminal();
+
+    // 4. Refrescar cola global periódicamente si está corriendo
+    if (activityConsoleTicks % 3 === 0) {
+      refreshGlobalQueueBadge();
+    }
 
     // 4. Si hay una tarea en progreso en el proyecto activo, refrescar tareas periódicamente
     if (activityConsoleTicks % 2 === 0 && state.activeProjectId) {
@@ -2017,19 +2144,9 @@ function renderSelectedTrackingCard(data) {
     }
   }
 
-  // Aviso si el worker de la cola global está ejecutando OTRA tarea de OTRO proyecto
-  if (runner.running && !isEsiosProject && runner.current_project_name && runner.current_project_name !== (currentProject?.name || '')) {
-    if (globalWorkerNoticeEl) {
-      globalWorkerNoticeEl.style.display = 'flex';
-      if (globalWorkerTaskInfoEl) {
-        globalWorkerTaskInfoEl.textContent = `#${runner.current_task_id || 0} (${runner.current_project_name})`;
-        globalWorkerTaskInfoEl.title = runner.current_task_title || '';
-      }
-    }
-  } else {
-    if (globalWorkerNoticeEl) {
-      globalWorkerNoticeEl.style.display = 'none';
-    }
+  // Ocultar aviso redundantemente duplicado (gestionado en el panel superior de cola global)
+  if (globalWorkerNoticeEl) {
+    globalWorkerNoticeEl.style.display = 'none';
   }
 }
 
@@ -2221,6 +2338,8 @@ window.onConsoleProjectFilterChange = onConsoleProjectFilterChange;
 window.goToConsoleSelectedProject = goToConsoleSelectedProject;
 window.updateActivityConsole = updateActivityConsole;
 window.loadCmdTelemetry = updateActivityConsole;
+window.renderGlobalQueueLiveDetail = renderGlobalQueueLiveDetail;
+window.refreshGlobalQueueBadge = refreshGlobalQueueBadge;
 window.openServiceUrl = openServiceUrl;
 window.triggerEsiosSync = triggerEsiosSync;
 window.startService = startService;

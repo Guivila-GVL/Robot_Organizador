@@ -21,15 +21,6 @@
 
     <!-- Top Action Buttons -->
     <div class="nav-actions">
-      <button class="btn btn-launch" id="btnOpenGlobalQueue" title="Ver y gestionar la secuencia global de tareas En Progreso de todos los proyectos">
-        <span class="btn-icon">🚀</span> Cola Global (<span id="globalQueueTopCount">0</span>)
-      </button>
-      <button class="btn btn-success" id="btnHeaderRunQueue" onclick="runGlobalQueueNow()" title="▶️ Avanzar / Ejecutar continuamente todas las tareas en cola" style="display:none;">
-        <span class="btn-icon">▶️</span> Avanzar
-      </button>
-      <button class="btn btn-danger" id="btnHeaderPauseQueue" onclick="stopGlobalQueueNow()" title="⏸️ Pausar la cola de ejecución" style="display:none; background:#e11d48; color:#fff; border:none;">
-        <span class="btn-icon">⏸️</span> Pausa
-      </button>
       <button class="btn btn-primary" id="btnOpenAllServices" title="Abrir todas las páginas de servicios activos">
         <span class="btn-icon">🌐</span> Abrir Todo
       </button>
@@ -189,26 +180,6 @@
           <button class="tab-btn" data-filter="completed">Completadas (<span id="countCompleted">0</span>)</button>
           <button class="tab-btn" data-filter="all">Todas (<span id="countAll">0</span>)</button>
         </div>
-        <div class="queue-banner" id="queueBanner" style="display:none;">
-          <div class="queue-banner-left">
-            <span class="queue-badge" id="queueBannerBadge">🚀 Cola Global: <strong id="queueCountText">0</strong></span>
-            <span class="queue-runner-chip" id="queueRunnerChip">🟢 En espera</span>
-          </div>
-          <div class="queue-banner-actions">
-            <button class="btn btn-success btn-small" id="btnBannerRunQueue" onclick="runGlobalQueueNow()" title="▶️ Avanzar: ejecuta todas las tareas en cola una tras otra de forma continua">
-              ▶️ Avanzar Cola
-            </button>
-            <button class="btn btn-danger btn-small" id="btnBannerPauseQueue" onclick="stopGlobalQueueNow()" style="display:none; background:#e11d48; color:#fff; border:none;" title="⏸️ Pausar la ejecución continua">
-              ⏸️ Pausar Cola
-            </button>
-            <button class="btn btn-secondary btn-small" onclick="openGlobalQueueModal()" title="Ver y reordenar la secuencia global">
-              ⚙️ Secuencia
-            </button>
-            <button class="btn btn-primary btn-small" id="btnCopyAllQueue" title="Copiar orden completa con todas las tareas lanzadas para pegarla en Antigravity">
-              📋 Copiar Orden
-            </button>
-          </div>
-        </div>
       </section>
 
       <!-- Tasks List -->
@@ -230,6 +201,40 @@
           <label class="cmd-autoscroll-toggle" title="Desplazamiento automático">
             <input type="checkbox" id="activityAutoScroll" checked> Auto
           </label>
+        </div>
+      </div>
+
+      <!-- PANEL SUPERIOR: Gestión y Control de la Cola Global -->
+      <div class="global-queue-panel" id="globalQueuePanel">
+        <div class="queue-panel-header">
+          <div class="queue-panel-top-row">
+            <div class="queue-panel-status">
+              <span class="queue-panel-icon">🚀</span>
+              <span class="queue-panel-title">Cola Global</span>
+            </div>
+            <span class="queue-runner-chip" id="queueRunnerChip">🟢 En espera</span>
+          </div>
+          <div class="queue-panel-buttons">
+            <button class="btn btn-success btn-xs" id="btnSidebarRunQueue" onclick="runGlobalQueueNow()" title="▶️ Avanzar: ejecuta continuamente todas las tareas en cola">
+              <span class="btn-icon">▶️</span> Avanzar
+            </button>
+            <button class="btn btn-danger btn-xs" id="btnSidebarPauseQueue" onclick="stopGlobalQueueNow()" style="display:none; background:#e11d48; color:#fff; border:none;" title="⏸️ Pausar la ejecución continua de la cola">
+              <span class="btn-icon">⏸️</span> Pausa
+            </button>
+            <button class="btn btn-secondary btn-xs" id="btnSidebarQueueModal" onclick="openGlobalQueueModal()" title="Ver y reordenar la secuencia global de tareas">
+              <span class="btn-icon">⚙️</span> Secuencia (<span id="globalQueueCount">0</span>)
+            </button>
+            <button class="btn btn-primary btn-xs" id="btnSidebarCopyQueue" onclick="copyGlobalQueueSequence()" title="Copiar orden completa para pegarla en Antigravity">
+              <span class="btn-icon">📋</span> Copiar Orden
+            </button>
+          </div>
+        </div>
+
+        <!-- Detalle ampliado de qué se está haciendo en cada momento -->
+        <div class="queue-live-detail" id="queueLiveDetail">
+          <div class="queue-idle-box">
+            <span>Consultando estado de la cola global...</span>
+          </div>
         </div>
       </div>
 

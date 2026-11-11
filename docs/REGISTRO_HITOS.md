@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 12:26:00] ✅ Hacer un pequeño cambio en esta última parte que hemos añadido de la...
+
+- **ID Tarea:** `72`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Reorganización completa de la gestión y seguimiento de la Cola Global: 1) Eliminación de los botones de cola (`btnHeaderRunQueue` y `btnHeaderPauseQueue`) de la cabecera superior y del banner de cola de cada proyecto específico (`queueBanner` en `task-toolbar`), centralizando el control de la secuencia global como un recurso unificado. 2) Creación del panel general de control de Cola Global en la parte superior de la columna derecha («Consola & Actividad»), dotándolo de botones unificados: «▶️ Avanzar», «⏸️ Pausa», «⚙️ Secuencia» y «📋 Copiar Orden». 3) Ampliación sustancial del detalle de seguimiento en tiempo real (`queueLiveDetail`), mostrando proyecto activo con icono y etiqueta, ID y título de tarea en ejecución, cuadro de paso actual destacado con detalle de acción, barra de progreso animada con porcentaje en vivo, motor/modelo asignado, tiempo transcurrido y vista previa de las siguientes tareas en espera en la cola. 4) Validación automatizada con suite de pruebas `tests/test_queue_sidebar_reorg.py` y verificación HTTP 200 en servidor en ejecución.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 12:16:10] ✅ Mejorar un poco el botón de la creación de tareas. Cuando le demos al...
 
 - **ID Tarea:** `68`
