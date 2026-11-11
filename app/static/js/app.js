@@ -2065,9 +2065,6 @@ function renderSelectedTrackingCard(data) {
         <button type="button" class="btn btn-xs btn-outline" onclick="openServiceUrl('http://127.0.0.1:8050')" style="flex:1; justify-content:center;" title="Abrir panel web local del Actualizador ESIOS">
           🔗 Panel :8050
         </button>
-        <button type="button" class="btn btn-xs btn-secondary" onclick="setSidebarTopTab('queue')" style="flex:1; justify-content:center;" title="Volver a la vista de Cola Global">
-          🚀 Cola Global
-        </button>
       </div>
     </div>
   `;

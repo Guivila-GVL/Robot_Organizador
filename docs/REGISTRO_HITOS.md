@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 16:43:05] ✅ Quitar lo de «Robot de Gestión» de OneNote
+
+- **ID Tarea:** `92`
+- **Prioridad:** ALTA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Eliminados accesos OneNote y Skills de la cabecera general (se mantienen dentro de cada proyecto). Renombrada la barra lateral a Consola. Simplificadas las pestañas a Tareas (con cohete) y ESIOS (sin check Listo). Eliminados los botones cruzados redundantes entre Cola Global y ESIOS.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 16:05:33] ✅ Mejorar síntesis y análisis de títulos en botón «Crear con IA»
 
 - **ID Tarea:** `83`

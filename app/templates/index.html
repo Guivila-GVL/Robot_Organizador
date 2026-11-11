@@ -26,12 +26,6 @@
 
     <!-- Top Action Buttons -->
     <div class="nav-actions">
-      <button class="btn btn-outline" onclick="openProjectResource('onenote')" title="Abrir Bloc de notas en OneNote gestionado por el Robot">
-        <span>📓 OneNote</span>
-      </button>
-      <button class="btn btn-outline" onclick="openProjectResource('skills')" title="Abrir carpeta de Skills y patrones centralizada">
-        <span>🧠 Skills</span>
-      </button>
       <button class="btn btn-primary" id="btnOpenAllServices" title="Abrir todas las páginas de servicios activos">
         <span class="btn-icon">🌐</span> Abrir Todo
       </button>
@@ -209,28 +203,27 @@
       <!-- Encabezado de la barra lateral -->
       <div class="sidebar-header activity-sidebar-header">
         <div class="activity-title-group">
-          <h2>Consola · Robot de Gestión</h2>
+          <h2>Consola</h2>
         </div>
       </div>
 
-      <!-- Selector de Pestañas Superiores: Cola Global vs Seguimiento ESIOS -->
+      <!-- Selector de Pestañas Superiores: Tareas vs ESIOS -->
       <div class="sidebar-top-tabs" id="sidebarTopTabs">
-        <button type="button" class="sidebar-top-tab active" id="tabBtnQueue" onclick="setSidebarTopTab('queue')" title="Panel y control de ejecución de la Cola Global">
-          <span class="tab-icon">🚀</span> Cola Global
+        <button type="button" class="sidebar-top-tab active" id="tabBtnQueue" onclick="setSidebarTopTab('queue')" title="Panel y control de ejecución de Tareas">
+          <span class="tab-icon">🚀</span> Tareas
         </button>
         <button type="button" class="sidebar-top-tab" id="btnTrackEsios" onclick="setSidebarTopTab('esios')" title="Pestaña de seguimiento e ingesta en vivo de ESIOS (:8050)">
-          <span class="tab-icon">🔋</span> Seguimiento ESIOS
-          <span class="esios-status-chip" id="esiosStatusChip">✅ Listo</span>
+          <span class="tab-icon">🔋</span> ESIOS
         </button>
       </div>
 
-      <!-- PANEL A: Gestión y Control de la Cola Global -->
+      <!-- PANEL A: Gestión y Control de Tareas -->
       <div class="global-queue-panel" id="globalQueuePanel">
         <div class="queue-panel-header">
           <div class="queue-panel-top-row">
             <div class="queue-panel-status">
               <span class="queue-panel-icon">🚀</span>
-              <span class="queue-panel-title">Cola Global</span>
+              <span class="queue-panel-title">Tareas</span>
             </div>
             <span class="queue-runner-chip" id="queueRunnerChip">🟢 En espera</span>
           </div>
@@ -246,9 +239,6 @@
             </button>
             <button class="btn btn-primary btn-xs" id="btnSidebarCopyQueue" onclick="copyGlobalQueueSequence()" title="Copiar orden completa para pegarla en Antigravity">
               <span class="btn-icon">📋</span> Copiar Orden
-            </button>
-            <button class="btn btn-outline btn-xs btn-open-esios" id="btnQuickOpenEsios" onclick="setSidebarTopTab('esios')" title="Abrir pestaña de Seguimiento ESIOS">
-              <span class="btn-icon">🔋</span> ESIOS
             </button>
           </div>
         </div>
