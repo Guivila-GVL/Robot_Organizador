@@ -1467,7 +1467,7 @@ function renderGlobalQueueLiveDetail(queueData, telemetryData) {
                        {
                          id: activeTaskId,
                          title: runner.current_task_title || 'Tarea en proceso',
-                         project_name: runner.current_project_name || 'Robot de Gestión de Proyectos',
+                         project_name: runner.current_project_name || 'JARVIS',
                          progress_pct: 35,
                          current_step: runner.last_log
                        };
@@ -1851,7 +1851,7 @@ function setConsoleFilter(filter) {
   const contextLabel = document.getElementById('terminalContextLabel');
   if (contextLabel) {
     if (filter === 'robot') {
-      contextLabel.textContent = '🤖 Robot de Gestión de Proyectos · Actividad Unificada';
+      contextLabel.textContent = '⚡ JARVIS · Actividad Unificada';
     } else if (filter === 'runner') {
       contextLabel.textContent = '🤖 Runner Autónomo & Cola Global';
     } else if (filter === 'esios') {
@@ -2165,22 +2165,22 @@ function renderConsoleTerminal() {
     }
   } else {
     // filter === 'robot' (Modo centralizado por defecto)
-    // Siempre muestra TODA la actividad del Robot de Gestión de Proyectos, sin cambiar cuando se cambia de proyecto
+    // Siempre muestra TODA la actividad de JARVIS, sin cambiar cuando se cambia de proyecto
     if (contextLabel) {
       if (runner.running) {
         const shortTitle = (runner.current_task_title || '').slice(0, 30);
         contextLabel.textContent = `⚡ Runner: #${runner.current_task_id} ${shortTitle}${shortTitle.length >= 30 ? '...' : ''}`;
-        contextLabel.title = `Runner autónomo ejecutando tarea #${runner.current_task_id} (${runner.current_project_name || 'Robot'})`;
+        contextLabel.title = `Runner autónomo ejecutando tarea #${runner.current_task_id} (${runner.current_project_name || 'JARVIS'})`;
       } else {
-        contextLabel.textContent = '🤖 Robot de Gestión de Proyectos · Puerto :8002';
-        contextLabel.title = 'Consola central unificada del Robot de Gestión de Proyectos';
+        contextLabel.textContent = '⚡ JARVIS · Puerto :8002';
+        contextLabel.title = 'Consola central unificada de JARVIS';
       }
     }
 
     filtered = combined;
     if (filtered.length === 0) {
       filtered = [
-        '[ROBOT DE GESTIÓN DE PROYECTOS] Servidor 8002 en línea.',
+        '[JARVIS · GESTIÓN DE PROYECTOS] Servidor 8002 en línea.',
         'Supervisando ejecución de tareas, Cola Global, sincronización OneNote y repositorios Git.'
       ];
     }
@@ -2281,12 +2281,12 @@ window.openAllServicesInBrowser = openAllServices;
 
 async function syncActiveProjectOneNote() {
   const projId = state.activeProjectId || 'gestion_proyectos';
-  showToast('Iniciando sincronización de OneNote mediante el Robot...', 'info');
+  showToast('Iniciando sincronización de OneNote mediante JARVIS...', 'info');
   try {
     const res = await fetch(`/api/projects/${projId}/sync-onenote`, { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast('✅ OneNote sincronizado con éxito por el Robot de Gestión de Proyectos', 'success');
+      showToast('✅ OneNote sincronizado con éxito por JARVIS', 'success');
       updateActivityConsole();
     } else {
       showToast(data.error || 'Aviso en sincronización OneNote', 'warning');

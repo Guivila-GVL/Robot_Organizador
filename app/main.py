@@ -65,7 +65,7 @@ class _QuietPollingAccessFilter(logging.Filter):
             return False
         return True
 
-app = FastAPI(title="Robot de Gestión de Proyectos 2026", version="1.1.0")
+app = FastAPI(title="JARVIS · Gestión Inteligente de Proyectos 2026", version="1.2.0")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")

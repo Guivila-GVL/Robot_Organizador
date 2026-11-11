@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 16:49:33] ✅ Cambiar el nombre de esta aplicación, que se llama Robot de Gestión
+
+- **ID Tarea:** `93`
+- **Prioridad:** BAJA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Implementación completa del nuevo nombre e identidad visual de la aplicación: JARVIS (Just A Rather Very Intelligent System / Asistente IA de Proyectos). Se ha sustituido el emoji/icono genérico por un diseño profesional de Núcleo IA/Arc Reactor en SVG con animación sutil y resplandor neón. Se actualizaron templates HTML, estilos CSS, manifest.json PWA, etiquetas de consola en app.js y metadata en main.py. Validado con tests unitarios pasando al 100% y respuestas HTTP 200 en servidor activo.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 16:43:05] ✅ Quitar lo de «Robot de Gestión» de OneNote
 
 - **ID Tarea:** `92`

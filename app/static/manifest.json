@@ -1,14 +1,19 @@
 {
-  "name": "Robot de Gestión de Proyectos",
-  "short_name": "Robot Proyectos",
-  "description": "Panel de control y seguimiento de proyectos con agentes autónomos",
+  "name": "JARVIS · Gestión Inteligente de Proyectos",
+  "short_name": "JARVIS",
+  "description": "Asistente inteligente y panel de control autónomo de proyectos",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "/static/favicon.ico",
+      "src": "/static/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/static/robot_icon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     }

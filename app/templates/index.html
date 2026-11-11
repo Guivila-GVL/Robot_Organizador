@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Robot Proyectos">
+  <meta name="apple-mobile-web-app-title" content="JARVIS">
   <meta name="theme-color" content="#0f172a">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="manifest" href="/static/manifest.json">
-  <title>Robot de Gestión de Proyectos</title>
+  <title>JARVIS · Sistema de Gestión de Proyectos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -18,9 +19,15 @@
   <!-- Header Bar -->
   <header class="top-nav">
     <div class="nav-brand">
-      <div class="logo-icon">🤖</div>
+      <div class="logo-icon jarvis-logo-icon" title="JARVIS · Asistente IA">
+        <img src="/static/favicon.svg" alt="JARVIS Core" width="30" height="30" class="jarvis-core-svg">
+      </div>
       <div class="brand-text">
-        <h1>Robot de Gestión de Proyectos</h1>
+        <div class="brand-title-row">
+          <h1>JARVIS</h1>
+          <span class="brand-ai-badge">AI CORE</span>
+        </div>
+        <span class="brand-subtitle">Gestión Inteligente de Proyectos</span>
       </div>
     </div>
 
@@ -118,10 +125,10 @@
       <section class="protocol-card" id="protocolCard">
         <div class="protocol-header">
           <div class="protocol-title-group">
-            <h3>Protocolo y Gestión Centralizada (Robot Organizado)</h3>
+            <h3>Protocolo y Gestión Centralizada (JARVIS)</h3>
           </div>
           <div class="protocol-sync-actions">
-            <button type="button" class="btn btn-xs btn-outline" id="btnSyncOneNote" onclick="syncActiveProjectOneNote()" title="Sincronizar OneNote para este proyecto mediante el Robot">
+            <button type="button" class="btn btn-xs btn-outline" id="btnSyncOneNote" onclick="syncActiveProjectOneNote()" title="Sincronizar OneNote para este proyecto mediante JARVIS">
               🔄 Sincronizar OneNote
             </button>
           </div>
@@ -134,11 +141,11 @@
               <span>Historial REGISTRO_HITOS.md</span>
             </div>
           </div>
-          <div class="protocol-item" onclick="openProjectResource('onenote')" title="Abrir OneNote sincronizado por el Robot de Gestión de Proyectos">
+          <div class="protocol-item" onclick="openProjectResource('onenote')" title="Abrir OneNote sincronizado por JARVIS">
             <span class="protocol-item-icon">📓</span>
             <div class="protocol-item-text">
               <strong>OneNote / Bitácora</strong>
-              <span>Gestionado por Robot (Abrir/Sync)</span>
+              <span>Gestionado por JARVIS (Abrir/Sync)</span>
             </div>
           </div>
           <div class="protocol-item" onclick="openProjectResource('git')" title="Abrir el repositorio en GitHub">
@@ -152,7 +159,7 @@
             <span class="protocol-item-icon">🧠</span>
             <div class="protocol-item-text">
               <strong>Patrones de Skills</strong>
-              <span>01_Skills gestionado por Robot</span>
+              <span>01_Skills gestionado por JARVIS</span>
             </div>
           </div>
           <div class="protocol-item" onclick="openProjectResource('validation')" title="Validación técnica de tareas y protocolo de 5 pasos">
@@ -274,23 +281,23 @@
         </div>
       </div>
 
-      <!-- Visor de Consola CMD & Stream de Eventos Centralizado del Robot -->
+      <!-- Visor de Consola CMD & Stream de Eventos Centralizado de JARVIS -->
       <div class="activity-terminal-section">
         <div class="activity-terminal-header">
           <div class="terminal-header-left">
-            <span>ACTIVIDAD ROBOT</span>
+            <span>ACTIVIDAD JARVIS</span>
             <span class="cmd-log-counter" id="activityLogCount">0 líneas</span>
           </div>
           <div class="console-filter-buttons">
-            <button type="button" class="console-filter-btn active" data-filter="robot" onclick="setConsoleFilter('robot')" title="Ver actividad centralizada del Robot de Gestión de Proyectos">Robot / Todo</button>
+            <button type="button" class="console-filter-btn active" data-filter="robot" onclick="setConsoleFilter('robot')" title="Ver actividad centralizada de JARVIS">JARVIS / Todo</button>
             <button type="button" class="console-filter-btn" data-filter="runner" onclick="setConsoleFilter('runner')" title="Ver actividad de los Runners autónomos y Cola Global">Runners</button>
             <button type="button" class="console-filter-btn" data-filter="esios" onclick="setConsoleFilter('esios')" title="Ver actividad de telemetría ESIOS">ESIOS</button>
           </div>
         </div>
 
-        <!-- Sub-barra contextual fija: Consola central del Robot de Gestión de Proyectos -->
+        <!-- Sub-barra contextual fija: Consola central de JARVIS -->
         <div class="terminal-sub-bar" id="terminalSubBar">
-          <span class="terminal-sub-label" id="terminalContextLabel">🤖 Robot de Gestión de Proyectos · Puerto :8002</span>
+          <span class="terminal-sub-label" id="terminalContextLabel">⚡ JARVIS · Puerto :8002</span>
           <div class="terminal-actions-wrap">
             <button type="button" class="btn btn-xs btn-outline" onclick="clearActivityTerminal()" title="Limpiar pantalla de la consola">🧹 Limpiar</button>
           </div>
