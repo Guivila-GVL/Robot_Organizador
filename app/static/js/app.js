@@ -2071,7 +2071,6 @@ function renderSelectedTrackingCard(data) {
     </div>
   `;
 }
-}
 
 function renderConsoleTerminal() {
   const terminal = document.getElementById('liveActivityTerminal');
