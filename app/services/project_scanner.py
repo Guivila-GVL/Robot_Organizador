@@ -929,17 +929,15 @@ def synthesize_smart_title(prompt: str) -> str:
 
 
 
-def smart_breakdown_task(prompt: str) -> Dict[str, Any]:
+def _build_atomic_task(prompt: str) -> Dict[str, Any]:
     """
-    Desglosa una frase o idea en lenguaje natural en una tarea estructurada con
-    título corto y enfocado mediante síntesis semántica, descripción completa,
-    criterio de validación concreto y prioridad sugerida.
+    Construye la representación atómica de una tarea individual con título sintetizado,
+    prioridad y criterio de validación.
     """
     clean = prompt.strip()
     if not clean:
         return {}
 
-    # Análisis exhaustivo y síntesis del título
     title = synthesize_smart_title(clean)
     description = clean
     milestone_desc = f"Verificar que '{title}' funciona correctamente y cumple con el objetivo descrito."
@@ -947,7 +945,6 @@ def smart_breakdown_task(prompt: str) -> Dict[str, Any]:
     milestone_type = "manual"
     milestone_target = ""
 
-    # Detección inteligente por palabras clave
     lower = clean.lower()
     if any(k in lower for k in ["urgente", "critico", "error", "bug", "falla"]):
         priority = "urgente"
@@ -975,4 +972,102 @@ def smart_breakdown_task(prompt: str) -> Dict[str, Any]:
         "milestone_target": milestone_target,
         "milestone_description": milestone_desc
     }
+
+
+def analyze_task_decomposition(prompt: str, force_split_phases: bool = False) -> Dict[str, Any]:
+    """
+    Analiza si una tarea solicitada es compleja o extensa y propone su desglose
+    en subtareas independientes para seguimiento granular y trazabilidad.
+    """
+    clean = prompt.strip()
+    if not clean:
+        return {
+            "is_complex": False,
+            "reason": "La descripción está vacía.",
+            "subtasks": []
+        }
+
+    prefix_cleaner = re.compile(
+        r'^(?:además\s+(?:de\s+esto,?\s*)?(?:hay\s+que\s+|se\s+debe\s+)?|'
+        r'por\s+último\s*,?\s*|finalmente\s*,?\s*|luego\s*,?\s*|después\s*,?\s*|'
+        r'paso\s*\d+[:\.]?\s*|\d+[\.\)]\s*|[-*•]\s*)',
+        re.IGNORECASE
+    )
+
+    # 1. Chequeo de numeración o viñetas
+    numbered = re.split(
+        r'(?:(?:\r?\n|\s+)(?:(?:\d+[\.\)]|[-*•])\s+)|(?:(?:\bpaso|\bfase)\s+\d+[:\.]?\s*))',
+        clean,
+        flags=re.IGNORECASE
+    )
+    candidate_parts = [prefix_cleaner.sub('', s).strip(' .,;') for s in numbered if s and len(s.strip()) > 8]
+
+    # 2. Si no hay numeración explícita, buscar conectores secuenciales o puntos y coma
+    if len(candidate_parts) < 2:
+        connectors_pattern = (
+            r'(?:\r?\n+|(?:;\s*)|(?:\.\s+(?=[A-ZÁÉÍÓÚ]))|'
+            r'(?:\s*,\s*(?:y\s+)?(?:luego|después|posteriormente|a continuación|finalmente|por último)\s+)|'
+            r'(?:\s+(?:y luego|luego|después|posteriormente|a continuación|y finalmente|finalmente|y por último|por último|además,|además de esto,)\s+))'
+        )
+        parts = re.split(connectors_pattern, clean, flags=re.IGNORECASE)
+        candidate_parts = [prefix_cleaner.sub('', p).strip(' .,;') for p in parts if len(p.strip(' .,;')) > 8]
+
+    is_complex = len(candidate_parts) >= 2
+    lower = clean.lower()
+    explicit_split_requested = any(w in lower for w in ['subtarea', 'subtareas', 'dividir', 'en varias tareas', 'desglosar', 'fases', 'etapas'])
+
+    # Si se fuerza o se pide explícitamente y aún no se ha podido desglosar
+    if not is_complex and (force_split_phases or explicit_split_requested or len(clean) > 220):
+        base_title = synthesize_smart_title(clean)
+        candidate_parts = [
+            f"Planificación y arquitectura para {base_title}",
+            f"Desarrollo e integración de {base_title}",
+            f"Validación técnica y pruebas de {base_title}"
+        ]
+        is_complex = True
+
+    if is_complex and len(candidate_parts) >= 2:
+        subtasks = []
+        for part in candidate_parts:
+            st = _build_atomic_task(part)
+            if st and st.get("title"):
+                subtasks.append(st)
+
+        if len(subtasks) >= 2:
+            return {
+                "is_complex": True,
+                "reason": f"Se han detectado {len(subtasks)} fases o subtareas diferenciadas en la solicitud.",
+                "original_prompt": clean,
+                "subtasks": subtasks
+            }
+
+    # Si es simple o atómica
+    single_st = _build_atomic_task(clean)
+    return {
+        "is_complex": False,
+        "reason": "La tarea es concisa y de alcance atómico.",
+        "original_prompt": clean,
+        "subtasks": [single_st] if single_st else []
+    }
+
+
+def smart_breakdown_task(prompt: str) -> Dict[str, Any]:
+    """
+    Desglosa una frase o idea en lenguaje natural en una tarea estructurada con
+    título corto y enfocado mediante síntesis semántica, descripción completa,
+    criterio de validación concreto, prioridad sugerida y análisis de descomposición en subtareas.
+    """
+    clean = prompt.strip()
+    if not clean:
+        return {}
+
+    print(f"DEBUG RELOAD EXECUTED for prompt: {clean[:30]}", flush=True)
+    atomic = _build_atomic_task(clean)
+    decomp = analyze_task_decomposition(clean, force_split_phases=False)
+
+    atomic["is_complex"] = decomp.get("is_complex", False)
+    atomic["reason"] = decomp.get("reason", "")
+    atomic["subtasks"] = decomp.get("subtasks", [])
+    return atomic
+
 

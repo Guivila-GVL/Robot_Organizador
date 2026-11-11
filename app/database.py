@@ -86,7 +86,9 @@ def init_db():
         "progress_pct INTEGER DEFAULT 0",
         "current_step TEXT DEFAULT ''",
         "launched_at TEXT DEFAULT NULL",
-        "notified_stages TEXT DEFAULT ''"
+        "notified_stages TEXT DEFAULT ''",
+        "parent_task_id INTEGER DEFAULT NULL",
+        "is_subtask BOOLEAN DEFAULT 0"
     ]:
         try:
             cursor.execute(f"ALTER TABLE tasks ADD COLUMN {col_def}")

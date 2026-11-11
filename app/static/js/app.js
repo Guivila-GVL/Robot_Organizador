@@ -154,6 +154,21 @@ function initEventListeners() {
     btnVoice.addEventListener('click', startVoiceDictation);
   }
 
+  // Decomposition Modal
+  const btnDecompCreate = document.getElementById('btnDecompCreateSubtasks');
+  if (btnDecompCreate) {
+    btnDecompCreate.addEventListener('click', submitDecompositionCreate);
+  }
+  const btnDecompSingle = document.getElementById('btnDecompSingleTask');
+  if (btnDecompSingle) {
+    btnDecompSingle.addEventListener('click', async () => {
+      closeModal('decompositionModal');
+      if (currentDecompositionContext.originalPrompt) {
+        await executeSingleSmartCreate(currentDecompositionContext.originalPrompt);
+      }
+    });
+  }
+
   // Check completion submit
   document.getElementById('btnSubmitCheck').addEventListener('click', submitTaskCompletion);
 
@@ -736,6 +751,7 @@ function renderTasksList() {
           <div class="task-title-group">
             ${completedOrderBadge}
             <span class="task-title">${task.title}</span>
+            ${task.is_subtask ? `<span class="priority-tag" style="background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">↳ Subtarea</span>` : ''}
             <span class="priority-tag priority-${task.priority}">${task.priority}</span>
           </div>
           ${task.description ? `<p class="task-desc">${task.description}</p>` : ''}
@@ -751,6 +767,9 @@ function renderTasksList() {
             <button class="btn btn-launch btn-small" onclick="launchTask(${task.id})" title="Pasar a En Progreso y añadir a la Cola de Ejecución">
               🚀 Lanzar Tarea
             </button>
+            <button class="btn btn-secondary btn-small" onclick="openDecomposeModalForTask(${task.id})" title="Desglosar en subtareas con IA">
+              🧩 Desglosar
+            </button>
             <button class="btn btn-secondary btn-small" onclick="copyTaskPrompt(${task.id})" title="Copiar orden lista para pegar en Antigravity IDE">
               📋 Copiar Prompt
             </button>
@@ -760,6 +779,9 @@ function renderTasksList() {
           ` : isInProgress ? `
             <button class="btn btn-primary btn-small" onclick="openProgressModal(${task.id})" title="Actualizar porcentaje y fase actual">
               📝 Avance
+            </button>
+            <button class="btn btn-secondary btn-small" onclick="openDecomposeModalForTask(${task.id})" title="Desglosar en subtareas con IA">
+              🧩 Desglosar
             </button>
             <button class="btn btn-secondary btn-small" onclick="openCheckModal(${task.id})">
               ✅ Completar & Telegram
@@ -951,8 +973,162 @@ async function submitTaskCompletion() {
 }
 
 // --------------------------------------------------------------------------
-// SMART QUICK TASK CREATOR
 // --------------------------------------------------------------------------
+// SMART QUICK TASK CREATOR & SUBTASK DECOMPOSITION
+// --------------------------------------------------------------------------
+let currentDecompositionContext = {
+  projectId: null,
+  originalPrompt: '',
+  parentTaskId: null,
+  reason: '',
+  subtasks: []
+};
+
+function analyzeDecompositionInClient(prompt, forceSplitPhases = false) {
+  const clean = (prompt || '').trim();
+  if (!clean) {
+    return { is_complex: false, reason: 'Descripción vacía', subtasks: [] };
+  }
+
+  const prefixCleaner = /^(?:además\s+(?:de\s+esto,?\s*)?(?:hay\s+que\s+|se\s+debe\s+)?|por\s+último\s*,?\s*|finalmente\s*,?\s*|luego\s*,?\s*|después\s*,?\s*|paso\s*\d+[:\.]?\s*|\d+[\.\)]\s*|[-*•]\s*)/i;
+
+  // 1. Numeración o viñetas
+  const numRegex = /(?:(?:\r?\n|\s+)(?:(?:\d+[\.\)]|[-*•])\s+)|(?:(?:\bpaso|\bfase)\s+\d+[:\.]?\s*))/i;
+  let candidateParts = clean.split(numRegex)
+    .map(s => s.replace(prefixCleaner, '').trim().replace(/^[.,;]+|[.,;]+$/g, ''))
+    .filter(s => s.length > 8);
+
+  // 2. Si no hay numeración, conectores secuenciales
+  if (candidateParts.length < 2) {
+    const connRegex = /(?:\r?\n+|(?:;\s*)|(?:\.\s+(?=[A-ZÁÉÍÓÚ]))|(?:\s*,\s*(?:y\s+)?(?:luego|después|posteriormente|a continuación|finalmente|por último)\s+)|(?:\s+(?:y luego|luego|después|posteriormente|a continuación|y finalmente|finalmente|y por último|por último|además,|además de esto,)\s+))/i;
+    candidateParts = clean.split(connRegex)
+      .map(s => s.replace(prefixCleaner, '').trim().replace(/^[.,;]+|[.,;]+$/g, ''))
+      .filter(s => s.length > 8);
+  }
+
+  const lower = clean.toLowerCase();
+  const explicitSplit = /subtarea|subtareas|dividir|en varias tareas|desglosar|fases|etapas/i.test(lower);
+  let isComplex = candidateParts.length >= 2;
+
+  if (!isComplex && (forceSplitPhases || explicitSplit || clean.length > 220)) {
+    const baseTitle = clean.length > 60 ? clean.substring(0, 60) + '...' : clean;
+    candidateParts = [
+      `Planificación y arquitectura para: ${baseTitle}`,
+      `Desarrollo e integración de: ${baseTitle}`,
+      `Validación técnica y pruebas de: ${baseTitle}`
+    ];
+    isComplex = true;
+  }
+
+  function synthesizeSubtaskTitle(text) {
+    let t = text.replace(prefixCleaner, '').trim();
+    if (!t) return 'Subtarea';
+    if (t.length > 80) t = t.substring(0, 80) + '...';
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+
+  function detectSubtaskPriority(text) {
+    const l = text.toLowerCase();
+    if (/urgente|critico|crítico|error|bug|falla/.test(l)) return 'urgente';
+    if (/importante|servidor|api|seguridad|base de datos|db|arrancar|cola global/.test(l)) return 'alta';
+    if (/estilo|color|icono|documentar|cosmetico|cosmético/.test(l)) return 'baja';
+    return 'media';
+  }
+
+  function detectSubtaskMilestone(text, title) {
+    const l = text.toLowerCase();
+    if (/servidor|puerto|http|api|endpoint/.test(l)) {
+      const m = l.match(/(\d{4})/);
+      return {
+        type: 'http_200',
+        target: m ? `http://127.0.0.1:${m[1]}` : '',
+        desc: m ? `Servidor responde 200 OK en puerto ${m[1]}.` : `Endpoint responde 200 OK.`
+      };
+    }
+    if (/archivo|exportar|guardar|script|generar|json|csv|pdf/.test(l)) {
+      return {
+        type: 'file_exists',
+        target: '',
+        desc: `Comprobar que el archivo resultante existe en disco con contenido válido.`
+      };
+    }
+    return {
+      type: 'manual',
+      target: '',
+      desc: `Verificar que '${title}' funciona correctamente y cumple con el objetivo descrito.`
+    };
+  }
+
+  if (isComplex && candidateParts.length >= 2) {
+    const subtasks = candidateParts.map(part => {
+      const title = synthesizeSubtaskTitle(part);
+      const priority = detectSubtaskPriority(part);
+      const mInfo = detectSubtaskMilestone(part, title);
+      return {
+        title: title,
+        description: part,
+        priority: priority,
+        milestone_type: mInfo.type,
+        milestone_target: mInfo.target,
+        milestone_description: mInfo.desc
+      };
+    });
+
+    return {
+      is_complex: true,
+      reason: `Se han detectado ${subtasks.length} fases o subtareas diferenciadas en la solicitud.`,
+      original_prompt: clean,
+      subtasks: subtasks
+    };
+  }
+
+  const singleTitle = synthesizeSubtaskTitle(clean);
+  const singlePrio = detectSubtaskPriority(clean);
+  const singleM = detectSubtaskMilestone(clean, singleTitle);
+  return {
+    is_complex: false,
+    reason: 'La tarea es concisa y de alcance atómico.',
+    original_prompt: clean,
+    subtasks: [{
+      title: singleTitle,
+      description: clean,
+      priority: singlePrio,
+      milestone_type: singleM.type,
+      milestone_target: singleM.target,
+      milestone_description: singleM.desc
+    }]
+  };
+}
+
+async function executeSingleSmartCreate(prompt) {
+  const input = document.getElementById('smartTaskInput');
+  try {
+    showToast('Estructurando tarea con IA...', 'info');
+    const res = await fetch('/api/tasks/smart-create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project_id: state.activeProjectId,
+        prompt: prompt
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (input) input.value = '';
+      const createdTitle = data.title ? `"${data.title}"` : 'inteligente';
+      showToast(`¡Tarea creada: ${createdTitle}! Pulsa 🚀 Lanzar para arrancarla.`, 'success');
+      switchFilterTab('pending');
+      await loadTasks(state.activeProjectId);
+      renderProjectsList(projectSearchEl.value.toLowerCase());
+    } else {
+      showToast(`Error al crear tarea: ${data.detail || 'desconocido'}`, 'error');
+    }
+  } catch (err) {
+    console.error('Error al crear tarea simple:', err);
+    showToast('Error en la llamada inteligente', 'error');
+  }
+}
+
 async function createSmartTask() {
   const input = document.getElementById('smartTaskInput');
   const prompt = input.value.trim();
@@ -966,30 +1142,311 @@ async function createSmartTask() {
   }
 
   try {
-    showToast('Desglosando y estructurando tarea con IA...', 'info');
-    const res = await fetch('/api/tasks/smart-create', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project_id: state.activeProjectId,
-        prompt: prompt
-      })
-    });
-    const data = await res.json();
-    if (data.success) {
-      input.value = '';
-      const createdTitle = data.title ? `"${data.title}"` : 'inteligente';
-      showToast(`¡Tarea creada: ${createdTitle}! Pulsa 🚀 Lanzar para arrancarla.`, 'success');
-      switchFilterTab('pending');
-      await loadTasks(state.activeProjectId);
-      renderProjectsList(projectSearchEl.value.toLowerCase());
-    } else {
-      showToast(`Error al crear tarea: ${data.detail || 'desconocido'}`, 'error');
+    showToast('Analizando alcance y complejidad con IA...', 'info');
+    let analysis = null;
+    try {
+      const res = await fetch('/api/tasks/analyze-decomposition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: state.activeProjectId,
+          prompt: prompt
+        })
+      });
+      if (res.ok) {
+        analysis = await res.json();
+      }
+    } catch (e) {
+      // Backend route not available, will fallback to client-side
     }
+
+    if (!analysis || typeof analysis.is_complex === 'undefined') {
+      analysis = analyzeDecompositionInClient(prompt, false);
+    }
+
+    if (analysis && analysis.is_complex && analysis.subtasks && analysis.subtasks.length > 1) {
+      openDecompositionModal({
+        projectId: state.activeProjectId,
+        originalPrompt: prompt,
+        parentTaskId: null,
+        reason: analysis.reason,
+        subtasks: analysis.subtasks
+      });
+      return;
+    }
+
+    await executeSingleSmartCreate(prompt);
   } catch (err) {
-    showToast('Error en la llamada inteligente', 'error');
+    console.error('Error en análisis de tarea, creando directa:', err);
+    await executeSingleSmartCreate(prompt);
   }
 }
+
+function openDecompositionModal(ctx) {
+  currentDecompositionContext = {
+    projectId: ctx.projectId || state.activeProjectId,
+    originalPrompt: ctx.originalPrompt || '',
+    parentTaskId: ctx.parentTaskId || null,
+    reason: ctx.reason || '',
+    subtasks: ctx.subtasks ? JSON.parse(JSON.stringify(ctx.subtasks)) : []
+  };
+
+  const titleEl = document.getElementById('decompModalTitle');
+  const calloutEl = document.getElementById('decompCallout');
+  const singleBtn = document.getElementById('btnDecompSingleTask');
+  const archiveWrap = document.getElementById('decompArchiveParentWrapper');
+
+  if (ctx.parentTaskId) {
+    if (titleEl) titleEl.textContent = '🧩 Desglosar Tarea en Subtareas (IA)';
+    if (calloutEl) {
+      calloutEl.innerHTML = `<b>Desglose de tarea existente:</b> La IA propone dividir esta tarea en las siguientes subtareas independientes para ejecutar paso a paso.`;
+    }
+    if (singleBtn) singleBtn.style.display = 'none';
+    if (archiveWrap) archiveWrap.style.display = 'block';
+  } else {
+    if (titleEl) titleEl.textContent = '🧩 Propuesta de Desglose en Subtareas (IA)';
+    if (calloutEl) {
+      calloutEl.innerHTML = `<b>Tarea amplia detectada:</b> ${ctx.reason || 'Se han identificado múltiples fases o acciones en la solicitud.'} Puedes dividirla en subtareas independientes para asegurar un seguimiento granular.`;
+    }
+    if (singleBtn) singleBtn.style.display = 'inline-block';
+    if (archiveWrap) archiveWrap.style.display = 'none';
+  }
+
+  renderDecompositionSubtasksList();
+  const modal = document.getElementById('decompositionModal');
+  if (modal) modal.classList.add('open');
+}
+
+function renderDecompositionSubtasksList() {
+  const container = document.getElementById('decompSubtasksList');
+  if (!container) return;
+  container.innerHTML = '';
+
+  currentDecompositionContext.subtasks.forEach((st, idx) => {
+    const card = document.createElement('div');
+    card.className = 'decomp-subtask-card';
+    card.id = `decomp-subtask-card-${idx}`;
+
+    card.innerHTML = `
+      <div class="decomp-subtask-header">
+        <input type="checkbox" id="decomp-check-${idx}" checked onchange="handleDecompCheckChange(${idx})">
+        <span class="decomp-subtask-num">#${idx + 1}</span>
+        <input type="text" class="decomp-title-input" id="decomp-title-${idx}" value="${escapeHtml(st.title || '')}" placeholder="Título de la subtarea">
+        <button type="button" class="btn btn-xs btn-outline" style="color:#ef4444;" onclick="removeDecompSubtask(${idx})" title="Eliminar subtarea">🗑️</button>
+      </div>
+      <div class="decomp-subtask-body">
+        <textarea class="decomp-desc-input" id="decomp-desc-${idx}" placeholder="Descripción y objetivos de la subtarea">${escapeHtml(st.description || '')}</textarea>
+        <div class="decomp-meta-row">
+          <label style="color:var(--text-muted);">Prioridad:</label>
+          <select class="decomp-priority-select" id="decomp-prio-${idx}">
+            <option value="baja" ${st.priority === 'baja' ? 'selected' : ''}>Baja</option>
+            <option value="media" ${st.priority === 'media' || !st.priority ? 'selected' : ''}>Media</option>
+            <option value="alta" ${st.priority === 'alta' ? 'selected' : ''}>Alta</option>
+            <option value="urgente" ${st.priority === 'urgente' ? 'selected' : ''}>Urgente</option>
+          </select>
+          <span style="color:var(--text-muted); font-size:0.75rem;">🎯 Hito: ${escapeHtml(st.milestone_type || 'manual')}</span>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  updateDecompCountBadge();
+}
+
+function handleDecompCheckChange(idx) {
+  const card = document.getElementById(`decomp-subtask-card-${idx}`);
+  const chk = document.getElementById(`decomp-check-${idx}`);
+  if (card && chk) {
+    if (chk.checked) {
+      card.classList.remove('excluded');
+    } else {
+      card.classList.add('excluded');
+    }
+  }
+  updateDecompCountBadge();
+}
+
+function updateDecompCountBadge() {
+  const container = document.getElementById('decompSubtasksList');
+  if (!container) return;
+  const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+  let checkedCount = 0;
+  checkboxes.forEach(c => { if (c.checked) checkedCount++; });
+  const badge = document.getElementById('decompCountBadge');
+  if (badge) badge.textContent = checkedCount;
+  const btnCreate = document.getElementById('btnDecompCreateSubtasks');
+  if (btnCreate) {
+    btnCreate.disabled = (checkedCount === 0);
+  }
+}
+
+function addExtraSubtaskRow() {
+  currentDecompositionContext.subtasks.push({
+    title: 'Nueva subtarea',
+    description: '',
+    priority: 'media',
+    milestone_type: 'manual',
+    milestone_target: '',
+    milestone_description: ''
+  });
+  renderDecompositionSubtasksList();
+}
+
+function removeDecompSubtask(idx) {
+  currentDecompositionContext.subtasks.splice(idx, 1);
+  renderDecompositionSubtasksList();
+}
+
+async function submitDecompositionCreate() {
+  const container = document.getElementById('decompSubtasksList');
+  if (!container) return;
+
+  const items = [];
+  currentDecompositionContext.subtasks.forEach((st, idx) => {
+    const chk = document.getElementById(`decomp-check-${idx}`);
+    if (chk && chk.checked) {
+      const titleInput = document.getElementById(`decomp-title-${idx}`);
+      const descInput = document.getElementById(`decomp-desc-${idx}`);
+      const prioSelect = document.getElementById(`decomp-prio-${idx}`);
+
+      items.push({
+        title: titleInput ? titleInput.value.trim() : st.title,
+        description: descInput ? descInput.value.trim() : (st.description || ''),
+        priority: prioSelect ? prioSelect.value : (st.priority || 'media'),
+        milestone_type: st.milestone_type || 'manual',
+        milestone_target: st.milestone_target || '',
+        milestone_description: st.milestone_description || `Verificar que '${titleInput ? titleInput.value.trim() : st.title}' funciona correctamente.`
+      });
+    }
+  });
+
+  if (items.length === 0) {
+    showToast('Selecciona al menos una subtarea para crear', 'error');
+    return;
+  }
+
+  const archiveParentCheck = document.getElementById('decompArchiveParentCheck');
+  const archiveParent = (archiveParentCheck && archiveParentCheck.checked && currentDecompositionContext.parentTaskId);
+
+  try {
+    showToast(`Creando ${items.length} subtareas en la cola de pendientes...`, 'info');
+    let succeeded = false;
+    let createdCount = 0;
+    try {
+      const res = await fetch('/api/tasks/decompose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: currentDecompositionContext.projectId,
+          parent_task_id: currentDecompositionContext.parentTaskId,
+          original_prompt: currentDecompositionContext.originalPrompt,
+          subtasks: items,
+          archive_parent: !!archiveParent
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          succeeded = true;
+          createdCount = data.created_count;
+        }
+      }
+    } catch (e) {
+      succeeded = false;
+    }
+
+    if (!succeeded) {
+      // Fallback: crear las tareas individualmente usando /api/tasks
+      for (const st of items) {
+        await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            project_id: currentDecompositionContext.projectId,
+            title: st.title,
+            description: st.description,
+            priority: st.priority,
+            milestone_type: st.milestone_type,
+            milestone_target: st.milestone_target,
+            milestone_description: st.milestone_description,
+            parent_task_id: currentDecompositionContext.parentTaskId,
+            is_subtask: true
+          })
+        });
+        createdCount++;
+      }
+
+      if (archiveParent && currentDecompositionContext.parentTaskId) {
+        await fetch(`/api/tasks/${currentDecompositionContext.parentTaskId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'completed',
+            milestone_result: `Tarea dividida con éxito en ${createdCount} subtareas para ejecución granular.`
+          })
+        });
+      }
+    }
+
+    closeModal('decompositionModal');
+    const input = document.getElementById('smartTaskInput');
+    if (input) input.value = '';
+
+    showToast(`¡Creadas ${createdCount} subtareas con éxito!`, 'success');
+    switchFilterTab('pending');
+    await loadTasks(currentDecompositionContext.projectId);
+    renderProjectsList(projectSearchEl.value.toLowerCase());
+  } catch (err) {
+    console.error('Error al descomponer tareas:', err);
+    showToast('Error de conexión al crear subtareas', 'error');
+  }
+}
+
+async function openDecomposeModalForTask(taskId) {
+  try {
+    showToast('Analizando tarea para desglose con IA...', 'info');
+    let analysis = null;
+    try {
+      const res = await fetch(`/api/tasks/${taskId}/analyze-breakdown`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        analysis = await res.json();
+      }
+    } catch (e) {
+      // Ignore, fallback below
+    }
+
+    if (!analysis || !analysis.subtasks || analysis.subtasks.length === 0) {
+      const targetTask = state.tasks.find(t => t.id === taskId);
+      const textToAnalyze = targetTask ? `${targetTask.title}. ${targetTask.description || ''}` : '';
+      analysis = analyzeDecompositionInClient(textToAnalyze, true);
+      analysis.project_id = targetTask ? targetTask.project_id : state.activeProjectId;
+    }
+
+    if (analysis && analysis.subtasks && analysis.subtasks.length > 0) {
+      openDecompositionModal({
+        projectId: analysis.project_id || state.activeProjectId,
+        parentTaskId: taskId,
+        reason: analysis.reason,
+        subtasks: analysis.subtasks
+      });
+    } else {
+      showToast('No se pudieron inferir subtareas para esta tarea', 'error');
+    }
+  } catch (err) {
+    console.error('Error al pedir desglose:', err);
+    showToast('Error al analizar desglose de tarea', 'error');
+  }
+}
+
+// Window attachments for inline event handlers
+window.openDecomposeModalForTask = openDecomposeModalForTask;
+window.addExtraSubtaskRow = addExtraSubtaskRow;
+window.removeDecompSubtask = removeDecompSubtask;
+window.handleDecompCheckChange = handleDecompCheckChange;
 
 async function synthesizeTitleFromModalDesc() {
   const descEl = document.getElementById('formDescription');

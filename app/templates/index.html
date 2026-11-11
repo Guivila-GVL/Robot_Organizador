@@ -600,6 +600,43 @@
     </div>
   </div>
 
+  <!-- Modal: Desglose Inteligente en Subtareas -->
+  <div class="modal-overlay" id="decompositionModal">
+    <div class="modal-dialog modal-dialog-wide">
+      <div class="modal-header">
+        <h3 id="decompModalTitle">🧩 Desglose Inteligente en Subtareas</h3>
+        <button class="modal-close" onclick="closeModal('decompositionModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-callout" id="decompCallout" style="margin-bottom: 0.85rem;">
+          <b>Tarea compleja detectada:</b> Se han identificado múltiples fases o acciones en la solicitud. Puedes dividirlas en subtareas independientes para asegurar un seguimiento granular y trazabilidad en el tablero.
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+          <small style="color: var(--text-muted); font-size: 0.82rem;">Revisa y ajusta las subtareas propuestas antes de crear:</small>
+          <button type="button" class="btn btn-xs btn-outline" id="btnAddExtraSubtask" onclick="addExtraSubtaskRow()">➕ Añadir Subtarea</button>
+        </div>
+        <div id="decompSubtasksList" class="decomposition-subtasks-list">
+          <!-- Rendered dynamically -->
+        </div>
+        <div id="decompArchiveParentWrapper" style="display: none; margin-top: 0.85rem; padding: 0.6rem 0.85rem; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-subtle); border-radius: 8px;">
+          <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; cursor: pointer; color: var(--text-white);">
+            <input type="checkbox" id="decompArchiveParentCheck" checked>
+            <span>Marcar la tarea original como completada/desglosada y dar paso a las subtareas</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('decompositionModal')">Cancelar</button>
+        <button class="btn btn-secondary" id="btnDecompSingleTask" title="Crear como una sola tarea sin dividir">
+          Crear como 1 Única Tarea
+        </button>
+        <button class="btn btn-primary" id="btnDecompCreateSubtasks">
+          <span class="btn-icon">✨</span> Crear Subtareas (<span id="decompCountBadge">0</span>)
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast-container" id="toastContainer"></div>
 

@@ -100,6 +100,23 @@ class TaskCreate(BaseModel):
     milestone_type: Optional[str] = "manual"
     milestone_target: Optional[str] = ""
     milestone_description: Optional[str] = ""
+    parent_task_id: Optional[int] = None
+    is_subtask: Optional[bool] = False
+
+class TaskDecomposeItem(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    priority: Optional[str] = "media"
+    milestone_type: Optional[str] = "manual"
+    milestone_target: Optional[str] = ""
+    milestone_description: Optional[str] = ""
+
+class TaskDecomposeRequest(BaseModel):
+    project_id: str
+    parent_task_id: Optional[int] = None
+    original_prompt: Optional[str] = ""
+    subtasks: List[TaskDecomposeItem]
+    archive_parent: Optional[bool] = False
 
 class SmartTaskCreate(BaseModel):
     project_id: str
@@ -264,8 +281,8 @@ async def create_task(task_data: TaskCreate):
         INSERT INTO tasks (
             project_id, title, description, priority, status,
             milestone_type, milestone_target, milestone_description,
-            order_index, created_at
-        ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)
+            order_index, parent_task_id, is_subtask, created_at
+        ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)
     """, (
         task_data.project_id,
         task_data.title,
@@ -275,6 +292,8 @@ async def create_task(task_data: TaskCreate):
         task_data.milestone_target,
         task_data.milestone_description,
         next_order,
+        task_data.parent_task_id,
+        1 if task_data.is_subtask else 0,
         now
     ))
     new_id = cursor.lastrowid
@@ -304,6 +323,95 @@ async def smart_create_task_endpoint(req: SmartTaskCreate):
         res["title"] = structured["title"]
         res["structured"] = structured
     return res
+
+@app.post("/api/tasks/analyze-decomposition")
+async def analyze_decomposition_endpoint(req: SmartTaskCreate):
+    import importlib
+    import app.services.project_scanner as ps
+    importlib.reload(ps)
+    res = ps.analyze_task_decomposition(req.prompt)
+    return res
+
+@app.post("/api/tasks/{task_id}/analyze-breakdown")
+async def task_analyze_breakdown_endpoint(task_id: int):
+    import importlib
+    import app.services.project_scanner as ps
+    importlib.reload(ps)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    text_to_analyze = f"{row['title']}. {row['description'] or ''}".strip()
+    res = ps.analyze_task_decomposition(text_to_analyze, force_split_phases=True)
+    res["task_id"] = task_id
+    res["project_id"] = row["project_id"]
+    return res
+
+@app.post("/api/tasks/decompose")
+async def decompose_task_endpoint(req: TaskDecomposeRequest):
+    if not req.subtasks:
+        raise HTTPException(status_code=400, detail="No se proporcionaron subtareas para descomponer")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now = datetime.now().isoformat()
+
+    cursor.execute("SELECT COALESCE(MAX(order_index), 0) as max_order FROM tasks WHERE project_id = ?", (req.project_id,))
+    current_order = cursor.fetchone()["max_order"]
+
+    created_ids = []
+    created_titles = []
+    for idx, st in enumerate(req.subtasks):
+        current_order += 1
+        m_desc = st.milestone_description or f"Verificar que '{st.title}' funciona correctamente y cumple con el objetivo descrito."
+        cursor.execute("""
+            INSERT INTO tasks (
+                project_id, title, description, priority, status,
+                milestone_type, milestone_target, milestone_description,
+                order_index, parent_task_id, is_subtask, created_at
+            ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, 1, ?)
+        """, (
+            req.project_id,
+            st.title,
+            st.description or "",
+            st.priority or "media",
+            st.milestone_type or "manual",
+            st.milestone_target or "",
+            m_desc,
+            current_order,
+            req.parent_task_id,
+            now
+        ))
+        created_ids.append(cursor.lastrowid)
+        created_titles.append(st.title)
+
+    if req.parent_task_id and req.archive_parent:
+        subtasks_count = len(created_ids)
+        cursor.execute("""
+            UPDATE tasks 
+            SET status = 'completed', 
+                completed_at = ?,
+                current_step = ?,
+                milestone_result = ?
+            WHERE id = ?
+        """, (
+            now,
+            f"Desglosada en {subtasks_count} subtareas autónomas (IDs: {', '.join(map(str, created_ids))})",
+            f"Tarea dividida con éxito en {subtasks_count} subtareas para ejecución granular.",
+            req.parent_task_id
+        ))
+
+    conn.commit()
+    conn.close()
+    return {
+        "success": True,
+        "created_count": len(created_ids),
+        "task_ids": created_ids,
+        "titles": created_titles,
+        "parent_task_id": req.parent_task_id
+    }
 
 @app.post("/api/tasks/smart-breakdown")
 async def smart_breakdown_endpoint(req: SmartTaskCreate):

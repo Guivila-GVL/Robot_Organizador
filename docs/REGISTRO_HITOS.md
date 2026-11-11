@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 19:28:04] ✅ Existir la opción de que
+
+- **ID Tarea:** `104`
+- **Prioridad:** ALTA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Implementada de principio a fin la opción de desglose inteligente de tareas en subtareas (IA). Creada la hoja de estrategia y arquitectura oficial en OneNote («05. Estrategia y Arquitectura: Desglose Inteligente en Subtareas (IA)»). Desarrollado el motor de detección de tareas complejas en project_scanner.py y frontend app.js, endpoints REST en main.py, soporte en BD tasks (parent_task_id, is_subtask) en database.py, modal de confirmación y ajuste en index.html, y botón de desglose para tareas existentes en curso o pendientes. Todo verificado con 9 pruebas unitarias superadas.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 19:00:24] ✅ Crear en todos los proyectos, ya tenemos ahora en OneNote
 
 - **ID Tarea:** `103`
