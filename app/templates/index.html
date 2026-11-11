@@ -324,7 +324,12 @@
         <form id="taskForm">
           <input type="hidden" id="formTaskId">
           <div class="form-group">
-            <label for="formTitle">Título de la Tarea *</label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label for="formTitle" style="margin:0;">Título de la Tarea *</label>
+              <button type="button" class="btn btn-xs btn-outline" id="btnSynthesizeTitleModal" onclick="synthesizeTitleFromModalDesc()" title="Leer la descripción y sintetizar un título conciso con IA">
+                ⚡ Sintetizar Título con IA
+              </button>
+            </div>
             <input type="text" id="formTitle" required placeholder="Ej: Integrar feedback de Telegram en el flujo">
           </div>
           <div class="form-group">

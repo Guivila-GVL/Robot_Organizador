@@ -278,8 +278,10 @@ async def create_task(task_data: TaskCreate):
 
 @app.post("/api/tasks/smart-create")
 async def smart_create_task_endpoint(req: SmartTaskCreate):
+    import importlib
     import app.services.project_scanner as ps
-    structured = ps.smart_breakdown_task(req.prompt) if hasattr(ps, "smart_breakdown_task") else smart_breakdown_task(req.prompt)
+    importlib.reload(ps)
+    structured = ps.smart_breakdown_task(req.prompt)
     if not structured:
         raise HTTPException(status_code=400, detail="La descripción no puede estar vacía")
     task_obj = TaskCreate(
@@ -291,12 +293,18 @@ async def smart_create_task_endpoint(req: SmartTaskCreate):
         milestone_target=structured["milestone_target"],
         milestone_description=structured["milestone_description"]
     )
-    return await create_task(task_obj)
+    res = await create_task(task_obj)
+    if isinstance(res, dict) and res.get("success"):
+        res["title"] = structured["title"]
+        res["structured"] = structured
+    return res
 
 @app.post("/api/tasks/smart-breakdown")
 async def smart_breakdown_endpoint(req: SmartTaskCreate):
+    import importlib
     import app.services.project_scanner as ps
-    structured = ps.smart_breakdown_task(req.prompt) if hasattr(ps, "smart_breakdown_task") else smart_breakdown_task(req.prompt)
+    importlib.reload(ps)
+    structured = ps.smart_breakdown_task(req.prompt)
     if not structured:
         raise HTTPException(status_code=400, detail="La descripción no puede estar vacía")
     return structured

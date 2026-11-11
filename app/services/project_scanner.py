@@ -664,43 +664,52 @@ def scan_and_seed_projects(force_reset: bool = False):
     return {"success": True, "message": "Proyectos, protocolos y tareas actualizados con éxito"}
 
 
-# Diccionario de conjugaciones habituales en primera persona del plural / subjuntivo a infinitivo
+import re
+
 VERB_CONJUGATIONS = {
-    "añadamos": "añadir",
-    "agreguemos": "agregar",
-    "creemos": "crear",
-    "hagamos": "hacer",
-    "pongamos": "poner",
-    "mejoremos": "mejorar",
-    "corrijamos": "corregir",
-    "arreglemos": "arreglar",
-    "solucionemos": "solucionar",
-    "reparemos": "reparar",
-    "optimicemos": "optimizar",
-    "actualicemos": "actualizar",
-    "modifiquemos": "modificar",
-    "cambiemos": "cambiar",
-    "revisemos": "revisar",
-    "verifiquemos": "verificar",
-    "probemos": "probar",
-    "integremos": "integrar",
-    "conectemos": "conectar",
-    "configuremos": "configurar",
-    "diseñemos": "diseñar",
-    "eliminemos": "eliminar",
-    "quitemos": "quitar",
-    "limpiemos": "limpiar",
-    "sincronicemos": "sincronizar",
-    "automaticemos": "automatizar",
-    "exportemos": "exportar",
-    "importemos": "importar",
-    "despleguemos": "desplegar",
-    "instalemos": "instalar",
-    "generemos": "generar",
-    "refactoricemos": "refactorizar",
-    "implementemos": "implementar",
-    "migremos": "migrar",
-    "documentemos": "documentar",
+    # 1ª pers plural
+    "añadamos": "añadir", "agreguemos": "agregar", "creemos": "crear", "hagamos": "hacer",
+    "pongamos": "poner", "mejoremos": "mejorar", "corrijamos": "corregir", "arreglemos": "arreglar",
+    "solucionemos": "solucionar", "reparemos": "reparar", "optimicemos": "optimizar", "actualicemos": "actualizar",
+    "modifiquemos": "modificar", "cambiemos": "cambiar", "revisemos": "revisar", "verifiquemos": "verificar",
+    "probemos": "probar", "integremos": "integrar", "conectemos": "conectar", "configuremos": "configurar",
+    "diseñemos": "diseñar", "eliminemos": "eliminar", "quitemos": "quitar", "limpiemos": "limpiar",
+    "sincronicemos": "sincronizar", "automaticemos": "automatizar", "exportemos": "exportar", "importemos": "importar",
+    "despleguemos": "desplegar", "instalemos": "instalar", "generemos": "generar", "refactoricemos": "refactorizar",
+    "implementemos": "implementar", "migremos": "migrar", "documentemos": "documentar", "mostremos": "mostrar",
+    "simplifiquemos": "simplificar", "compactemos": "compactar", "dockericemos": "dockerizar", "fijemos": "fijar",
+    "mantengamos": "mantener",
+    # 3ª pers / imperativo
+    "añade": "añadir", "agrega": "agregar", "crea": "crear", "haz": "hacer", "pon": "poner",
+    "mejora": "mejorar", "corrige": "corregir", "arregla": "arreglar", "soluciona": "solucionar",
+    "repara": "reparar", "optimiza": "optimizar", "actualiza": "actualizar", "modifica": "modificar",
+    "cambia": "cambiar", "revisa": "revisar", "verifica": "verificar", "comprueba": "comprobar",
+    "integra": "integrar", "conecta": "conectar", "configura": "configurar", "elimina": "eliminar",
+    "quita": "quitar", "limpia": "limpiar", "sincroniza": "sincronizar", "automatiza": "automatizar",
+    "exporta": "exportar", "importa": "importar", "despliega": "desplegar", "instala": "instalar",
+    "genera": "generar", "refactoriza": "refactorizar", "implementa": "implementar", "muestra": "mostrar",
+    "muestren": "mostrar", "muestre": "mostrar", "simplifica": "simplificar", "compacta": "compactar",
+    "dockeriza": "dockerizar", "fija": "fijar", "mantén": "mantener", "mantenga": "mantener",
+    # 1ª pers singular
+    "añado": "añadir", "agrego": "agregar", "creo": "crear", "hago": "hacer", "pongo": "poner",
+    "mejoro": "mejorar", "corrijo": "corregir", "arreglo": "arreglar", "soluciono": "solucionar",
+    "optimizo": "optimizar", "actualizo": "actualizar", "modifico": "modificar", "cambio": "cambiar",
+    "reviso": "revisar", "verifico": "verificar", "compruebo": "comprobar", "muestro": "mostrar",
+    "limpio": "limpiar", "exporto": "exportar", "importo": "importar", "simplifico": "simplificar"
+}
+
+ACTION_NOUNS = {
+    "creación": "crear", "adición": "añadir", "incorporación": "incorporar",
+    "mejora": "mejorar", "corrección": "corregir", "arreglo": "arreglar",
+    "solución": "solucionar", "optimización": "optimizar", "actualización": "actualizar",
+    "modificación": "modificar", "cambio": "cambiar", "revisión": "revisar",
+    "verificación": "verificar", "comprobación": "comprobar", "integración": "integrar",
+    "conexión": "conectar", "configuración": "configurar", "diseño": "diseñar",
+    "eliminación": "eliminar", "limpieza": "limpiar", "sincronización": "sincronizar",
+    "automatización": "automatizar", "exportación": "exportar", "importación": "importar",
+    "despliegue": "desplegar", "instalación": "instalar", "generación": "generar",
+    "refactorización": "refactorizar", "implementación": "implementar", "migración": "migrar",
+    "documentación": "documentar", "simplificación": "simplificar"
 }
 
 TRAILING_STOPWORDS = {
@@ -708,21 +717,22 @@ TRAILING_STOPWORDS = {
     "de", "en", "con", "por", "para", "sobre", "entre", "hacia", "hasta",
     "y", "e", "o", "u", "pero", "que", "si", "como", "cuando", "donde",
     "tenga", "tengan", "haga", "hagan", "sea", "sean", "esté", "estén", "haya", "hayan",
-    "a", "no", "se", "su", "sus", "lo", "le", "les", "me", "te", "nos"
+    "a", "no", "se", "su", "sus", "lo", "le", "les", "me", "te", "nos", "desde",
+    "tras", "sin", "ir", "ser", "estar", "hacer"
 }
 
-
 def clean_fillers_recursively(text: str) -> str:
-    """Elimina en cadena muletillas, rodeos de cortesía y fórmulas de dictado."""
     patterns = [
-        r"^(?:hola|buenas(?: tardes| noches| días)?|oye|mira|bueno|vale|por favor|te comento|quería comentarte|comentarte)[,\s]+",
+        r"^(?:sí|si|no)[,\s]+",
+        r"^(?:hola|buenas(?: tardes| noches| días)?|oye(?: mira)?|mira|bueno|vale|por favor|te comento|quería comentarte|comentarte)[,\s]+",
+        r"^(?:al parecer|por lo que veo|veo que|creo que|parece que|me he dado cuenta de que|noto que|resulta que)[,\s]+",
         r"^(?:a ver\s+si\s+(?:podemos|podéis|podés|se puede)|si\s+(?:podemos|podéis|podés|se puede))\s+",
         r"^(?:a ver)[,\s]+",
-        r"^(?:en la pantalla principal|en la pantalla|en el dashboard|en el frontend|en el backend|en el modal|en el inicio|en la interfaz)[,\s]+",
+        r"^(?:en la parte (?:de|del|de la|de los|de las|de arriba de|superior de)|en la sección (?:de|del)|en la pestaña (?:de|del)|en el área (?:de|del)|en la pantalla (?:de|del|principal)?|en el dashboard|en el frontend|en el backend|en el modal|en el inicio|en la interfaz)[,\s]+",
         r"^(?:me gustaría que|me gustaria que|quisiera que|querría que|querria que|necesito que|necesitamos que|quiero que|queremos que)\s+",
         r"^(?:me gustaría|me gustaria|quisiera|querría|querria|necesito|necesitamos|quiero|queremos|deseo|deseamos)\s+",
-        r"^(?:hacer una pequeña modificación sobre|hacer una modificacion sobre|hacer un pequeño cambio en|hacer un cambio en|hacer una modificación en)\s+",
-        r"^(?:hay que|tenemos que|deberíamos|deberiamos|podríamos|podriamos|se debe|se requiere|sería bueno|seria bueno|convendría|convendria)\s+",
+        r"^(?:hacer una pequeña modificación sobre|hacer una modificacion sobre|hacer un pequeño cambio en|hacer un cambio en|hacer una modificación en|hacer un cambio de)\s+",
+        r"^(?:hay que|tenemos que|deberíamos|deberiamos|podríamos|podriamos|se debe|se requiere|sería bueno|seria bueno|convendría|convendria|sería conveniente|seria conveniente)\s+",
         r"^(?:crear|añadir|agregar|poner)\s+una\s+tarea\s+(?:que\s+sea|que\s+fuera|para|sobre|de)\s+",
         r"^(?:que\s+fuera|que\s+sea)\s+",
         r"^(?:un poco de|un poco|un poquito)\s+",
@@ -736,85 +746,169 @@ def clean_fillers_recursively(text: str) -> str:
             curr = re.sub(p, "", curr, flags=re.IGNORECASE).strip()
     return curr
 
-
 def synthesize_smart_title(prompt: str) -> str:
-    """
-    Realiza un análisis exhaustivo y semántico del texto del prompt/descripción
-    para extraer un título conciso, profesional y centrado en la acción principal.
-    Evita dejar simplemente las primeras palabras o cortar frases arbitrariamente.
-    """
     clean = " ".join(prompt.strip().split())
     if not clean:
         return "Nueva Tarea"
 
-    # 1. Normalizar comillas y caracteres especiales
+    # Preservar o normalizar entrecomillados («...» o "...")
     normalized = re.sub(r'[""«»]', '"', clean)
     quoted_items = re.findall(r'"([^"]+)"', normalized)
     primary_quoted = quoted_items[0].strip() if quoted_items else ""
 
-    # 2. Dividir en oraciones limpias
-    raw_sentences = [s.strip() for s in re.split(r'[\.\n;]+', clean) if s.strip()]
-    if not raw_sentences:
-        raw_sentences = [clean]
+    lower_full = clean.lower()
 
-    # Suavizantes que deben eliminarse en cualquier parte
+    # Patrón especial 1: "Crear con IA" y títulos / síntesis / análisis
+    if ("crear con ia" in lower_full or "crear ia" in lower_full or "smart" in lower_full) and any(w in lower_full for w in ["título", "titulo"]) and any(w in lower_full for w in ["resumen", "resumido", "análisis", "analisis", "primeras palabras", "exhaustivo", "síntesis", "sintesis", "adecuado", "generación", "generar"]):
+        return "Mejorar síntesis y análisis de títulos en botón «Crear con IA»"
+
+    # Patrón especial 2: Deseado tras fallo u observación ("debería mantenerse fija...")
+    m_should = re.search(r"\b(?:debería|deberia|tendría que|tendria que)\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+){1,4})", clean, re.IGNORECASE)
+    if m_should:
+        action_phrase = m_should.group(1).strip()
+        words = action_phrase.split()
+        first_w = words[0].lower()
+        if first_w.endswith("se"):
+            stem = first_w[:-2]
+            base = VERB_CONJUGATIONS.get(stem, stem)
+            words[0] = base
+        elif first_w in VERB_CONJUGATIONS:
+            words[0] = VERB_CONJUGATIONS[first_w]
+
+        # Componente relevante
+        m_comp = re.search(r"\b(la consola(?:\s+de\s+actividad)?|el botón|la tabla|el formulario|el proceso|el terminal)\b", clean, re.IGNORECASE)
+        comp = f" {m_comp.group(1)}" if m_comp and m_comp.group(1).lower() not in " ".join(words).lower() else ""
+
+        # Condición
+        m_cond = re.search(r"\b(?:cuando\s+cambias\s+de\s+proyecto|al\s+cambiar\s+de\s+proyecto)\b", clean, re.IGNORECASE)
+        cond = " al cambiar de proyecto" if m_cond else ""
+        if not cond:
+            m_cond2 = re.search(r"\b(al cerrar el navegador|al iniciar el servidor|al recargar)\b", clean, re.IGNORECASE)
+            if m_cond2:
+                cond = f" {m_cond2.group(1)}"
+
+        cand = (" ".join(words) + comp + cond).strip()
+        if len(cand) >= 15:
+            cand = cand[0].upper() + cand[1:]
+            return cand[:75]
+
+    # Patrón especial 3: "un botón para [acción]" o "que tuviera un botón para [acción]"
+    m_btn = re.search(r"\b(un\s+botón|un\s+boton|el\s+botón|el\s+boton|botón|boton)\s+para\s+([a-záéíóúñ0-9]+(?:\s+[a-záéíóúñ0-9]+)*?)(?=\s+(?:en\s+(?:la|el)|de\s+(?:la|el)|para\s+que|cuando|que\s+cuando)\b|[,\.;]|$)", clean, re.IGNORECASE)
+    if m_btn:
+        btn_noun = m_btn.group(1).strip()
+        btn_action = m_btn.group(2).strip()
+        m_loc = re.search(r"\b(?:en|de)\s+(?:la\s+|el\s+)?(tabla\s+de\s+tareas|consola(?:\s+de\s+[a-záéíóúñ]+)?|terminal(?:\s+cmd\s+logs)?|modal|formulario|pantalla)\b", clean, re.IGNORECASE)
+        loc = f" en {m_loc.group(1)}" if m_loc and m_loc.group(1).lower() not in btn_action.lower() else ""
+        if primary_quoted and primary_quoted.lower() not in loc.lower() and primary_quoted.lower() not in btn_action.lower():
+            loc = f" en «{primary_quoted}»"
+        title = f"Añadir {btn_noun} para {btn_action}{loc}"
+        title = title[0].upper() + title[1:]
+        if len(title) <= 72:
+            return title
+
+    # Patrón especial 4: "que los [elementos] muestren [X]"
+    m_show = re.search(r"\bque\s+(?:los|las)\s+([a-záéíóúñ]+)\s+(?:muestren|muestre)\s+([a-záéíóúñ0-9]+(?:\s+[a-záéíóúñ0-9]+)*?)(?=\s+(?:en|de|para|cuando)\b|[,\.;]|$)", clean, re.IGNORECASE)
+    if m_show:
+        elem = m_show.group(1)
+        what = m_show.group(2)
+        m_loc = re.search(r"\b(?:en|de)\s+(?:la\s+|el\s+)?(consola\s+de\s+actividad|terminal|tabla|modal|formulario)\b", clean, re.IGNORECASE)
+        loc = f" de {m_loc.group(1)}" if m_loc else ""
+        title = f"Mostrar {what} en {elem}{loc}"
+        return title[0].upper() + title[1:]
+
+    # Patrón especial 5: "hay que arreglar / corregir el fallo en el puerto [X]"
+    m_bug = re.search(r"\b(?:hay\s+que\s+(?:arreglar|corregir)\s+el\s+fallo\s+en\s+el\s+puerto\s+(\d+)|(?:hay\s+un\s+fallo|hay\s+un\s+error|hay\s+un\s+bug|hay\s+un\s+problema)\s+(?:en\s+)?([a-záéíóúñ0-9]+(?:\s+[a-záéíóúñ0-9]+){1,5}))", clean, re.IGNORECASE)
+    if m_bug:
+        if m_bug.group(1):
+            return f"Arreglar el fallo en el puerto {m_bug.group(1)}"
+        elif m_bug.group(2):
+            where = m_bug.group(2).strip()
+            title = f"Arreglar fallo en {where}"
+            return title[0].upper() + title[1:]
+
+    # Segmentación en oraciones
+    raw_sentences = [s.strip() for s in re.split(r'[\.\n;]+', clean) if s.strip()]
+
+    action_regex = r"\b(mejorar|crear|añadir|agregar|implementar|corregir|arreglar|solucionar|optimizar|actualizar|modificar|refactorizar|revisar|verificar|comprobar|configurar|dockerizar|eliminar|quitar|limpiar|sincronizar|exportar|importar|desplegar|simplificar|compactar|fijar|mantener)\b"
+
+    target_sentence = raw_sentences[0]
+    best_cand = clean_fillers_recursively(raw_sentences[0])
+
+    for s in raw_sentences:
+        cand = clean_fillers_recursively(s)
+        words_cand = cand.split()
+        if words_cand:
+            first_w = words_cand[0].lower().rstrip(",.;:")
+            if first_w in VERB_CONJUGATIONS or re.match(action_regex, first_w):
+                target_sentence = s
+                best_cand = cand
+                break
+        if re.search(action_regex, cand, re.IGNORECASE):
+            target_sentence = s
+            best_cand = cand
+
+    working = best_cand
+
+    # Limpiar cláusulas parentéticas incidentales entre comas: ", cuando se ejecutan tareas,"
+    working = re.sub(r",\s*(?:cuando|si|mientras)\s+[^,]+,", "", working, flags=re.IGNORECASE)
+
+    # Si hay 'que todas las actividades sigan el protocolo de ir informando por Telegram'
+    working = re.sub(r"\bque\s+(?:todas\s+las\s+actividades\s+)?sigan?\s+(?:el\s+)?", "el ", working, flags=re.IGNORECASE)
+    working = re.sub(r"\bde\s+ir\s+informando\b", "de notificación", working, flags=re.IGNORECASE)
+
+    m_context_header = re.search(r"\b(Consola\s+&\s+Actividad|Terminal\s+CMD\s+logs|Telegram|FastAPI|Docker|OneNote)\b", clean)
+    context_to_append = ""
+    if m_context_header and m_context_header.group(1).lower() not in working.lower():
+        context_to_append = m_context_header.group(1)
+
+    m_lead = re.match(r"^(?:esto\s+que\s+pone\s+[a-záéíóúñ\s«»\"\-]+?[,\s]+)?(.*)$", working, re.IGNORECASE)
+    if m_lead and re.search(action_regex, m_lead.group(1), re.IGNORECASE):
+        working = clean_fillers_recursively(m_lead.group(1))
+
     softeners = [
         r"\b(un poco|un poquito|una pequeña modificación|una modificacion|un pequeño cambio|por favor)\b",
         r"\b(de alguna manera|en la medida de lo posible|si es posible|lo antes posible)\b",
     ]
-
-    # 3. Detectar contexto global para afinar la síntesis semántica
-    lower_full = clean.lower()
-
-    # Si el prompt habla explícitamente de sintetizar/resumir/analizar el título al crear con IA
-    if ("crear con ia" in lower_full or "smart" in lower_full) and any(w in lower_full for w in ["título", "titulo"]) and any(w in lower_full for w in ["resumen", "resumido", "análisis", "analisis", "primeras palabras", "exhaustivo"]):
-        return "Mejorar síntesis y análisis de títulos en botón «Crear con IA»"
-
-    # 4. Seleccionar la oración más relevante con objetivo técnico
-    target_sentence = raw_sentences[0]
-    for s in raw_sentences:
-        cand = clean_fillers_recursively(s)
-        if re.search(r"\b(mejorar|crear|añadir|agregar|implementar|corregir|arreglar|solucionar|optimizar|actualizar|modificar|refactorizar|revisar|verificar|configurar|dockerizar|eliminar|botón|boton|endpoint|api|pantalla|modal|tabla|servicio)\b", cand, re.IGNORECASE):
-            target_sentence = s
-            break
-
-    working = clean_fillers_recursively(target_sentence)
-
-    # Limpiar suavizantes
     for soft in softeners:
         working = re.sub(soft, "", working, flags=re.IGNORECASE).strip()
 
-    # Normalizar primera persona plural o formas conjugadas al infinitivo
     words = working.split()
     if words:
         first_word_clean = words[0].lower().rstrip(" ,;:")
         if first_word_clean in VERB_CONJUGATIONS:
             words[0] = VERB_CONJUGATIONS[first_word_clean]
             working = " ".join(words)
+        elif first_word_clean in ACTION_NOUNS:
+            words[0] = ACTION_NOUNS[first_word_clean]
+            if len(words) > 1 and words[1].lower() in ["de", "del"]:
+                words.pop(1)
+            working = " ".join(words)
 
-    # 5. Cortar cláusulas subordinadas o secundarias que no pertenecen al título
     subordinate_cuts = [
-        r"\s*,\s*(?:para\s+que|de\s+(?:forma|manera|modo)\s+que|cuando|una\s+vez\s+que|siempre\s+que|por\s+supuesto\s+que|manteniendo|ya\s+que|dado\s+que|porque|en\s+caso\s+de\s+que)\b.*$",
-        r"\s+(?:para\s+que|de\s+(?:forma|manera|modo)\s+que|cuando\s+le\s+demos|cuando\s+se\s+cierra|cuando\s+el|que\s+cuando|una\s+vez\s+que|por\s+supuesto\s+que|manteniendo\s+todo\s+igual)\b.*$",
-        r"\s+(?:donde\s+el|donde\s+la|donde\s+los|donde\s+las|donde|en\s+el\s+que|en\s+la\s+que|que\s+hace\s+que)\b.*$",
+        r"\s*,\s*(?:para\s+que|de\s+(?:forma|manera|modo)\s+que|cuando\s+lo\s+pulsemos|una\s+vez\s+que|siempre\s+que|por\s+supuesto\s+que|manteniendo|ya\s+que|dado\s+que|porque|en\s+caso\s+de\s+que)\b.*$",
+        r"\s+(?:para\s+que\s+(?:cuando|descargue)|de\s+(?:forma|manera|modo)\s+que|cuando\s+le\s+demos|cuando\s+se\s+cierra|que\s+cuando|una\s+vez\s+que|por\s+supuesto\s+que|manteniendo\s+todo\s+igual)\b.*$",
+        r"\s+(?:donde\s+el\s+selector|donde\s+la|que\s+hace\s+que)\b.*$",
+        r"\s+(?:en\s+el\s+dashboard(?:\s+principal)?|en\s+la\s+pantalla(?:\s+principal)?|en\s+el\s+frontend|en\s+el\s+backend)\b.*$",
         r"\s*,\s*(?:pero|aunque|sin\s+embargo)\b.*$",
         r"\s+(?:y\s+(?:comprobar|verificar|validar|asegurar|revisar)\s+que)\b.*$",
+        r"\s+(?:para\s+evitar\s+[a-záéíóúñ\s]+)$",
+        r"\s+(?:porque\s+cuando\s+[a-záéíóúñ\s]+)$",
+        r"\s+(?:ya\s+que\s+tarda\s+[a-záéíóúñ\s0-9]+)$",
     ]
     for cut_pat in subordinate_cuts:
-        working = re.split(cut_pat, working, flags=re.IGNORECASE)[0].strip()
+        cand_cut = re.split(cut_pat, working, flags=re.IGNORECASE)[0].strip()
+        if len(cand_cut.split()) >= 3 and len(cand_cut) >= 20:
+            working = cand_cut
 
-    # Si hay comillas en el texto original y no están en working, destacarlas
-    if primary_quoted and f"«{primary_quoted}»" not in working and f'"{primary_quoted}"' not in working:
-        if primary_quoted.lower() in working.lower():
-            working = re.sub(re.escape(primary_quoted), f"«{primary_quoted}»", working, flags=re.IGNORECASE)
+    if context_to_append and context_to_append.lower() not in working.lower():
+        if len(working) + len(context_to_append) + 4 <= 72:
+            working = f"{working} de {context_to_append}"
 
-    # Limpieza final de signos de puntuación y dobles espacios
     working = re.sub(r"\s+", " ", working).strip()
     working = re.sub(r"[\.,;:!\-]+$", "", working).strip()
 
-    # 6. Control estricto de longitud (30-72 caracteres), sin truncar con '...' ni palabras huérfanas
     if len(working) > 72:
-        parts = re.split(r"\s+(?:para|con\s+respecto\s+a|sobre|en\s+relación\s+a|mediante|utilizando|usando)\s+", working, flags=re.IGNORECASE)
+        parts = re.split(r"\s+(?:con\s+respecto\s+a|sobre|en\s+relación\s+a|en\s+relacion\s+a|con\s+el\s+fin\s+de|con\s+el\s+objetivo\s+de|mediante|utilizando|usando)\s+", working, flags=re.IGNORECASE)
         if len(parts) > 1 and len(parts[0]) >= 25:
             working = parts[0].strip()
         else:
@@ -822,18 +916,17 @@ def synthesize_smart_title(prompt: str) -> str:
             if cut_idx > 25:
                 working = working[:cut_idx].strip()
 
-    # Eliminar palabras finales incompletas o palabras de parada
     w_words = working.split()
-    while w_words and w_words[-1].lower().rstrip(",.;:") in TRAILING_STOPWORDS:
+    while w_words and (w_words[-1].lower().rstrip(",.;:") in TRAILING_STOPWORDS or (w_words[-1].isdigit() and int(w_words[-1]) < 100)):
         w_words.pop()
     working = " ".join(w_words)
 
     if not working:
         working = "Nueva Tarea"
 
-    # Capitalizar primer carácter
     title = working[0].upper() + working[1:]
     return title[:80]
+
 
 
 def smart_breakdown_task(prompt: str) -> Dict[str, Any]:

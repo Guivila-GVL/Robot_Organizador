@@ -978,7 +978,8 @@ async function createSmartTask() {
     const data = await res.json();
     if (data.success) {
       input.value = '';
-      showToast('¡Tarea creada en Pendientes! Pulsa 🚀 Lanzar cuando quieras arrancarla.', 'success');
+      const createdTitle = data.title ? `"${data.title}"` : 'inteligente';
+      showToast(`¡Tarea creada: ${createdTitle}! Pulsa 🚀 Lanzar para arrancarla.`, 'success');
       switchFilterTab('pending');
       await loadTasks(state.activeProjectId);
       renderProjectsList(projectSearchEl.value.toLowerCase());
@@ -989,6 +990,47 @@ async function createSmartTask() {
     showToast('Error en la llamada inteligente', 'error');
   }
 }
+
+async function synthesizeTitleFromModalDesc() {
+  const descEl = document.getElementById('formDescription');
+  const prompt = descEl.value.trim();
+  if (!prompt) {
+    showToast('Escribe primero las instrucciones o descripción en el campo inferior', 'error');
+    return;
+  }
+
+  try {
+    showToast('Sintetizando título inteligente...', 'info');
+    const res = await fetch('/api/tasks/smart-breakdown', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project_id: state.activeProjectId || 'gestion_proyectos',
+        prompt: prompt
+      })
+    });
+    const data = await res.json();
+    if (data && data.title) {
+      document.getElementById('formTitle').value = data.title;
+      if (data.priority) {
+        document.getElementById('formPriority').value = data.priority;
+      }
+      if (data.milestone_type) {
+        document.getElementById('formMilestoneType').value = data.milestone_type;
+      }
+      if (data.milestone_target) {
+        document.getElementById('formMilestoneTarget').value = data.milestone_target;
+      }
+      if (data.milestone_description) {
+        document.getElementById('formMilestoneDesc').value = data.milestone_description;
+      }
+      showToast(`Título sintetizado: "${data.title}"`, 'success');
+    }
+  } catch (err) {
+    showToast('Error al sintetizar título', 'error');
+  }
+}
+window.synthesizeTitleFromModalDesc = synthesizeTitleFromModalDesc;
 
 function startVoiceDictation() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

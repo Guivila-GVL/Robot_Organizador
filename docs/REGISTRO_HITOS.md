@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 16:05:33] ✅ Mejorar síntesis y análisis de títulos en botón «Crear con IA»
+
+- **ID Tarea:** `83`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Implementado motor avanzado de síntesis y análisis semántico de títulos en synthesize_smart_title (app/services/project_scanner.py). Se eliminaron atajos y reglas frágiles que truncaban a primeras palabras o dejaban frases huérfanas, añadiendo detección de intenciones, normalización verbal a infinitivo, extracción de pares acción-objeto, supresión de preámbulos conversacionales/de dictado y ubicación, e integración en UI (toast descriptivo y botón de síntesis en modal de tareas). Verificado con test_smart_title.py (12/12 tests exitosos) y pruebas en vivo sobre la API REST.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 15:42:24] ✅ Al parecer
 
 - **ID Tarea:** `82`

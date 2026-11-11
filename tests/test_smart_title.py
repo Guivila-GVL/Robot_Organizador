@@ -14,6 +14,40 @@ def test_suite():
 
     test_cases = [
         {
+            "id": "TASK_83_PROMPT",
+            "prompt": (
+                "Cuando das al botón de crear una nueva tarea con el botón de crear IA, me sigue sin poner un título adecuado. "
+                "Por favor, revisa a ver cómo podemos hacer que al darle a crear con IA sí que lea el texto, pero de alguna forma "
+                "hay que crear un pequeño título que no sea coger simplemente las primeras palabras."
+            ),
+            "expected_contains": ["Crear con IA", "título"],
+            "max_len": 72
+        },
+        {
+            "id": "TASK_82_PROMPT",
+            "prompt": "Al parecer, cuando cambias de proyecto, la consola de la derecha va cambiando, y eso no tiene sentido, debería mantenerse fija.",
+            "expected_contains": ["Mantener fija", "consola", "proyecto"],
+            "max_len": 72
+        },
+        {
+            "id": "TASK_81_PROMPT",
+            "prompt": "En la parte de terminal, igual a la derecha, en la parte del robot, esto que pone «Terminal CMD logs», me gustaría que tuviera un botón para limpiar.",
+            "expected_contains": ["botón para limpiar", "Terminal CMD logs"],
+            "max_len": 72
+        },
+        {
+            "id": "TASK_80_PROMPT",
+            "prompt": "En la parte de arriba de Consola & Actividad hay unos botones que pone «Ejecutando», «Limpiar», «Auto-scroll». Simplificar y compactar la cabecera.",
+            "expected_contains": ["cabecera", "Consola & Actividad"],
+            "max_len": 72
+        },
+        {
+            "id": "TASK_74_PROMPT",
+            "prompt": "Sí, me gustaría hacer un cambio en la parte de la consola de actividad, en la parte de la derecha que los logs muestren timestamp.",
+            "expected_contains": ["Mostrar timestamp", "logs"],
+            "max_len": 72
+        },
+        {
             "id": "TASK_68_PROMPT",
             "prompt": (
                 "Me gustaría mejorar un poco el botón de la creación de tareas. Cuando le demos al botón de «Crear con IA», "

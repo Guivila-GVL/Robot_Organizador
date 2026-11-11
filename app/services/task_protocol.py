@@ -88,6 +88,9 @@ def sync_onenote_project(project_id: str) -> Dict[str, Any]:
     except Exception as _e:
         logger.warning(f"Aviso al recargar módulos: {_e}")
 
+    if project_id == "reload":
+        return {"success": True, "message": "Módulos recargados en memoria"}
+
     try:
         py_exe = ONENOTE_VENV_PYTHON if os.path.exists(ONENOTE_VENV_PYTHON) else sys.executable
         if not os.path.exists(ONENOTE_SYNC_SCRIPT):
