@@ -13,49 +13,61 @@ QUOTA_WINDOW_HOURS = 5
 
 # Catálogo oficial de motores verificados en Antigravity (`agy models`)
 DEFAULT_MODELS_INFO = {
-    "Gemini 3.8 Flash (Medium)": {
-        "cli_id": "gemini-3.8-flash-medium",
-        "budget": 450,
-        "tier": "Gemini Flash · Rápido y Alta Autonomía"
-    },
-    "Claude Sonnet 5.5 (Medium)": {
-        "cli_id": "claude-sonnet-5-5-medium",
-        "budget": 160,
-        "tier": "Claude Sonnet · Arquitectura y Código Preciso"
-    },
-    "Gemini 4 Argon (Medium)": {
-        "cli_id": "gemini-4-argon-medium",
-        "budget": 180,
-        "tier": "Gemini Argon · Razonamiento Complejo"
-    },
-    "Claude Opus 5.5 (Medium)": {
-        "cli_id": "claude-opus-5-5-medium",
-        "budget": 100,
-        "tier": "Claude Opus · Máxima Profundidad"
-    },
     "Gemini 3.8 Flash (High)": {
         "cli_id": "gemini-3.8-flash-high",
         "budget": 400,
         "tier": "Gemini Flash High · Alta Capacidad"
     },
-    "GPT-OSS 120B (Medium)": {
-        "cli_id": "gpt-oss-120b-medium",
-        "budget": 250,
-        "tier": "GPT-OSS 120B · Respaldo Abierto"
+    "Gemini 3.8 Flash (Medium)": {
+        "cli_id": "gemini-3.8-flash-medium",
+        "budget": 450,
+        "tier": "Gemini Flash Med · Rápido y Alta Autonomía"
     },
     "Gemini 3.8 Flash (Low)": {
         "cli_id": "gemini-3.8-flash-low",
         "budget": 600,
         "tier": "Flash Low · Última línea de autonomía"
     },
-    "Gemini 3.5 Flash (High)": {
-        "cli_id": "gemini-3.8-flash-high",
-        "budget": 450,
-        "tier": "Flash Respaldo · Alta Precisión"
+    "Gemini 4 Argon (Medium)": {
+        "cli_id": "gemini-4-argon-medium",
+        "budget": 180,
+        "tier": "Gemini Argon · Razonamiento Complejo"
+    },
+    "Claude Sonnet 5.5 (Medium)": {
+        "cli_id": "claude-sonnet-5-5-medium",
+        "budget": 160,
+        "tier": "Claude Sonnet · Arquitectura y Código Preciso"
+    },
+    "Claude Opus 5.5 (Medium)": {
+        "cli_id": "claude-opus-5-5-medium",
+        "budget": 100,
+        "tier": "Claude Opus · Máxima Profundidad"
+    },
+    "GPT-OSS 120B (Medium)": {
+        "cli_id": "gpt-oss-120b-medium",
+        "budget": 250,
+        "tier": "GPT-OSS 120B · Respaldo Abierto"
     }
 }
 
+CLI_TO_CANONICAL_MODEL = {
+    "gemini-3.8-flash-high": "Gemini 3.8 Flash (High)",
+    "gemini-3.8-flash-medium": "Gemini 3.8 Flash (Medium)",
+    "gemini-3.8-flash-low": "Gemini 3.8 Flash (Low)",
+    "gemini-4-argon-medium": "Gemini 4 Argon (Medium)",
+    "gemini-4-argon-high": "Gemini 4 Argon (Medium)",
+    "gemini-4-argon-low": "Gemini 4 Argon (Medium)",
+    "claude-sonnet-5-5-medium": "Claude Sonnet 5.5 (Medium)",
+    "claude-sonnet-5-5-high": "Claude Sonnet 5.5 (Medium)",
+    "claude-sonnet-5-5-low": "Claude Sonnet 5.5 (Medium)",
+    "claude-opus-5-5-medium": "Claude Opus 5.5 (Medium)",
+    "claude-opus-5-5-high": "Claude Opus 5.5 (Medium)",
+    "claude-opus-5-5-low": "Claude Opus 5.5 (Medium)",
+    "gpt-oss-120b-medium": "GPT-OSS 120B (Medium)"
+}
+
 DEFAULT_FALLBACK_SEQUENCE = [
+    "Gemini 3.8 Flash (High)",
     "Gemini 3.8 Flash (Medium)",
     "Claude Sonnet 5.5 (Medium)",
     "Gemini 4 Argon (Medium)",
@@ -65,21 +77,75 @@ DEFAULT_FALLBACK_SEQUENCE = [
 ]
 
 
-def get_cli_id_for_model(model_name: str) -> str:
-    if model_name in DEFAULT_MODELS_INFO:
-        return DEFAULT_MODELS_INFO[model_name]["cli_id"]
-    lower = model_name.lower()
-    if "claude" in lower and "opus" in lower:
-        return "claude-opus-5-5-medium"
-    if "claude" in lower:
-        return "claude-sonnet-5-5-medium"
-    if "gpt" in lower:
-        return "gpt-oss-120b-medium"
+def canonical_model_name(model_name: str) -> str:
+    """Normaliza cualquier identificador o variante de motor a su nombre canónico oficial."""
+    if not model_name:
+        return "Gemini 3.8 Flash (High)"
+    raw = model_name.strip()
+    lower = raw.lower()
+
+    if lower in CLI_TO_CANONICAL_MODEL:
+        return CLI_TO_CANONICAL_MODEL[lower]
+    if raw in DEFAULT_MODELS_INFO:
+        return raw
+
     if "argon" in lower:
-        return "gemini-4-argon-medium"
+        return "Gemini 4 Argon (Medium)"
+    if "opus" in lower:
+        return "Claude Opus 5.5 (Medium)"
+    if "sonnet" in lower:
+        return "Claude Sonnet 5.5 (Medium)"
+    if "gpt" in lower:
+        return "GPT-OSS 120B (Medium)"
     if "low" in lower or "lite" in lower:
-        return "gemini-3.8-flash-low"
-    return "gemini-3.8-flash-medium"
+        return "Gemini 3.8 Flash (Low)"
+    if "high" in lower:
+        return "Gemini 3.8 Flash (High)"
+    if "flash" in lower:
+        if "medium" in lower or "med" in lower:
+            return "Gemini 3.8 Flash (Medium)"
+        return "Gemini 3.8 Flash (High)"
+
+    return raw
+
+
+def _build_conv_to_model_map(window_hours: int = QUOTA_WINDOW_HOURS + 2) -> Dict[str, str]:
+    """Asocia conversation_id con su model_id real analizando los encabezados de los logs de agy CLI e IDE."""
+    log_dirs = [
+        os.path.expanduser(r"~\.gemini\antigravity-cli\log"),
+        os.path.expanduser(r"~\.gemini\antigravity\log")
+    ]
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=window_hours + 1)).timestamp()
+    conv_map: Dict[str, str] = {}
+    for ldir in log_dirs:
+        if not os.path.exists(ldir):
+            continue
+        for p in glob.glob(os.path.join(ldir, "cli-*.log")):
+            try:
+                if os.path.getmtime(p) < cutoff:
+                    continue
+                with open(p, "r", encoding="utf-8", errors="ignore") as f:
+                    head = f.read(4096)
+                    m_model = re.search(r"Model ID\s+([a-zA-Z0-9\.\-_]+)", head)
+                    if not m_model:
+                        continue
+                    cli_id = m_model.group(1).lower()
+                    canonical = canonical_model_name(cli_id)
+                    f.seek(0)
+                    all_text = f.read()
+                    for cid in re.findall(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", all_text):
+                        conv_map[cid] = canonical
+            except Exception:
+                pass
+    return conv_map
+
+
+def get_cli_id_for_model(model_name: str) -> str:
+    c_name = canonical_model_name(model_name)
+    if c_name in DEFAULT_MODELS_INFO:
+        return DEFAULT_MODELS_INFO[c_name]["cli_id"]
+    return "gemini-3.8-flash-high"
+
 
 _last_alerted_quota_key: Optional[str] = None
 
@@ -94,9 +160,10 @@ QUOTA_KEYWORDS = [
 
 
 def _estimate_budget_for_model(model_name: str) -> int:
-    if model_name in DEFAULT_MODELS_INFO:
-        return DEFAULT_MODELS_INFO[model_name]["budget"]
-    lower = model_name.lower()
+    c_name = canonical_model_name(model_name)
+    if c_name in DEFAULT_MODELS_INFO:
+        return DEFAULT_MODELS_INFO[c_name]["budget"]
+    lower = c_name.lower()
     if "lite" in lower:
         return 600
     if "flash" in lower:
@@ -107,15 +174,9 @@ def _estimate_budget_for_model(model_name: str) -> int:
 
 
 def _describe_tier_for_model(model_name: str) -> str:
-    if model_name in DEFAULT_MODELS_INFO:
-        return DEFAULT_MODELS_INFO[model_name]["tier"]
-    lower = model_name.lower()
-    if "lite" in lower:
-        return "Lite · Autonomía Máxima"
-    if "flash" in lower:
-        return "Flash · Velocidad y Cuota Amplia"
-    if any(k in lower for k in ["argon", "pro", "opus"]):
-        return "Pro / Avanzado · Tareas Complejas"
+    c_name = canonical_model_name(model_name)
+    if c_name in DEFAULT_MODELS_INFO:
+        return DEFAULT_MODELS_INFO[c_name]["tier"]
     return "Motor Antigravity"
 
 
@@ -139,7 +200,7 @@ def parse_reset_duration(text: str) -> Optional[timedelta]:
     return None
 
 
-def _find_recent_transcripts(max_files: int = 60, window_hours: int = QUOTA_WINDOW_HOURS) -> List[str]:
+def _find_recent_transcripts(max_files: int = 100, window_hours: int = QUOTA_WINDOW_HOURS) -> List[str]:
     search_dirs = [
         os.path.expanduser(r"~\.gemini\antigravity-cli\brain"),
         os.path.expanduser(r"~\.gemini\antigravity\brain")
@@ -166,7 +227,7 @@ def _find_recent_transcripts(max_files: int = 60, window_hours: int = QUOTA_WIND
     return candidates[:max_files]
 
 
-def _read_jsonl_lines(filepath: str, max_bytes: int = 450000) -> List[Dict[str, Any]]:
+def _read_jsonl_lines(filepath: str, max_bytes: int = 600000) -> List[Dict[str, Any]]:
     try:
         with open(filepath, "rb") as f:
             f.seek(0, os.SEEK_END)
@@ -176,9 +237,9 @@ def _read_jsonl_lines(filepath: str, max_bytes: int = 450000) -> List[Dict[str, 
                 data = f.read().decode("utf-8", errors="ignore")
                 all_raw = data.splitlines()
             else:
-                # Leer primeros 16KB para asegurar inclusión del paso 0 (Model Selection)
+                # Leer primeros 64KB para asegurar inclusión del paso 0 (Model Selection y metadatos)
                 f.seek(0)
-                head_data = f.read(16384).decode("utf-8", errors="ignore")
+                head_data = f.read(65536).decode("utf-8", errors="ignore")
                 head_lines = head_data.splitlines()
                 # Leer el final para turnos recientes
                 f.seek(size - max_bytes)
@@ -229,7 +290,7 @@ def get_model_sequence(discovered_models: Optional[List[str]] = None) -> List[st
         try:
             loaded = json.loads(raw)
             if isinstance(loaded, list):
-                seq = [str(x).strip() for x in loaded if str(x).strip()]
+                seq = [canonical_model_name(str(x).strip()) for x in loaded if str(x).strip()]
         except Exception:
             seq = []
 
@@ -237,25 +298,23 @@ def get_model_sequence(discovered_models: Optional[List[str]] = None) -> List[st
         seq = list(DEFAULT_FALLBACK_SEQUENCE)
 
     changed = False
-    # Reemplazar placeholder antiguo si existía
-    if "Gemini Flash Lite" in seq:
-        seq = [s if s != "Gemini Flash Lite" else "Gemini 3.8 Flash (Low)" for s in seq]
-        changed = True
+    cleaned_discovered = [canonical_model_name(m) for m in (discovered_models or []) if m]
 
-    # Asegurar que todos los motores oficiales (Claude Sonnet, Claude Opus, GPT-OSS, etc.) estén en la lista
-    for m in DEFAULT_FALLBACK_SEQUENCE + (discovered_models or []):
-        if m and m.lower() != "none" and m not in seq:
-            seq.append(m)
+    for m in DEFAULT_FALLBACK_SEQUENCE + cleaned_discovered:
+        c_m = canonical_model_name(m)
+        if c_m and c_m.lower() != "none" and c_m not in seq:
+            seq.append(c_m)
             changed = True
 
-    # Evitar duplicados preservando el orden
+    # Deduplicar preservando orden
     seen = set()
     deduped = []
     for s in seq:
-        if s not in seen:
-            seen.add(s)
-            deduped.append(s)
-    if len(deduped) != len(seq):
+        c_s = canonical_model_name(s)
+        if c_s not in seen:
+            seen.add(c_s)
+            deduped.append(c_s)
+    if deduped != seq:
         seq = deduped
         changed = True
 
@@ -268,11 +327,12 @@ def move_model_in_sequence(model_name: str, direction: str) -> Dict[str, Any]:
     if direction not in ("up", "down"):
         return {"success": False, "error": "Dirección inválida ('up' o 'down')"}
 
+    c_name = canonical_model_name(model_name)
     seq = get_model_sequence()
-    if model_name not in seq:
-        return {"success": False, "error": f"Motor '{model_name}' no encontrado en la secuencia"}
+    if c_name not in seq:
+        return {"success": False, "error": f"Motor '{c_name}' no encontrado en la secuencia"}
 
-    idx = seq.index(model_name)
+    idx = seq.index(c_name)
     swap_idx = idx - 1 if direction == "up" else idx + 1
     if 0 <= swap_idx < len(seq):
         seq[idx], seq[swap_idx] = seq[swap_idx], seq[idx]
@@ -289,14 +349,19 @@ def _get_exhausted_map() -> Dict[str, str]:
         data = json.loads(raw)
         if not isinstance(data, dict):
             return {}
-        # Limpiar caducados
         now_utc = datetime.now(timezone.utc)
-        cleaned = {}
+        cleaned: Dict[str, str] = {}
         for k, v in data.items():
             dt = _parse_iso_utc(v)
             if dt and dt > now_utc:
-                cleaned[k] = v
-        if len(cleaned) != len(data):
+                canon_k = canonical_model_name(k)
+                if canon_k in cleaned:
+                    prev_dt = _parse_iso_utc(cleaned[canon_k])
+                    if prev_dt and dt > prev_dt:
+                        cleaned[canon_k] = v
+                else:
+                    cleaned[canon_k] = v
+        if cleaned != data:
             set_setting("model_exhausted_until", json.dumps(cleaned, ensure_ascii=False))
         return cleaned
     except Exception:
@@ -304,15 +369,19 @@ def _get_exhausted_map() -> Dict[str, str]:
 
 
 def _mark_model_exhausted(model_name: str, reset_dt_utc: datetime) -> None:
+    canon = canonical_model_name(model_name)
     ex_map = _get_exhausted_map()
-    ex_map[model_name] = reset_dt_utc.isoformat()
+    ex_map[canon] = reset_dt_utc.isoformat()
     set_setting("model_exhausted_until", json.dumps(ex_map, ensure_ascii=False))
 
 
 def _clear_model_exhausted(model_name: str) -> None:
+    canon = canonical_model_name(model_name)
     ex_map = _get_exhausted_map()
-    if model_name in ex_map:
-        del ex_map[model_name]
+    keys_to_remove = [k for k in ex_map if canonical_model_name(k) == canon or k == model_name]
+    if keys_to_remove:
+        for k in keys_to_remove:
+            del ex_map[k]
         set_setting("model_exhausted_until", json.dumps(ex_map, ensure_ascii=False))
 
 
@@ -339,7 +408,8 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
     now_utc = datetime.now(timezone.utc)
     window_start_cutoff = now_utc - timedelta(hours=QUOTA_WINDOW_HOURS)
 
-    active_model = forced_active_model or "Gemini 3.8 Flash (Medium)"
+    conv_model_map = _build_conv_to_model_map(QUOTA_WINDOW_HOURS + 2)
+    active_model = canonical_model_name(forced_active_model or "Gemini 3.8 Flash (High)")
     discovered: List[str] = []
     model_steps: Dict[str, List[datetime]] = {}
     last_response_dt_per_model: Dict[str, datetime] = {}
@@ -347,22 +417,25 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
     # Recorrer del más antiguo al más reciente
     for idx in range(len(transcripts) - 1, -1, -1):
         tpath = transcripts[idx]
+        parts = os.path.normpath(tpath).split(os.sep)
+        cid = parts[-4] if len(parts) >= 4 else ""
         mtime_utc = datetime.fromtimestamp(os.path.getmtime(tpath), tz=timezone.utc)
         if idx > 0 and mtime_utc < window_start_cutoff:
             continue
 
-        entries = _read_jsonl_lines(tpath, max_bytes=450000)
-        current_conv_model = active_model
+        entries = _read_jsonl_lines(tpath, max_bytes=600000)
+        # Identificar modelo base de la conversación usando el mapeo de logs agy o fallback activo
+        current_conv_model = conv_model_map.get(cid, active_model)
         for e in entries:
             if e.get("type") == "USER_INPUT":
                 content = e.get("content", "")
                 m = re.search(
-                    r"changed setting `Model Selection` from (.*?) to ([^\n]+?)(?:\.\s+No need|\.$|$)",
+                    r"changed setting [`']?Model Selection[`']? from (.*?) to ([^\n]+?)(?:\.\s+No need|\.$|$)",
                     content
                 )
                 if m:
-                    prev_m = _clean_model_name(m.group(1))
-                    next_m = _clean_model_name(m.group(2))
+                    prev_m = canonical_model_name(_clean_model_name(m.group(1)))
+                    next_m = canonical_model_name(_clean_model_name(m.group(2)))
                     if prev_m and prev_m.lower() != "none":
                         discovered.append(prev_m)
                     if next_m and next_m.lower() != "none":
@@ -374,12 +447,20 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
             if e.get("type") == "PLANNER_RESPONSE":
                 dt = _parse_iso_utc(e.get("created_at", ""))
                 if dt and dt >= window_start_cutoff:
-                    model_steps.setdefault(current_conv_model, []).append(dt)
-                    if current_conv_model not in last_response_dt_per_model or dt > last_response_dt_per_model[current_conv_model]:
-                        last_response_dt_per_model[current_conv_model] = dt
+                    c_m = canonical_model_name(current_conv_model)
+                    model_steps.setdefault(c_m, []).append(dt)
+                    if c_m not in last_response_dt_per_model or dt > last_response_dt_per_model[c_m]:
+                        last_response_dt_per_model[c_m] = dt
 
     if forced_active_model:
-        active_model = forced_active_model
+        active_model = canonical_model_name(forced_active_model)
+    elif transcripts and not forced_active_model:
+        parts0 = os.path.normpath(transcripts[0]).split(os.sep)
+        cid0 = parts0[-4] if len(parts0) >= 4 else ""
+        if cid0 in conv_model_map:
+            active_model = canonical_model_name(conv_model_map[cid0])
+
+    active_model = canonical_model_name(active_model)
 
     if active_model not in discovered:
         discovered.append(active_model)
@@ -399,32 +480,35 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
     recommended_fallback = None
 
     for seq_idx, m_name in enumerate(sequence, 1):
-        ts_list = sorted(model_steps.get(m_name, []))
+        c_name = canonical_model_name(m_name)
+        ts_list = sorted(model_steps.get(c_name, []))
         steps_used = len(ts_list)
-        budget = _estimate_budget_for_model(m_name)
-        is_exhausted = m_name in exhausted_map
+        budget = _estimate_budget_for_model(c_name)
+        is_exhausted = c_name in exhausted_map
 
         if is_exhausted:
             remaining_pct = 0
-            reset_dt = _parse_iso_utc(exhausted_map[m_name]) or (now_utc + timedelta(hours=QUOTA_WINDOW_HOURS))
+            color = "red"
+            reset_dt = _parse_iso_utc(exhausted_map[c_name]) or (now_utc + timedelta(hours=QUOTA_WINDOW_HOURS))
         elif steps_used == 0:
             remaining_pct = 100
+            color = "green"
             reset_dt = None
         else:
             raw_pct = int(round((1.0 - (steps_used / float(budget))) * 100))
             if raw_pct <= 0:
-                # Si ha superado el presupuesto empírico pero aún responde sin 429, indicar cuota crítica
-                remaining_pct = 3
+                # Si ha superado el presupuesto empírico pero aún no reporta 429: cuota mínima crítica
+                remaining_pct = 1
+                color = "red"
             else:
                 remaining_pct = min(100, max(1, raw_pct))
+                if remaining_pct < 20:
+                    color = "red"
+                elif remaining_pct <= 50:
+                    color = "orange"
+                else:
+                    color = "green"
             reset_dt = ts_list[0] + timedelta(hours=QUOTA_WINDOW_HOURS)
-
-        if remaining_pct < 20 or is_exhausted:
-            color = "red"
-        elif remaining_pct <= 50:
-            color = "orange"
-        else:
-            color = "green"
 
         if reset_dt:
             remaining_secs = max(0, int((reset_dt - now_utc).total_seconds()))
@@ -445,10 +529,10 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
 
         item = {
             "order": seq_idx,
-            "name": m_name,
-            "cli_id": get_cli_id_for_model(m_name),
-            "tier": _describe_tier_for_model(m_name),
-            "is_active": (m_name == active_model),
+            "name": c_name,
+            "cli_id": get_cli_id_for_model(c_name),
+            "tier": _describe_tier_for_model(c_name),
+            "is_active": (c_name == active_model),
             "is_exhausted": is_exhausted,
             "steps_used": steps_used,
             "steps_budget": budget,
@@ -459,20 +543,22 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
         }
         models_status.append(item)
 
-        if m_name == active_model:
+        if c_name == active_model:
             active_model_info = item
 
-        if not is_exhausted and remaining_pct > 0 and m_name != active_model and recommended_fallback is None:
+        if not is_exhausted and remaining_pct > 10 and c_name != active_model and recommended_fallback is None:
             recommended_fallback = item
 
-    # Si todos los de respaldo estuvieran agotados salvo ninguno, buscar el que antes renueva
+    # Respaldo de recomendación: si ninguno tiene > 10%, tomar cualquier disponible no agotado
     if recommended_fallback is None and models_status:
-        candidates = [m for m in models_status if m["name"] != active_model and not m["is_exhausted"]]
-        if not candidates:
-            candidates = [m for m in models_status if m["name"] != active_model]
+        candidates = [m for m in models_status if m["name"] != active_model and not m["is_exhausted"] and m["quota_remaining_pct"] > 0]
         if candidates:
-            candidates.sort(key=lambda x: x["reset_in_seconds"])
             recommended_fallback = candidates[0]
+        else:
+            candidates = [m for m in models_status if m["name"] != active_model]
+            if candidates:
+                candidates.sort(key=lambda x: x["reset_in_seconds"])
+                recommended_fallback = candidates[0]
 
     if not active_model_info:
         active_model_info = models_status[0]

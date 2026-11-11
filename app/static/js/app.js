@@ -251,10 +251,19 @@ async function loadWatchdogStatus() {
     if (othersEl && Array.isArray(data.models)) {
       const others = data.models.filter(m => !m.is_active);
       othersEl.innerHTML = others.map(m => {
-        const shortName = m.name.replace('Gemini ', '').replace(' (Medium)', '').replace(' (High)', '').replace(' (Low)', '');
+        let shortName = m.name;
+        if (shortName.includes('Flash (High)')) shortName = 'Flash High';
+        else if (shortName.includes('Flash (Medium)')) shortName = 'Flash Med';
+        else if (shortName.includes('Flash (Low)')) shortName = 'Flash Low';
+        else if (shortName.includes('Argon')) shortName = 'Argon 4';
+        else if (shortName.includes('Sonnet')) shortName = 'Sonnet 5.5';
+        else if (shortName.includes('Opus')) shortName = 'Opus 5.5';
+        else if (shortName.includes('GPT-OSS')) shortName = 'GPT-OSS';
+        else shortName = shortName.replace('Gemini ', '').replace(' (Medium)', '');
+
         const statusClass = m.is_exhausted ? 'chip-exhausted' : (m.quota_remaining_pct <= 20 ? 'chip-low' : 'chip-green');
         const badge = m.is_exhausted ? '⚠️ ' : '';
-        return `<span class="quota-mini-chip ${statusClass}" title="${m.name}: ${m.reset_text}">${badge}${shortName}: <b>${m.is_exhausted ? '0%' : m.quota_remaining_pct + '%'}</b></span>`;
+        return `<span class="quota-mini-chip ${statusClass}" title="${m.name}: ${m.reset_text} (${m.steps_used}/${m.steps_budget} pasos)">${badge}${shortName}: <b>${m.is_exhausted ? '0%' : m.quota_remaining_pct + '%'}</b></span>`;
       }).join('');
     }
 
@@ -287,7 +296,9 @@ function renderModelsModal() {
       ? '<span class="model-active-pill">⚡ EN USO AHORA</span>'
       : (m.is_exhausted
           ? '<span class="priority-tag priority-urgente">⚠️ AGOTADO 429</span>'
-          : '<span class="gq-project-pill">✅ DISPONIBLE</span>');
+          : (m.quota_remaining_pct <= 20
+              ? '<span class="priority-tag priority-alta">⚠️ CUOTA BAJA</span>'
+              : '<span class="gq-project-pill">✅ DISPONIBLE</span>'));
 
     const row = document.createElement('div');
     row.className = 'global-queue-item';

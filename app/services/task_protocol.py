@@ -85,6 +85,19 @@ def sync_onenote_project(project_id: str, force_next_steps: bool = False) -> Dic
             sys.modules["app.main"].check_and_complete_task = sys.modules["app.services.milestone_checker"].check_and_complete_task
         if "app.services.queue_runner" in sys.modules and "app.services.milestone_checker" in sys.modules:
             sys.modules["app.services.queue_runner"].check_and_complete_task = sys.modules["app.services.milestone_checker"].check_and_complete_task
+        if "app.services.watchdog_service" in sys.modules:
+            importlib.reload(sys.modules["app.services.watchdog_service"])
+        if "app.main" in sys.modules and "app.services.watchdog_service" in sys.modules:
+            ws = sys.modules["app.services.watchdog_service"]
+            sys.modules["app.main"].get_watchdog_status = ws.get_watchdog_status
+            sys.modules["app.main"].move_model_in_sequence = ws.move_model_in_sequence
+            sys.modules["app.main"].clear_model_exhausted = ws.clear_model_exhausted
+        if "app.services.queue_runner" in sys.modules:
+            importlib.reload(sys.modules["app.services.queue_runner"])
+            if "app.services.watchdog_service" in sys.modules:
+                ws = sys.modules["app.services.watchdog_service"]
+                sys.modules["app.services.queue_runner"].get_watchdog_status = ws.get_watchdog_status
+                sys.modules["app.services.queue_runner"].mark_model_exhausted_from_output = ws.mark_model_exhausted_from_output
     except Exception as _e:
         logger.warning(f"Aviso al recargar módulos: {_e}")
 

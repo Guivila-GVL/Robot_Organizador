@@ -8,7 +8,13 @@ from typing import Dict, Any, Optional, List
 
 from app.database import get_db_connection
 from app.services.execution_queue import get_launched_queue, update_task_progress
-from app.services.watchdog_service import get_watchdog_status, mark_model_exhausted_hours, mark_model_exhausted_from_output, QUOTA_KEYWORDS
+from app.services.watchdog_service import (
+    get_watchdog_status,
+    mark_model_exhausted_hours,
+    mark_model_exhausted_from_output,
+    canonical_model_name,
+    QUOTA_KEYWORDS
+)
 from app.services.milestone_checker import check_and_complete_task
 from app.services.telegram_service import send_telegram_message
 from app.services.activity_logger import log_activity
@@ -60,10 +66,20 @@ def get_runner_status() -> Dict[str, Any]:
 
 
 def _pick_next_available_model(tried_models: List[str]) -> Optional[Dict[str, Any]]:
+    canonical_tried = [canonical_model_name(t) for t in tried_models]
     wd = get_watchdog_status()
     models = wd.get("models", [])
+    # 1. Preferir primero motores no agotados con cuota razonable (> 10%)
     for m in models:
-        if m["name"] in tried_models:
+        c_name = canonical_model_name(m["name"])
+        if c_name in canonical_tried:
+            continue
+        if not m.get("is_exhausted") and m.get("quota_remaining_pct", 0) > 10:
+            return m
+    # 2. Respaldo: cualquier motor no agotado con algo de cuota
+    for m in models:
+        c_name = canonical_model_name(m["name"])
+        if c_name in canonical_tried:
             continue
         if not m.get("is_exhausted") and m.get("quota_remaining_pct", 0) > 0:
             return m
@@ -98,7 +114,7 @@ def _run_single_task_with_model(task: Dict[str, Any], model_info: Dict[str, Any]
     global _active_process
 
     task_id = task["id"]
-    model_name = model_info["name"]
+    model_name = canonical_model_name(model_info["name"])
     cli_id = model_info["cli_id"]
     project_folder = task.get("folder_path") or WORKSPACE_ROOT
     if not os.path.exists(project_folder):
@@ -200,7 +216,8 @@ def _run_single_task_with_model(task: Dict[str, Any], model_info: Dict[str, Any]
         full_output = "\n".join(output_lines)
         lower_out = full_output.lower()
 
-        is_quota_err = any(k in lower_out for k in QUOTA_KEYWORDS)
+        # Solo es error de cuota si el proceso falló (rc != 0) Y la salida contiene indicadores reales de error de cuota
+        is_quota_err = (rc != 0) and any(k in lower_out for k in QUOTA_KEYWORDS)
         return {
             "returncode": rc,
             "quota_error": is_quota_err,

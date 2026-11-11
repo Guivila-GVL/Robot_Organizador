@@ -1060,8 +1060,6 @@ def smart_breakdown_task(prompt: str) -> Dict[str, Any]:
     clean = prompt.strip()
     if not clean:
         return {}
-
-    print(f"DEBUG RELOAD EXECUTED for prompt: {clean[:30]}", flush=True)
     atomic = _build_atomic_task(clean)
     decomp = analyze_task_decomposition(clean, force_split_phases=False)
 

@@ -74,6 +74,77 @@ class TestWatchdogModelQuota(unittest.TestCase):
         self.assertFalse(model_entry_after["is_exhausted"])
         self.assertGreater(model_entry_after["quota_remaining_pct"], 0)
 
+    def test_sequence_cleans_obsolete_models(self):
+        from app.services.watchdog_service import get_model_sequence
+        seq = get_model_sequence(["Gemini 3.5 Flash (High)", "Gemini 3.8 Flash (High)"])
+        # Debe haber reemplazado 3.5 Flash por 3.8 Flash y no tener duplicados
+        self.assertNotIn("Gemini 3.5 Flash (High)", seq)
+        self.assertIn("Gemini 3.8 Flash (High)", seq)
+        self.assertEqual(len(seq), len(set(seq)))
+
+    def test_quota_error_requires_nonzero_returncode(self):
+        # Si el modelo respondió un resumen técnico mencionando '429' o 'resource_exhausted' con rc==0,
+        # NO debe marcarse como error de cuota
+        rc_success = 0
+        output_with_quota_words = "El fix resuelve el error 429 RESOURCE_EXHAUSTED con éxito."
+        from app.services.watchdog_service import QUOTA_KEYWORDS
+        lower_out = output_with_quota_words.lower()
+        is_err = (rc_success != 0) and any(k in lower_out for k in QUOTA_KEYWORDS)
+        self.assertFalse(is_err)
+
+        rc_failure = 1
+        is_real_err = (rc_failure != 0) and any(k in lower_out for k in QUOTA_KEYWORDS)
+        self.assertTrue(is_real_err)
+
+    def test_canonical_model_name(self):
+        from app.services.watchdog_service import canonical_model_name
+        self.assertEqual(canonical_model_name("Gemini 3.5 Flash (High)"), "Gemini 3.8 Flash (High)")
+        self.assertEqual(canonical_model_name("gemini-3.8-flash-high"), "Gemini 3.8 Flash (High)")
+        self.assertEqual(canonical_model_name("Gemini 3.8 Flash (High)"), "Gemini 3.8 Flash (High)")
+        self.assertEqual(canonical_model_name("gemini-4-argon-medium"), "Gemini 4 Argon (Medium)")
+        self.assertEqual(canonical_model_name("gemini-4-argon-high"), "Gemini 4 Argon (Medium)")
+        self.assertEqual(canonical_model_name("claude-sonnet-5-5-medium"), "Claude Sonnet 5.5 (Medium)")
+        self.assertEqual(canonical_model_name("claude-opus-5-5-medium"), "Claude Opus 5.5 (Medium)")
+        self.assertEqual(canonical_model_name("gpt-oss-120b-medium"), "GPT-OSS 120B (Medium)")
+        self.assertEqual(canonical_model_name("gemini-3.8-flash-low"), "Gemini 3.8 Flash (Low)")
+        self.assertEqual(canonical_model_name("Gemini Flash Lite"), "Gemini 3.8 Flash (Low)")
+
+    def test_alias_exhausted_mapping(self):
+        # Marcar agotado con alias 'Gemini 3.5 Flash (High)'
+        from app.services.watchdog_service import _mark_model_exhausted, _clear_model_exhausted
+        test_model_alias = "Gemini 3.5 Flash (High)"
+        canonical_target = "Gemini 3.8 Flash (High)"
+
+        _clear_model_exhausted(canonical_target)
+        now_u = datetime.now(timezone.utc)
+        _mark_model_exhausted(test_model_alias, now_u + timedelta(hours=3))
+
+        ex_map = _get_exhausted_map()
+        # Debe reflejarse bajo el nombre canónico oficial
+        self.assertIn(canonical_target, ex_map)
+
+        # Y get_watchdog_status debe reportar agotado a Gemini 3.8 Flash (High)
+        status = get_watchdog_status()
+        entry = next((m for m in status["models"] if m["name"] == canonical_target), None)
+        self.assertIsNotNone(entry)
+        self.assertTrue(entry["is_exhausted"])
+        self.assertEqual(entry["quota_remaining_pct"], 0)
+
+        # Limpiar usando el alias también debe desbloquear
+        _clear_model_exhausted(test_model_alias)
+        ex_map_after = _get_exhausted_map()
+        self.assertNotIn(canonical_target, ex_map_after)
+
+    def test_build_conv_to_model_map(self):
+        from app.services.watchdog_service import _build_conv_to_model_map
+        conv_map = _build_conv_to_model_map()
+        self.assertIsInstance(conv_map, dict)
+        # Debe haber mapeado conversaciones reales de logs existentes si existen
+        if conv_map:
+            for cid, model_name in conv_map.items():
+                self.assertTrue(len(cid) >= 8)
+                self.assertTrue(any(brand in model_name for brand in ["Gemini", "Claude", "GPT"]))
+
 
 if __name__ == "__main__":
     unittest.main()

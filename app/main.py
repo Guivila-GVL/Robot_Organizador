@@ -528,19 +528,28 @@ def start_service_endpoint(service_id: str, open_browser: bool = True):
 
 @app.get("/api/watchdog/status")
 def watchdog_status_endpoint():
-    return get_watchdog_status()
+    import importlib
+    import app.services.watchdog_service as ws
+    importlib.reload(ws)
+    return ws.get_watchdog_status()
 
 @app.post("/api/watchdog/models/move")
 async def move_watchdog_model_endpoint(req: ModelMoveRequest):
-    res = move_model_in_sequence(req.model_name, req.direction)
+    import importlib
+    import app.services.watchdog_service as ws
+    importlib.reload(ws)
+    res = ws.move_model_in_sequence(req.model_name, req.direction)
     if res.get("success"):
-        res["status"] = get_watchdog_status()
+        res["status"] = ws.get_watchdog_status()
     return res
 
 @app.post("/api/watchdog/models/reset")
 async def reset_watchdog_model_endpoint(req: ModelMoveRequest):
-    clear_model_exhausted(req.model_name)
-    return {"success": True, "status": get_watchdog_status()}
+    import importlib
+    import app.services.watchdog_service as ws
+    importlib.reload(ws)
+    ws.clear_model_exhausted(req.model_name)
+    return {"success": True, "status": ws.get_watchdog_status()}
 
 @app.get("/api/tasks/{task_id}/prompt")
 async def get_task_agent_prompt(task_id: int):
