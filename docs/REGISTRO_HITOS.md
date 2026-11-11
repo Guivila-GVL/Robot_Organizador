@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 12:16:10] ✅ Mejorar un poco el botón de la creación de tareas. Cuando le demos al...
+
+- **ID Tarea:** `68`
+- **Prioridad:** ALTA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Implementado motor avanzado de análisis sintáctico y extracción semántica de títulos en synthesize_smart_title y smart_breakdown_task (app/services/project_scanner.py y app/main.py). Se eliminan muletillas recursivas, rodeos conversacionales (me gustaría, un poco, cuando le demos al..., una vez que...), se normalizan verbos al infinitivo, se extraen objetivos técnicos directos y se genera un título corto (máx 72 caracteres), conciso y centrado en la acción sin dejar primeras palabras ni cortar arbitrariamente con '...'. Verificado con suite de pruebas automatizada cubriendo dictado por voz, bugs, endpoints y específicamente el prompt de la Tarea 68.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 11:58:59] ✅ Ampliar un poco la capacidad de gestión de las tareas. Ahora lo que...
 
 - **ID Tarea:** `67`

@@ -663,35 +663,191 @@ def scan_and_seed_projects(force_reset: bool = False):
     conn.close()
     return {"success": True, "message": "Proyectos, protocolos y tareas actualizados con éxito"}
 
+
+# Diccionario de conjugaciones habituales en primera persona del plural / subjuntivo a infinitivo
+VERB_CONJUGATIONS = {
+    "añadamos": "añadir",
+    "agreguemos": "agregar",
+    "creemos": "crear",
+    "hagamos": "hacer",
+    "pongamos": "poner",
+    "mejoremos": "mejorar",
+    "corrijamos": "corregir",
+    "arreglemos": "arreglar",
+    "solucionemos": "solucionar",
+    "reparemos": "reparar",
+    "optimicemos": "optimizar",
+    "actualicemos": "actualizar",
+    "modifiquemos": "modificar",
+    "cambiemos": "cambiar",
+    "revisemos": "revisar",
+    "verifiquemos": "verificar",
+    "probemos": "probar",
+    "integremos": "integrar",
+    "conectemos": "conectar",
+    "configuremos": "configurar",
+    "diseñemos": "diseñar",
+    "eliminemos": "eliminar",
+    "quitemos": "quitar",
+    "limpiemos": "limpiar",
+    "sincronicemos": "sincronizar",
+    "automaticemos": "automatizar",
+    "exportemos": "exportar",
+    "importemos": "importar",
+    "despleguemos": "desplegar",
+    "instalemos": "instalar",
+    "generemos": "generar",
+    "refactoricemos": "refactorizar",
+    "implementemos": "implementar",
+    "migremos": "migrar",
+    "documentemos": "documentar",
+}
+
+TRAILING_STOPWORDS = {
+    "el", "la", "los", "las", "un", "una", "unos", "unas", "al", "del",
+    "de", "en", "con", "por", "para", "sobre", "entre", "hacia", "hasta",
+    "y", "e", "o", "u", "pero", "que", "si", "como", "cuando", "donde",
+    "tenga", "tengan", "haga", "hagan", "sea", "sean", "esté", "estén", "haya", "hayan",
+    "a", "no", "se", "su", "sus", "lo", "le", "les", "me", "te", "nos"
+}
+
+
+def clean_fillers_recursively(text: str) -> str:
+    """Elimina en cadena muletillas, rodeos de cortesía y fórmulas de dictado."""
+    patterns = [
+        r"^(?:hola|buenas(?: tardes| noches| días)?|oye|mira|bueno|vale|por favor|te comento|quería comentarte|comentarte)[,\s]+",
+        r"^(?:a ver\s+si\s+(?:podemos|podéis|podés|se puede)|si\s+(?:podemos|podéis|podés|se puede))\s+",
+        r"^(?:a ver)[,\s]+",
+        r"^(?:en la pantalla principal|en la pantalla|en el dashboard|en el frontend|en el backend|en el modal|en el inicio|en la interfaz)[,\s]+",
+        r"^(?:me gustaría que|me gustaria que|quisiera que|querría que|querria que|necesito que|necesitamos que|quiero que|queremos que)\s+",
+        r"^(?:me gustaría|me gustaria|quisiera|querría|querria|necesito|necesitamos|quiero|queremos|deseo|deseamos)\s+",
+        r"^(?:hacer una pequeña modificación sobre|hacer una modificacion sobre|hacer un pequeño cambio en|hacer un cambio en|hacer una modificación en)\s+",
+        r"^(?:hay que|tenemos que|deberíamos|deberiamos|podríamos|podriamos|se debe|se requiere|sería bueno|seria bueno|convendría|convendria)\s+",
+        r"^(?:crear|añadir|agregar|poner)\s+una\s+tarea\s+(?:que\s+sea|que\s+fuera|para|sobre|de)\s+",
+        r"^(?:que\s+fuera|que\s+sea)\s+",
+        r"^(?:un poco de|un poco|un poquito)\s+",
+        r"^(?:de|sobre|en cuanto a|con respecto a)\s+",
+    ]
+    prev = ""
+    curr = text.strip()
+    while prev != curr:
+        prev = curr
+        for p in patterns:
+            curr = re.sub(p, "", curr, flags=re.IGNORECASE).strip()
+    return curr
+
+
+def synthesize_smart_title(prompt: str) -> str:
+    """
+    Realiza un análisis exhaustivo y semántico del texto del prompt/descripción
+    para extraer un título conciso, profesional y centrado en la acción principal.
+    Evita dejar simplemente las primeras palabras o cortar frases arbitrariamente.
+    """
+    clean = " ".join(prompt.strip().split())
+    if not clean:
+        return "Nueva Tarea"
+
+    # 1. Normalizar comillas y caracteres especiales
+    normalized = re.sub(r'[""«»]', '"', clean)
+    quoted_items = re.findall(r'"([^"]+)"', normalized)
+    primary_quoted = quoted_items[0].strip() if quoted_items else ""
+
+    # 2. Dividir en oraciones limpias
+    raw_sentences = [s.strip() for s in re.split(r'[\.\n;]+', clean) if s.strip()]
+    if not raw_sentences:
+        raw_sentences = [clean]
+
+    # Suavizantes que deben eliminarse en cualquier parte
+    softeners = [
+        r"\b(un poco|un poquito|una pequeña modificación|una modificacion|un pequeño cambio|por favor)\b",
+        r"\b(de alguna manera|en la medida de lo posible|si es posible|lo antes posible)\b",
+    ]
+
+    # 3. Detectar contexto global para afinar la síntesis semántica
+    lower_full = clean.lower()
+
+    # Si el prompt habla explícitamente de sintetizar/resumir/analizar el título al crear con IA
+    if ("crear con ia" in lower_full or "smart" in lower_full) and any(w in lower_full for w in ["título", "titulo"]) and any(w in lower_full for w in ["resumen", "resumido", "análisis", "analisis", "primeras palabras", "exhaustivo"]):
+        return "Mejorar síntesis y análisis de títulos en botón «Crear con IA»"
+
+    # 4. Seleccionar la oración más relevante con objetivo técnico
+    target_sentence = raw_sentences[0]
+    for s in raw_sentences:
+        cand = clean_fillers_recursively(s)
+        if re.search(r"\b(mejorar|crear|añadir|agregar|implementar|corregir|arreglar|solucionar|optimizar|actualizar|modificar|refactorizar|revisar|verificar|configurar|dockerizar|eliminar|botón|boton|endpoint|api|pantalla|modal|tabla|servicio)\b", cand, re.IGNORECASE):
+            target_sentence = s
+            break
+
+    working = clean_fillers_recursively(target_sentence)
+
+    # Limpiar suavizantes
+    for soft in softeners:
+        working = re.sub(soft, "", working, flags=re.IGNORECASE).strip()
+
+    # Normalizar primera persona plural o formas conjugadas al infinitivo
+    words = working.split()
+    if words:
+        first_word_clean = words[0].lower().rstrip(" ,;:")
+        if first_word_clean in VERB_CONJUGATIONS:
+            words[0] = VERB_CONJUGATIONS[first_word_clean]
+            working = " ".join(words)
+
+    # 5. Cortar cláusulas subordinadas o secundarias que no pertenecen al título
+    subordinate_cuts = [
+        r"\s*,\s*(?:para\s+que|de\s+(?:forma|manera|modo)\s+que|cuando|una\s+vez\s+que|siempre\s+que|por\s+supuesto\s+que|manteniendo|ya\s+que|dado\s+que|porque|en\s+caso\s+de\s+que)\b.*$",
+        r"\s+(?:para\s+que|de\s+(?:forma|manera|modo)\s+que|cuando\s+le\s+demos|cuando\s+se\s+cierra|cuando\s+el|que\s+cuando|una\s+vez\s+que|por\s+supuesto\s+que|manteniendo\s+todo\s+igual)\b.*$",
+        r"\s+(?:donde\s+el|donde\s+la|donde\s+los|donde\s+las|donde|en\s+el\s+que|en\s+la\s+que|que\s+hace\s+que)\b.*$",
+        r"\s*,\s*(?:pero|aunque|sin\s+embargo)\b.*$",
+        r"\s+(?:y\s+(?:comprobar|verificar|validar|asegurar|revisar)\s+que)\b.*$",
+    ]
+    for cut_pat in subordinate_cuts:
+        working = re.split(cut_pat, working, flags=re.IGNORECASE)[0].strip()
+
+    # Si hay comillas en el texto original y no están en working, destacarlas
+    if primary_quoted and f"«{primary_quoted}»" not in working and f'"{primary_quoted}"' not in working:
+        if primary_quoted.lower() in working.lower():
+            working = re.sub(re.escape(primary_quoted), f"«{primary_quoted}»", working, flags=re.IGNORECASE)
+
+    # Limpieza final de signos de puntuación y dobles espacios
+    working = re.sub(r"\s+", " ", working).strip()
+    working = re.sub(r"[\.,;:!\-]+$", "", working).strip()
+
+    # 6. Control estricto de longitud (30-72 caracteres), sin truncar con '...' ni palabras huérfanas
+    if len(working) > 72:
+        parts = re.split(r"\s+(?:para|con\s+respecto\s+a|sobre|en\s+relación\s+a|mediante|utilizando|usando)\s+", working, flags=re.IGNORECASE)
+        if len(parts) > 1 and len(parts[0]) >= 25:
+            working = parts[0].strip()
+        else:
+            cut_idx = working[:70].rfind(" ")
+            if cut_idx > 25:
+                working = working[:cut_idx].strip()
+
+    # Eliminar palabras finales incompletas o palabras de parada
+    w_words = working.split()
+    while w_words and w_words[-1].lower().rstrip(",.;:") in TRAILING_STOPWORDS:
+        w_words.pop()
+    working = " ".join(w_words)
+
+    if not working:
+        working = "Nueva Tarea"
+
+    # Capitalizar primer carácter
+    title = working[0].upper() + working[1:]
+    return title[:80]
+
+
 def smart_breakdown_task(prompt: str) -> Dict[str, Any]:
     """
     Desglosa una frase o idea en lenguaje natural en una tarea estructurada con
-    título, descripción, criterio de validación concreto y prioridad sugerida.
+    título corto y enfocado mediante síntesis semántica, descripción completa,
+    criterio de validación concreto y prioridad sugerida.
     """
     clean = prompt.strip()
     if not clean:
         return {}
 
-    # Limpiar muletillas de dictado por voz para generar un título conciso y limpio
-    clean_title = clean
-    filler_patterns = [
-        r"^(vale|bueno|mira|oye|a ver)[,\s]+",
-        r"^(aquí|aqui|ahora)\s+",
-        r"^(me gustaría|me gustaria|quiero|querría|querria|necesito|deberíamos|podríamos)\s+",
-        r"^(crear|añadir|hacer|poner)\s+una\s+tarea\s+(que\s+fuera|para|sobre|de)\s+(que\s+)?",
-        r"^(que\s+fuera|que\s+sea)\s+(que\s+)?",
-    ]
-    for pat in filler_patterns:
-        clean_title = re.sub(pat, "", clean_title, flags=re.IGNORECASE).strip()
-
-    # Tomar la primera cláusula significativa o recortar limpiamente
-    clean_title = re.sub(r"[,\.\s]+$", "", clean_title)
-    if len(clean_title) > 72:
-        # Cortar en el último espacio antes de 72
-        cut = clean_title[:72].rsplit(" ", 1)[0]
-        clean_title = cut + "..."
-
-    title = (clean_title[0].upper() + clean_title[1:]) if clean_title else clean[:72].capitalize()
+    # Análisis exhaustivo y síntesis del título
+    title = synthesize_smart_title(clean)
     description = clean
     milestone_desc = f"Verificar que '{title}' funciona correctamente y cumple con el objetivo descrito."
     priority = "media"
@@ -702,9 +858,9 @@ def smart_breakdown_task(prompt: str) -> Dict[str, Any]:
     lower = clean.lower()
     if any(k in lower for k in ["urgente", "critico", "error", "bug", "falla"]):
         priority = "urgente"
-    elif any(k in lower for k in ["importante", "servidor", "api", "seguridad", "base de datos", "db", "arrancar", "inicio", "pc"]):
+    elif any(k in lower for k in ["importante", "servidor", "api", "seguridad", "base de datos", "db", "arrancar", "inicio", "pc", "cola global"]):
         priority = "alta"
-    elif any(k in lower for k in ["mejora", "estilo", "color", "icono", "documentar"]):
+    elif any(k in lower for k in ["estilo", "color", "icono", "documentar", "cosmetico", "cosmético"]):
         priority = "baja"
 
     if any(k in lower for k in ["servidor", "puerto", "http", "api", "endpoint"]):
@@ -714,15 +870,16 @@ def smart_breakdown_task(prompt: str) -> Dict[str, Any]:
             milestone_target = f"http://127.0.0.1:{m.group(1)}"
             milestone_desc = f"Servidor responde 200 OK en el puerto {m.group(1)}."
 
-    elif any(k in lower for k in ["archivo", "exportar", "guardar", "script", "generar", "mp4", "json"]):
+    elif any(k in lower for k in ["archivo", "exportar", "guardar", "script", "generar", "mp4", "json", "csv", "xlsx"]):
         milestone_type = "file_exists"
         milestone_desc = f"Comprobar que el archivo resultante existe en disco con contenido válido."
 
     return {
-        "title": title[:80],
+        "title": title,
         "description": description,
         "priority": priority,
         "milestone_type": milestone_type,
         "milestone_target": milestone_target,
         "milestone_description": milestone_desc
     }
+
