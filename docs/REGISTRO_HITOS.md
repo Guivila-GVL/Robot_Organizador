@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 11:25:25] ✅ La tarea va a ser añadir lo de la consola de seguimiento de la...
+
+- **ID Tarea:** `62`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Se integró la consola de actividad y seguimiento en vivo como columna lateral derecha permanente en index.html, eliminando el botón superior y el modal emergente con pestañas. Se añadió visor de avance en tiempo real para el proyecto y tarea seleccionada (porcentaje, paso actual, barra animada de gradiente, motor y tiempo transcurrido), integración de telemetría ESIOS e indicador de cola global, además de terminal CMD con filtros dinámicos (Todos, Proyecto, Runner) y auto-scroll.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 09:26:12] ✅ La tarea sería añadir o mejorar el proceso de reporte en Telegram....
 
 - **ID Tarea:** `42`

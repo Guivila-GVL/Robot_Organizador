@@ -163,7 +163,7 @@ def check_and_complete_task(
             queue_order = CASE WHEN ? = 'completed' THEN 0 ELSE queue_order END,
             completed_at = CASE WHEN ? = 'completed' THEN ? ELSE NULL END
         WHERE id = ?
-    """, (new_status, result_text, image_path, new_status, new_status, new_status, new_step, new_status, new_status, now, task_id))
+    """, (new_status, result_text, image_path, new_status, new_status, new_status, new_step, new_status, new_status, new_status, now, task_id))
 
     # Añadir comentario a la bitácora
     cursor.execute("""

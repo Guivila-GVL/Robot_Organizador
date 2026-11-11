@@ -74,6 +74,17 @@ def update_project_docs(project_folder: str, project_name: str, task: dict, mile
 
 def sync_onenote_project(project_id: str) -> Dict[str, Any]:
     try:
+        import importlib
+        if "app.services.milestone_checker" in sys.modules:
+            importlib.reload(sys.modules["app.services.milestone_checker"])
+        if "app.main" in sys.modules and "app.services.milestone_checker" in sys.modules:
+            sys.modules["app.main"].check_and_complete_task = sys.modules["app.services.milestone_checker"].check_and_complete_task
+        if "app.services.queue_runner" in sys.modules and "app.services.milestone_checker" in sys.modules:
+            sys.modules["app.services.queue_runner"].check_and_complete_task = sys.modules["app.services.milestone_checker"].check_and_complete_task
+    except Exception as _e:
+        logger.warning(f"Aviso al recargar milestone_checker: {_e}")
+
+    try:
         py_exe = ONENOTE_VENV_PYTHON if os.path.exists(ONENOTE_VENV_PYTHON) else sys.executable
         if not os.path.exists(ONENOTE_SYNC_SCRIPT):
             return {"success": False, "error": f"No se encontró el script de OneNote en {ONENOTE_SYNC_SCRIPT}"}

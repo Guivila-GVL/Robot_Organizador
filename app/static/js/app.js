@@ -54,13 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Service & Watchdog polling every 8s + live progress refresh
-  loadCmdTelemetry();
+  // Service & Watchdog polling every 8s + live activity console polling
+  updateActivityConsole();
+  setInterval(updateActivityConsole, 1800);
+
   setInterval(() => {
     loadServices();
     loadWatchdogStatus();
     refreshGlobalQueueBadge();
-    loadCmdTelemetry();
 
     const gqModal = document.getElementById('globalQueueModal');
     if (gqModal && gqModal.classList.contains('open')) {
@@ -471,6 +472,7 @@ function selectProject(projectId) {
   });
 
   loadTasks(projectId);
+  updateActivityConsole();
 }
 
 async function rescanProjects() {
@@ -543,6 +545,7 @@ async function loadTasks(projectId, silent = false) {
     updateTaskCounters();
     updateBannerProgress();
     renderTasksList();
+    updateActivityConsole();
   } catch (err) {
     if (!silent) showToast('Error al cargar tareas', 'error');
   }
@@ -1554,32 +1557,29 @@ async function stopGlobalQueueNow() {
 }
 
 // --------------------------------------------------------------------------
-// CENTRO DE CONTROL DE TAREAS Y CONSOLA CMD EN SEGUNDO PLANO
+// CONSOLA LATERAL DE ACTIVIDAD & SEGUIMIENTO EN VIVO EN LA PÁGINA PRINCIPAL
 // --------------------------------------------------------------------------
-let cmdMonitorInterval = null;
-let currentCmdTab = 'tab-esios';
+state.consoleFilter = 'all';
+state.telemetry = null;
+let activityConsoleTicks = 0;
 
-function openCmdMonitorModal() {
-  const modal = document.getElementById('cmdMonitorModal');
-  if (!modal) return;
-  modal.classList.add('open');
-  loadCmdTelemetry();
-  if (cmdMonitorInterval) clearInterval(cmdMonitorInterval);
-  cmdMonitorInterval = setInterval(loadCmdTelemetry, 1500);
+function setConsoleFilter(filter) {
+  state.consoleFilter = filter;
+  document.querySelectorAll('.console-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
+  });
+  renderConsoleTerminal();
 }
 
-function switchCmdTab(tabId) {
-  currentCmdTab = tabId;
-  document.querySelectorAll('.cmd-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
-  });
-  document.querySelectorAll('.cmd-tab-content').forEach(content => {
-    content.classList.toggle('active', content.id === tabId);
-  });
+function clearActivityTerminal() {
+  const terminal = document.getElementById('liveActivityTerminal');
+  if (terminal) {
+    terminal.innerHTML = '<div class="terminal-line placeholder">Consola limpiada por el usuario.</div>';
+  }
 }
 
 function clearConsoleView(terminalId) {
-  const terminal = document.getElementById(terminalId);
+  const terminal = document.getElementById(terminalId) || document.getElementById('liveActivityTerminal');
   if (terminal) {
     terminal.innerHTML = '<div class="terminal-line placeholder">Consola limpiada por el usuario.</div>';
   }
@@ -1607,7 +1607,7 @@ async function startService(serviceId) {
     if (data.success) {
       showToast(`${data.name || serviceId} iniciado en segundo plano`, 'success');
       loadServices();
-      loadCmdTelemetry();
+      updateActivityConsole();
     } else {
       showToast(data.error || `No se pudo iniciar ${serviceId}`, 'error');
     }
@@ -1617,7 +1617,7 @@ async function startService(serviceId) {
 }
 
 async function triggerEsiosSync() {
-  const btn = document.getElementById('btnTriggerEsiosSync');
+  const btn = document.getElementById('btnEsiosQuickSync');
   if (btn) {
     btn.disabled = true;
     btn.innerHTML = '<span class="btn-icon">⏳</span> Iniciando...';
@@ -1627,221 +1627,354 @@ async function triggerEsiosSync() {
     const data = await res.json();
     if (data.success) {
       showToast(data.message || 'Sincronización de energía iniciada', 'success');
-      loadCmdTelemetry();
-      setTimeout(loadCmdTelemetry, 500);
-      setTimeout(loadCmdTelemetry, 1500);
+      updateActivityConsole();
+      setTimeout(updateActivityConsole, 600);
+      setTimeout(updateActivityConsole, 1800);
     } else {
       showToast(data.error || 'No se pudo iniciar la sincronización', 'error');
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<span class="btn-icon">▶️</span> Iniciar Sincronización';
+        btn.innerHTML = '▶️ Iniciar Sincronización';
       }
     }
   } catch (err) {
     showToast('Error conectando con el servicio ESIOS', 'error');
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<span class="btn-icon">▶️</span> Iniciar Sincronización';
+      btn.innerHTML = '▶️ Iniciar Sincronización';
     }
   }
 }
 
-async function loadCmdTelemetry() {
+function formatElapsedSeconds(sec) {
+  const m = Math.floor(sec / 60).toString().padStart(2, '0');
+  const s = (sec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+async function updateActivityConsole() {
+  activityConsoleTicks++;
   try {
     const res = await fetch('/api/services/monitor');
     if (!res.ok) return;
     const data = await res.json();
     if (!data.success) return;
 
+    state.telemetry = data;
     const esios = data.esios || {};
     const robot = data.robot || {};
-    const services = data.services || [];
-
-    // Nav Dot
-    const navDot = document.getElementById('cmdNavDot');
-    if (navDot) {
-      if (esios.status === 'running' || (robot.runner && robot.runner.running)) {
-        navDot.className = 'cmd-nav-dot running';
-      } else if (esios.online) {
-        navDot.className = 'cmd-nav-dot online';
-      } else {
-        navDot.className = 'cmd-nav-dot offline';
-      }
-    }
-
-    // Tab Dot ESIOS
-    const tabDotEsios = document.getElementById('tabDotEsios');
-    if (tabDotEsios) {
-      tabDotEsios.className = 'cmd-tab-dot ' + (esios.status === 'running' ? 'running' : (esios.online ? 'online' : ''));
-    }
-
-    // ESIOS Tab Elements
-    const badge = document.getElementById('cmdEsiosBadge');
-    if (badge) {
-      if (esios.status === 'running') {
-        badge.className = 'cmd-status-badge running';
-        badge.textContent = '⚡ EN EJECUCIÓN';
-      } else if (esios.status === 'completed') {
-        badge.className = 'cmd-status-badge online';
-        badge.textContent = '✅ AL DÍA / LISTO';
-      } else if (esios.status === 'failed') {
-        badge.className = 'cmd-status-badge stopped';
-        badge.textContent = '❌ ERROR / FALLIDO';
-      } else if (esios.online) {
-        badge.className = 'cmd-status-badge';
-        badge.textContent = '⚪ EN ESPERA / PARADO';
-      } else {
-        badge.className = 'cmd-status-badge stopped';
-        badge.textContent = '🔴 APAGADO (PUERTO :8050)';
-      }
-    }
-
-    const syncBtn = document.getElementById('btnTriggerEsiosSync');
-    if (syncBtn) {
-      if (esios.status === 'running') {
-        syncBtn.disabled = true;
-        syncBtn.innerHTML = '<span class="btn-icon">⏳</span> Sincronizando...';
-      } else if (esios.status === 'failed') {
-        syncBtn.disabled = false;
-        syncBtn.innerHTML = '<span class="btn-icon">🔄</span> Reintentar Sincronización';
-      } else {
-        syncBtn.disabled = false;
-        syncBtn.innerHTML = '<span class="btn-icon">▶️</span> Iniciar Sincronización';
-      }
-    }
-
-    const stepEl = document.getElementById('cmdEsiosCurrentStep');
-    if (stepEl) stepEl.textContent = esios.current_step || 'Inactivo';
-
-    const taskEl = document.getElementById('cmdEsiosTaskName');
-    if (taskEl) taskEl.textContent = `Tarea activa: ${esios.current_task_name || 'Ninguna'}`;
-
-    const pctEl = document.getElementById('cmdEsiosPct');
-    const barFill = document.getElementById('cmdEsiosBarFill');
-    const pctVal = esios.progress || 0;
-    if (pctEl) pctEl.textContent = `${pctVal}%`;
-    if (barFill) barFill.style.width = `${pctVal}%`;
-
-    const elapsedEl = document.getElementById('cmdEsiosElapsed');
-    if (elapsedEl) {
-      const sec = esios.elapsed_time || 0;
-      const m = Math.floor(sec / 60).toString().padStart(2, '0');
-      const s = (sec % 60).toString().padStart(2, '0');
-      elapsedEl.textContent = `${m}:${s}`;
-    }
-
-    const etaEl = document.getElementById('cmdEsiosEta');
-    if (etaEl) etaEl.textContent = esios.eta_text || '--';
-
-    const tasksEl = document.getElementById('cmdEsiosTasks');
-    if (tasksEl) {
-      const comp = esios.completed_tasks || 0;
-      const total = esios.total_tasks || 86;
-      tasksEl.textContent = `${comp} / ${total}`;
-    }
-
-    const addedEl = document.getElementById('cmdEsiosAdded');
-    if (addedEl) addedEl.textContent = `+${esios.total_added || 0}`;
-
-    // Logs ESIOS
-    const terminalEsios = document.getElementById('cmdEsiosTerminal');
-    const logCountEl = document.getElementById('cmdEsiosLogCount');
-    const autoScroll = document.getElementById('cmdEsiosAutoScroll')?.checked ?? true;
-
-    if (terminalEsios) {
-      if (esios.logs && esios.logs.length > 0) {
-        if (logCountEl) logCountEl.textContent = `${esios.logs.length} líneas`;
-        terminalEsios.innerHTML = esios.logs.map(line => {
-          let cls = 'terminal-line';
-          if (line.includes('ERROR') || line.includes('Falló') || line.includes('❌')) cls += ' error';
-          else if (line.includes('--- Iniciando') || line.includes('Descargando') || line.includes('▶') || line.includes('🔌')) cls += ' info';
-          else if (line.includes('completada') || line.includes('éxito') || line.includes('✅')) cls += ' success';
-          return `<div class="${cls}">${escapeHtml(line)}</div>`;
-        }).join('');
-        if (autoScroll) {
-          terminalEsios.scrollTop = terminalEsios.scrollHeight;
-        }
-      } else {
-        if (logCountEl) logCountEl.textContent = '0 líneas';
-        terminalEsios.innerHTML = '<div class="terminal-line placeholder">Esperando logs del proceso ESIOS...</div>';
-      }
-    }
-
-    // Robot Tab Elements
     const runner = robot.runner || {};
-    const runnerBadge = document.getElementById('cmdRobotRunnerBadge');
-    if (runnerBadge) {
-      if (runner.running) {
-        runnerBadge.className = 'cmd-status-badge running';
-        runnerBadge.textContent = '⚡ EN EJECUCIÓN';
+
+    // 1. Badge en vivo de la cabecera
+    const liveBadge = document.getElementById('activityLiveBadge');
+    if (liveBadge) {
+      if (runner.running || esios.status === 'running') {
+        liveBadge.className = 'activity-live-badge running';
+        liveBadge.innerHTML = '⚡ Ejecutando';
       } else {
-        runnerBadge.className = 'cmd-status-badge';
-        runnerBadge.textContent = '⚪ EN ESPERA';
+        liveBadge.className = 'activity-live-badge online';
+        liveBadge.innerHTML = '🟢 En Vivo';
       }
     }
 
-    const runnerModel = document.getElementById('cmdRobotRunnerModel');
-    if (runnerModel) {
-      runnerModel.textContent = runner.current_model ? `Motor: ${runner.current_model}` : 'Motor: Dinámico Multi-Motor';
-    }
+    // 2. Actualizar tarjeta de seguimiento del proyecto / tarea seleccionada
+    renderSelectedTrackingCard(data);
 
-    const runnerTask = document.getElementById('cmdRobotRunnerTask');
-    if (runnerTask) {
-      if (runner.running && runner.current_task_title) {
-        runnerTask.innerHTML = `<b>Tarea activa:</b> #${runner.current_task_id} — ${escapeHtml(runner.current_task_title)}`;
-      } else {
-        runnerTask.textContent = runner.last_log || 'Sin tarea activa en ejecución autónoma';
+    // 3. Renderizar consola de logs con filtros
+    renderConsoleTerminal();
+
+    // 4. Si hay una tarea en progreso en el proyecto activo, refrescar tareas periódicamente
+    if (activityConsoleTicks % 2 === 0 && state.activeProjectId) {
+      const hasActive = (state.tasks || []).some(t => t.status === 'in_progress');
+      if (hasActive || runner.running) {
+        const activeTag = document.activeElement ? document.activeElement.tagName : '';
+        const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag);
+        if (!isTyping) {
+          loadTasks(state.activeProjectId, true);
+        }
       }
     }
+  } catch (err) {
+    console.warn('Error actualizando consola de actividad lateral:', err);
+  }
+}
 
-    const terminalRobot = document.getElementById('cmdRobotTerminal');
-    const robotAutoScroll = document.getElementById('cmdRobotAutoScroll')?.checked ?? true;
-    const srvLogs = robot.server_logs || [];
-    const runLogs = (runner.history || []);
-    const combinedSet = [...srvLogs];
-    runLogs.forEach(rl => {
-      if (!combinedSet.includes(rl)) combinedSet.push(rl);
-    });
-    const robotLogs = combinedSet.slice(-60);
-    const robotLogCount = document.getElementById('cmdRobotLogCount');
-    if (terminalRobot && robotLogs.length > 0) {
-      if (robotLogCount) robotLogCount.textContent = `${robotLogs.length} líneas`;
-      terminalRobot.innerHTML = robotLogs.map(l => {
-        let cls = 'terminal-line';
-        if (l.includes('ERROR') || l.includes('⚠️') || l.includes('❌')) cls += ' error';
-        else if (l.includes('[RUNNER]') || l.includes('[PROGRESO]') || l.includes('🚀') || l.includes('📊') || l.includes('⏳')) cls += ' info';
-        else if (l.includes('200 OK') || l.includes('✅') || l.includes('🟢')) cls += ' success';
-        return `<div class="${cls}">${escapeHtml(l)}</div>`;
-      }).join('');
-      if (robotAutoScroll) {
-        terminalRobot.scrollTop = terminalRobot.scrollHeight;
-      }
+function renderSelectedTrackingCard(data) {
+  const projIconEl = document.getElementById('sidebarProjIcon');
+  const projNameEl = document.getElementById('sidebarProjName');
+  const projCatEl = document.getElementById('sidebarProjCategory');
+  const projBadgeEl = document.getElementById('sidebarProjBadge');
+  const progressAreaEl = document.getElementById('sidebarProgressArea');
+  const globalWorkerNoticeEl = document.getElementById('globalWorkerNotice');
+  const globalWorkerTaskInfoEl = document.getElementById('globalWorkerTaskInfo');
+
+  if (!progressAreaEl) return;
+
+  const currentProject = state.projects.find(p => p.id === state.activeProjectId);
+  if (!currentProject) {
+    if (projIconEl) projIconEl.textContent = '📁';
+    if (projNameEl) projNameEl.textContent = 'Selecciona un Proyecto';
+    if (projCatEl) projCatEl.textContent = 'General';
+    if (projBadgeEl) projBadgeEl.textContent = '0 tareas';
+    progressAreaEl.innerHTML = '<div class="selected-idle-state">Elige un proyecto del menú izquierdo para ver cómo avanza su actividad en tiempo real.</div>';
+    if (globalWorkerNoticeEl) globalWorkerNoticeEl.style.display = 'none';
+    return;
+  }
+
+  // Identidad del proyecto
+  if (projIconEl) projIconEl.textContent = currentProject.icon || '📁';
+  if (projNameEl) projNameEl.textContent = currentProject.name || 'Proyecto';
+  if (projCatEl) projCatEl.textContent = currentProject.category || 'General';
+
+  const esios = data.esios || {};
+  const robot = data.robot || {};
+  const runner = robot.runner || {};
+
+  const isEsiosProject = currentProject.id === 'actualizador_esios' ||
+                         currentProject.folder_name === '2026_Proyecto_Energia_Graficos' ||
+                         (currentProject.port && currentProject.port === 8050) ||
+                         (currentProject.name && currentProject.name.toLowerCase().includes('energía'));
+
+  // A. Si el proyecto seleccionado es ESIOS (Ingesta de Energía)
+  if (isEsiosProject) {
+    const isRunning = esios.status === 'running';
+    let statusClass = 'online';
+    let statusLabel = '✅ Listo / Al día';
+    if (isRunning) {
+      statusClass = 'running';
+      statusLabel = '⚡ Sincronizando';
+    } else if (esios.status === 'failed') {
+      statusClass = 'stopped';
+      statusLabel = '❌ Error';
+    } else if (!esios.online) {
+      statusClass = 'stopped';
+      statusLabel = '🔴 Servicio Apagado';
     }
 
-    // Ecosystem Tab
-    const ecoGrid = document.getElementById('cmdEcosystemGrid');
-    if (ecoGrid && services.length > 0) {
-      ecoGrid.innerHTML = services.map(s => `
-        <div class="cmd-eco-card">
-          <div class="cmd-eco-info">
-            <span class="cmd-eco-icon">${s.icon || '🌐'}</span>
-            <div class="cmd-eco-details">
-              <h5>${escapeHtml(s.name)}</h5>
-              <p>Puerto :${s.port} • <span style="color:${s.is_online ? '#34d399' : '#94a3b8'}">${s.is_online ? 'En línea' : 'Inactivo'}</span></p>
-            </div>
+    if (projBadgeEl) {
+      projBadgeEl.textContent = isRunning ? '⚡ Ingesta Activa' : '86 Tareas ESIOS';
+      projBadgeEl.className = isRunning ? 'badge badge-accent' : 'badge';
+    }
+
+    const pct = esios.progress || (isRunning ? 20 : (esios.status === 'completed' ? 100 : 0));
+    const elapsedStr = formatElapsedSeconds(esios.elapsed_time || 0);
+
+    progressAreaEl.innerHTML = `
+      <div class="esios-live-card">
+        <div class="esios-live-header">
+          <span class="cmd-status-badge ${statusClass}">${statusLabel}</span>
+          <button type="button" class="btn btn-xs btn-primary" id="btnEsiosQuickSync" onclick="triggerEsiosSync()" ${isRunning ? 'disabled' : ''}>
+            ${isRunning ? '⏳ Sincronizando...' : '▶️ Iniciar Sincronización'}
+          </button>
+        </div>
+        <div class="active-task-step-row">
+          <span class="active-task-step">${escapeHtml(esios.current_step || 'En espera de órdenes')}</span>
+          <span class="active-task-pct">${pct}%</span>
+        </div>
+        <div class="active-task-bar-bg">
+          <div class="active-task-bar-fill" style="width: ${pct}%;"></div>
+        </div>
+        <div class="esios-metrics-mini-grid">
+          <div><label>Transcurrido</label> <strong>${elapsedStr}</strong></div>
+          <div><label>ETA</label> <strong>${esios.eta_text || '--'}</strong></div>
+          <div><label>Tareas</label> <strong>${esios.completed_tasks || 0}/${esios.total_tasks || 86}</strong></div>
+          <div><label>Añadidos</label> <strong style="color:#10b981;">+${esios.total_added || 0}</strong></div>
+        </div>
+      </div>
+    `;
+  }
+  // B. Proyecto estándar con tareas
+  else {
+    const tasks = state.tasks || [];
+    const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
+    const runnerMatchesProject = runner.running && (
+      runner.current_project_name === currentProject.name ||
+      tasks.some(t => t.id === runner.current_task_id)
+    );
+
+    // Si hay una tarea en curso en este proyecto
+    if (runnerMatchesProject || inProgressTasks.length > 0) {
+      const activeTask = inProgressTasks.find(t => runner.current_task_id && t.id === runner.current_task_id) ||
+                         inProgressTasks[0] ||
+                         { id: runner.current_task_id, title: runner.current_task_title, progress_pct: 35, current_step: runner.last_log };
+
+      const pct = activeTask.progress_pct || 15;
+      const stepText = activeTask.current_step || (runnerMatchesProject && runner.last_log ? runner.last_log : 'Ejecutando tarea en segundo plano...');
+      const modelName = runnerMatchesProject ? (runner.current_model || 'Motor Autónomo') : 'Agente Antigravity';
+
+      let elapsedStr = '';
+      if (runnerMatchesProject && runner.started_at) {
+        try {
+          const startMs = new Date(runner.started_at).getTime();
+          const diffSec = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+          elapsedStr = formatElapsedSeconds(diffSec);
+        } catch (_) {}
+      }
+
+      if (projBadgeEl) {
+        projBadgeEl.textContent = inProgressTasks.length > 1 ? `${inProgressTasks.length} en curso` : '⚡ En progreso';
+        projBadgeEl.className = 'badge badge-accent';
+      }
+
+      progressAreaEl.innerHTML = `
+        <div class="active-task-live-card">
+          <div class="active-task-header-row">
+            <span class="badge badge-accent">#${activeTask.id}</span>
+            <strong class="active-task-title" title="${escapeHtml(activeTask.title)}">${escapeHtml(activeTask.title)}</strong>
           </div>
-          <div>
-            ${s.is_online
-              ? `<button class="btn btn-xs btn-primary" onclick="openServiceUrl('${s.url}')">Abrir</button>`
-              : (s.can_autostart ? `<button class="btn btn-xs btn-secondary" onclick="startService('${s.id}')">Arrancar</button>` : `<button class="btn btn-xs btn-outline" disabled>Inactivo</button>`)
-            }
+          <div class="active-task-step-row">
+            <span class="active-task-step">${escapeHtml(stepText)}</span>
+            <span class="active-task-pct">${pct}%</span>
+          </div>
+          <div class="active-task-bar-bg">
+            <div class="active-task-bar-fill" style="width: ${pct}%;"></div>
+          </div>
+          <div class="active-task-meta-row">
+            <span>🤖 ${escapeHtml(modelName)}</span>
+            ${elapsedStr ? `<span>⏱️ ${elapsedStr}</span>` : `<span>⚡ Activo</span>`}
           </div>
         </div>
-      `).join('');
+      `;
     }
+    // Si no hay tarea en curso
+    else {
+      const pendingTasks = tasks.filter(t => t.status === 'pending');
+      const completedTasks = tasks.filter(t => t.status === 'completed');
+      const nextPending = pendingTasks[0];
 
-  } catch (err) {
-    console.warn('Error cargando telemetría CMD:', err);
+      if (projBadgeEl) {
+        projBadgeEl.textContent = `${tasks.length} tareas`;
+        projBadgeEl.className = 'badge';
+      }
+
+      progressAreaEl.innerHTML = `
+        <div class="project-idle-card">
+          <div class="idle-status-row">
+            <span class="idle-badge">⚪ En espera de ejecución</span>
+            <span class="idle-task-stats">${pendingTasks.length} pendientes · ${completedTasks.length} listas</span>
+          </div>
+          ${nextPending ? `
+            <div class="next-task-box">
+              <span class="next-task-label">Siguiente tarea pendiente:</span>
+              <div class="next-task-content" title="${escapeHtml(nextPending.title)}">
+                <strong>#${nextPending.id}</strong> — ${escapeHtml(nextPending.title)}
+              </div>
+            </div>
+          ` : `
+            <div class="all-completed-note">🎉 ¡Todas las tareas de este proyecto han sido completadas!</div>
+          `}
+        </div>
+      `;
+    }
+  }
+
+  // Aviso si el worker de la cola global está ejecutando OTRA tarea de OTRO proyecto
+  if (runner.running && !isEsiosProject && runner.current_project_name && runner.current_project_name !== currentProject.name) {
+    if (globalWorkerNoticeEl) {
+      globalWorkerNoticeEl.style.display = 'flex';
+      if (globalWorkerTaskInfoEl) {
+        globalWorkerTaskInfoEl.textContent = `#${runner.current_task_id || 0} (${runner.current_project_name})`;
+        globalWorkerTaskInfoEl.title = runner.current_task_title || '';
+      }
+    }
+  } else {
+    if (globalWorkerNoticeEl) {
+      globalWorkerNoticeEl.style.display = 'none';
+    }
+  }
+}
+
+function renderConsoleTerminal() {
+  const terminal = document.getElementById('liveActivityTerminal');
+  const logCountEl = document.getElementById('activityLogCount');
+  const autoScroll = document.getElementById('activityAutoScroll')?.checked ?? true;
+  if (!terminal) return;
+
+  const data = state.telemetry || {};
+  const robot = data.robot || {};
+  const runner = robot.runner || {};
+  const esios = data.esios || {};
+
+  const srvLogs = robot.server_logs || [];
+  const runLogs = runner.history || [];
+  const esiosLogs = esios.logs || [];
+
+  // Combinación y orden cronológico
+  const combined = [];
+  const seen = new Set();
+
+  [...srvLogs, ...runLogs].forEach(l => {
+    const trimmed = l.trim();
+    if (trimmed && !seen.has(trimmed)) {
+      seen.add(trimmed);
+      combined.push(trimmed);
+    }
+  });
+
+  const currentProject = state.projects.find(p => p.id === state.activeProjectId);
+  const activeTaskIds = (state.tasks || []).map(t => `#${t.id}`);
+  const filter = state.consoleFilter || 'all';
+
+  let filtered = combined;
+  if (filter === 'project') {
+    if (currentProject) {
+      const projName = currentProject.name.toLowerCase();
+      const projFolder = (currentProject.folder_name || '').toLowerCase();
+      filtered = combined.filter(l => {
+        const lower = l.toLowerCase();
+        return lower.includes(projName) ||
+               (projFolder && lower.includes(projFolder)) ||
+               activeTaskIds.some(tid => l.includes(tid)) ||
+               l.includes('[PROGRESO]') ||
+               l.includes('[TAREA]') ||
+               l.includes('[HITO]');
+      });
+      if (projFolder.includes('energia') || projName.includes('energía') || currentProject.id === 'actualizador_esios') {
+        filtered = [...filtered, ...esiosLogs].slice(-70);
+      }
+    }
+  } else if (filter === 'runner') {
+    filtered = combined.filter(l => (
+      l.includes('[RUNNER]') ||
+      l.includes('[PROGRESO]') ||
+      l.includes('[TAREA]') ||
+      l.includes('[HITO]') ||
+      l.includes('🚀') ||
+      l.includes('📊') ||
+      l.includes('Gemini') ||
+      l.includes('Claude') ||
+      l.includes('Worker')
+    ));
+  }
+
+  const finalLogs = filtered.slice(-80);
+  if (logCountEl) {
+    logCountEl.textContent = `${finalLogs.length} líneas`;
+  }
+
+  if (finalLogs.length === 0) {
+    terminal.innerHTML = '<div class="terminal-line placeholder">No hay eventos para el filtro seleccionado. Esperando actividad...</div>';
+    return;
+  }
+
+  terminal.innerHTML = finalLogs.map(line => {
+    let cls = 'terminal-line';
+    if (line.includes('ERROR') || line.includes('❌') || line.includes('Falló') || line.includes('⚠️')) {
+      cls += ' error';
+    } else if (line.includes('[HITO]') || line.includes('✅') || line.includes('200 OK') || line.includes('completada') || line.includes('🟢')) {
+      cls += ' success';
+    } else if (line.includes('[RUNNER]') || line.includes('[PROGRESO]') || line.includes('⚡') || line.includes('▶️')) {
+      cls += ' info';
+    } else if (line.includes('[TAREA]') || line.includes('🚀')) {
+      cls += ' purple';
+    } else if (line.includes('[ESIOS]') || line.includes('🔋')) {
+      cls += ' orange';
+    }
+    return `<div class="${cls}">${escapeHtml(line)}</div>`;
+  }).join('');
+
+  if (autoScroll) {
+    terminal.scrollTop = terminal.scrollHeight;
   }
 }
 
@@ -1886,9 +2019,11 @@ window.stopGlobalQueueNow = stopGlobalQueueNow;
 window.openModelsModal = openModelsModal;
 window.renderModelsModal = renderModelsModal;
 window.moveModelSequence = moveModelSequence;
-window.openCmdMonitorModal = openCmdMonitorModal;
-window.switchCmdTab = switchCmdTab;
+window.clearActivityTerminal = clearActivityTerminal;
 window.clearConsoleView = clearConsoleView;
+window.setConsoleFilter = setConsoleFilter;
+window.updateActivityConsole = updateActivityConsole;
+window.loadCmdTelemetry = updateActivityConsole;
 window.openServiceUrl = openServiceUrl;
 window.triggerEsiosSync = triggerEsiosSync;
 window.startService = startService;
