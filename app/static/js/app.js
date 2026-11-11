@@ -951,9 +951,9 @@ async function submitTaskCompletion() {
     const data = await res.json();
     if (data.success) {
       closeModal('checkModal');
-      showToast('¡Tarea completada y enviada a Telegram con éxito!', 'success');
+      showToast('¡Tarea completada y enviada a Telegram! (Sincronizando OneNote y Git en 2º plano)', 'success');
+      await loadProjects();
       await loadTasks(state.activeProjectId);
-      renderProjectsList(projectSearchEl.value.toLowerCase());
       refreshGlobalQueueBadge();
     }
   } catch (err) {
@@ -1319,8 +1319,14 @@ async function saveTaskProgress() {
     const data = await res.json();
     if (data.success) {
       closeModal('progressModal');
-      showToast(`Progreso actualizado (${pct}%)`, 'success');
+      if (data.auto_completed || pct >= 100) {
+        showToast('¡Tarea al 100% completada automáticamente y enviada a Telegram!', 'success');
+      } else {
+        showToast(`Progreso actualizado (${pct}%)`, 'success');
+      }
+      await loadProjects();
       await loadTasks(state.activeProjectId);
+      refreshGlobalQueueBadge();
     }
   } catch (err) {
     showToast('Error al guardar el avance', 'error');

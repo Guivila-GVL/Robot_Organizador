@@ -222,6 +222,28 @@ def update_task_progress(
     new_pct = task["progress_pct"] if progress_pct is None else max(0, min(100, int(progress_pct)))
     new_step = task["current_step"] if current_step is None else current_step.strip()
 
+    # Si llega al 100% y aún no estaba completada, cerrar automáticamente con el protocolo completo
+    if new_pct >= 100 and task["status"] != "completed":
+        conn.close()
+        note_part = f" · {note.strip()[:80]}" if note and note.strip() else ""
+        log_activity("PROGRESO", f"📊 #{task_id} ({author}) [100%] {new_step}{note_part} -> Disparando cierre automático")
+        from app.services.milestone_checker import check_and_complete_task
+        final_comment = (note.strip() if note and note.strip() else "") or new_step or "Tarea completada al 100%."
+        res = check_and_complete_task(
+            task_id=task_id,
+            comment=final_comment,
+            force_status="completed"
+        )
+        return {
+            "success": True,
+            "task_id": task_id,
+            "status": "completed",
+            "progress_pct": 100,
+            "current_step": "✅ Completada y verificada con protocolo",
+            "auto_completed": True,
+            "protocol": res.get("protocol", {})
+        }
+
     new_status = "in_progress" if task["status"] == "pending" and new_pct > 0 else task["status"]
 
     cursor.execute("""

@@ -76,11 +76,15 @@ def _build_headless_prompt(task: Dict[str, Any]) -> str:
         f"- Título: {task['title']}\n"
         f"- Descripción: {task.get('description') or task['title']}\n"
         f"- Criterio de éxito: {milestone_info}\n\n"
-        f"Reglas de ejecución:\n"
+        f"Reglas de ejecución obligatorias:\n"
         f"1. Implementa los cambios necesarios en `{folder}` y pruébalos con comandos reales.\n"
-        f"2. Durante la ejecución, reporta avances a `http://127.0.0.1:8002/api/tasks/{task['id']}/progress` "
-        f"(ej. con Python urllib PATCH `{{\"progress_pct\": 60, \"current_step\": \"...\"}}`).\n"
-        f"3. Cuando hayas comprobado que todo funciona, devuelve un resumen técnico conciso de lo realizado y verificado."
+        f"2. IMPORTANTE: NO detengas ni reinicies el servidor FastAPI del puerto 8002 (`pythonw.exe` / `uvicorn` de RobotOrganizador), "
+        f"porque ese proceso aloja el ejecutor de la Cola Global que te está supervisando.\n"
+        f"3. Durante la ejecución, reporta avances parciales (20%, 50%, 80%) a `http://127.0.0.1:8002/api/tasks/{task['id']}/progress` "
+        f"(con Python urllib PATCH `{{\"progress_pct\": 50, \"current_step\": \"...\"}}`).\n"
+        f"4. Al terminar y verificar que todo funciona, CIERRA la tarea llamando por HTTP POST a "
+        f"`http://127.0.0.1:8002/api/tasks/{task['id']}/check` con JSON `{{\"force_status\": \"completed\", \"comment\": \"Resumen técnico de lo realizado y verificado\"}}` "
+        f"y devuelve un resumen conciso."
     )
 
 
