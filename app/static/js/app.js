@@ -1746,7 +1746,7 @@ async function stopGlobalQueueNow() {
 // --------------------------------------------------------------------------
 // CONSOLA LATERAL DE ACTIVIDAD & SEGUIMIENTO EN VIVO EN LA PÁGINA PRINCIPAL
 // --------------------------------------------------------------------------
-state.consoleFilter = 'all';
+state.consoleFilter = 'project';
 state.trackingMode = 'queue';
 state.sidebarTopTab = 'queue';
 state.consoleSelectedProject = 'active';
@@ -1803,6 +1803,7 @@ function goToConsoleSelectedProject() {
 }
 
 function setConsoleFilter(filter) {
+  if (filter === 'all') filter = 'project';
   state.consoleFilter = filter;
   document.querySelectorAll('.console-filter-btn').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-filter') === filter);
@@ -1811,17 +1812,14 @@ function setConsoleFilter(filter) {
   const contextLabel = document.getElementById('terminalContextLabel');
   const pickerWrap = document.getElementById('terminalProjectPickerWrap');
 
-  if (filter === 'all') {
-    if (contextLabel) contextLabel.textContent = '🌐 Flujo unificado: Servidor, Runner y Adquisición ESIOS';
-    if (pickerWrap) pickerWrap.style.display = 'none';
-  } else if (filter === 'project') {
-    if (contextLabel) contextLabel.textContent = '📁 Filtrando por Proyecto:';
+  if (filter === 'project') {
+    if (contextLabel) contextLabel.textContent = '📁 Actividad del Proyecto:';
     if (pickerWrap) pickerWrap.style.display = 'flex';
   } else if (filter === 'esios') {
-    if (contextLabel) contextLabel.textContent = '🔋 Stream en vivo: Ingesta ESIOS (:8050 · TimescaleDB)';
+    if (contextLabel) contextLabel.textContent = '⚡ Stream en vivo: Ingesta ESIOS (:8050 · TimescaleDB)';
     if (pickerWrap) pickerWrap.style.display = 'none';
   } else if (filter === 'runner') {
-    if (contextLabel) contextLabel.textContent = '🤖 Logs del Worker Autónomo y Cola Global';
+    if (contextLabel) contextLabel.textContent = '🤖 Runner Autónomo & Cola Global';
     if (pickerWrap) pickerWrap.style.display = 'none';
   }
 
@@ -1972,13 +1970,30 @@ function renderSelectedTrackingCard(data) {
   // Sincronizar selectores desplegables de proyectos para filtro de consola
   if (consoleProjectFilterSelect && state.projects && state.projects.length > 0) {
     const activeProjName = currentProject ? currentProject.name : 'Actual';
-    const expectedCount = state.projects.length + 1;
-    if (consoleProjectFilterSelect.options.length !== expectedCount) {
-      let opts = `<option value="active" ${state.consoleSelectedProject === 'active' ? 'selected' : ''}>📌 Activo (${escapeHtml(activeProjName)})</option>`;
-      opts += state.projects.map(p =>
-        `<option value="${p.id}" ${state.consoleSelectedProject === p.id ? 'selected' : ''}>${p.icon} ${escapeHtml(p.name)}</option>`
-      ).join('');
+    const curVal = state.consoleSelectedProject || 'active';
+    const robot = data.robot || {};
+    const runner = robot.runner || {};
+    const services = data.services || [];
+
+    let opts = `<option value="active" ${curVal === 'active' ? 'selected' : ''}>📌 Activo (${escapeHtml(activeProjName)})</option>`;
+    opts += state.projects.map(p => {
+      const isOnline = services.some(s => s.is_online && (s.id === p.id || (s.port && s.port === p.port)));
+      const isRunningTask = runner.running && runner.current_project_name && (
+        runner.current_project_name.toLowerCase().includes(p.name.toLowerCase()) ||
+        p.name.toLowerCase().includes(runner.current_project_name.toLowerCase())
+      );
+      let statusIndicator = '';
+      if (isRunningTask) {
+        statusIndicator = ' ⚡ [Ejecutando]';
+      } else if (isOnline) {
+        statusIndicator = ' 🟢 [En línea]';
+      }
+      return `<option value="${p.id}" ${curVal === p.id ? 'selected' : ''}>${p.icon} ${escapeHtml(p.name)}${statusIndicator}</option>`;
+    }).join('');
+
+    if (consoleProjectFilterSelect.innerHTML !== opts) {
       consoleProjectFilterSelect.innerHTML = opts;
+      consoleProjectFilterSelect.value = curVal;
     }
   }
 
@@ -2107,9 +2122,9 @@ function renderConsoleTerminal() {
     pushLine(tagged);
   });
 
-  const currentProject = state.projects.find(p => p.id === state.activeProjectId);
+  const currentProject = (state.projects || []).find(p => p.id === state.activeProjectId);
   const activeTaskIds = (state.tasks || []).map(t => `#${t.id}`);
-  const filter = state.consoleFilter || 'all';
+  const filter = (state.consoleFilter === 'all' || !state.consoleFilter) ? 'project' : state.consoleFilter;
 
   let filtered = combined;
 
@@ -2117,19 +2132,65 @@ function renderConsoleTerminal() {
     const targetProjId = (state.consoleSelectedProject && state.consoleSelectedProject !== 'active')
       ? state.consoleSelectedProject
       : state.activeProjectId;
-    const targetProject = state.projects.find(p => p.id === targetProjId) || currentProject;
+    const targetProject = (state.projects || []).find(p => p.id === targetProjId) || currentProject;
 
     if (targetProject) {
-      const projName = targetProject.name.toLowerCase();
+      const projName = (targetProject.name || '').toLowerCase();
       const projFolder = (targetProject.folder_name || '').toLowerCase();
-      const isTargetEsios = projFolder.includes('energia') || projName.includes('energía') || targetProject.id === 'actualizador_esios' || targetProject.id === 'energia_graficos';
+      const projId = (targetProject.id || '').toLowerCase();
+      const isTargetEsios = projFolder.includes('energia') || projName.includes('energía') || projId === 'actualizador_esios' || projId === 'energia_graficos';
+
+      // Comprobar si el Runner está ejecutando una tarea de este proyecto
+      const runnerProjName = (runner.current_project_name || '').toLowerCase();
+      const isRunnerOnThisProj = runner.running && (
+        (runnerProjName && (runnerProjName.includes(projName) || projName.includes(runnerProjName))) ||
+        (targetProject.id === state.activeProjectId && runner.current_task_id) ||
+        (runner.current_task_id && activeTaskIds.some(tid => tid.replace('#', '') === String(runner.current_task_id)))
+      );
+
+      // Comprobar si el servicio local asociado al proyecto está en línea
+      const matchingService = (data.services || []).find(s => s.id === targetProject.id || (s.port && s.port === targetProject.port));
+      const isServiceOnline = matchingService ? matchingService.is_online : false;
+
+      // Actualizar etiqueta contextual de seguimiento con lo que está funcionando en el proyecto
+      const contextLabel = document.getElementById('terminalContextLabel');
+      if (contextLabel) {
+        if (isRunnerOnThisProj) {
+          const shortTitle = (runner.current_task_title || '').slice(0, 26);
+          contextLabel.textContent = `⚡ Runner: #${runner.current_task_id} ${shortTitle}${shortTitle.length >= 26 ? '...' : ''}`;
+          contextLabel.title = `Runner autónomo ejecutando tarea #${runner.current_task_id}: ${runner.current_task_title || ''}`;
+        } else if (isServiceOnline) {
+          contextLabel.textContent = `🟢 En línea (:${matchingService.port || targetProject.port})`;
+          contextLabel.title = `Servicio activo en puerto :${matchingService.port || targetProject.port}`;
+        } else {
+          contextLabel.textContent = `📁 Actividad: ${targetProject.name}`;
+          contextLabel.title = `Filtrando por ${targetProject.name}`;
+        }
+      }
 
       filtered = combined.filter(l => {
         const lower = l.toLowerCase();
-        return lower.includes(projName) ||
-               (projFolder && lower.includes(projFolder)) ||
-               activeTaskIds.some(tid => l.includes(tid)) ||
-               l.includes(`[${targetProject.name}]`);
+        // Coincidencia por nombre o carpeta del proyecto
+        if (lower.includes(projName) || (projFolder && lower.includes(projFolder)) || lower.includes(`[${targetProject.name.toLowerCase()}]`)) {
+          return true;
+        }
+        // Coincidencia por ID de tarea del proyecto
+        if (activeTaskIds.some(tid => l.includes(tid))) {
+          return true;
+        }
+        // Si el Runner está trabajando activamente en este proyecto, incluir toda la actividad de ejecución
+        if (isRunnerOnThisProj && (
+          l.includes('[RUNNER]') ||
+          l.includes('[PROGRESO]') ||
+          l.includes('[PROTOCOLO]') ||
+          l.includes('[HITO]') ||
+          l.includes('Gemini') ||
+          l.includes('Claude') ||
+          (runner.current_task_id && l.includes(`#${runner.current_task_id}`))
+        )) {
+          return true;
+        }
+        return false;
       });
 
       if (isTargetEsios) {
@@ -2138,12 +2199,26 @@ function renderConsoleTerminal() {
 
       if (filtered.length === 0) {
         filtered = [
-          `[PROYECTO: ${targetProject.name}] En espera de actividad.`,
+          `[PROYECTO: ${targetProject.name}] ${isServiceOnline ? '🟢 Servicio en ejecución.' : 'En espera de actividad.'}`,
           `📁 Carpeta: ${targetProject.folder_name || 'N/A'} · Puerto: ${targetProject.port ? `:${targetProject.port}` : 'N/A'}`
         ];
+        if (isRunnerOnThisProj) {
+          filtered.push(`⚡ Runner autónomo activo procesando tarea #${runner.current_task_id}: ${runner.current_task_title || ''}`);
+        }
       }
     }
   } else if (filter === 'esios') {
+    const contextLabel = document.getElementById('terminalContextLabel');
+    if (contextLabel) {
+      if (esios.status === 'running') {
+        contextLabel.textContent = `⚡ Ingesta ESIOS en curso (${esios.completed_tasks || 0}/${esios.total_tasks || 86})`;
+      } else if (esios.online) {
+        contextLabel.textContent = `🟢 ESIOS :8050 en línea · TimescaleDB`;
+      } else {
+        contextLabel.textContent = `🔴 ESIOS apagado (:8050)`;
+      }
+    }
+
     filtered = esiosLogs.map(l => l.trim()).filter(Boolean);
     if (filtered.length === 0) {
       if (!esios.online) {
@@ -2159,11 +2234,21 @@ function renderConsoleTerminal() {
       }
     }
   } else if (filter === 'runner') {
+    const contextLabel = document.getElementById('terminalContextLabel');
+    if (contextLabel) {
+      if (runner.running) {
+        contextLabel.textContent = `⚡ Runner: Tarea #${runner.current_task_id} (${runner.current_model || 'IA'})`;
+      } else {
+        contextLabel.textContent = `🟢 Runner autónomo en espera`;
+      }
+    }
+
     filtered = combined.filter(l => (
       l.includes('[RUNNER]') ||
       l.includes('[PROGRESO]') ||
       l.includes('[TAREA]') ||
       l.includes('[HITO]') ||
+      l.includes('[PROTOCOLO]') ||
       l.includes('🚀') ||
       l.includes('📊') ||
       l.includes('Gemini') ||

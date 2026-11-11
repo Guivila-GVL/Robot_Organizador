@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [11/11/2026 15:31:13] ✅ En la parte de terminal, igual a la derecha, en la parte del robot, esto que pon
+
+- **ID Tarea:** `81`
+- **Prioridad:** MEDIA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Sección de actividad simplificada con éxito: 1) Cabecera renombrada a ACTIVIDAD. 2) Filtro Todas eliminado. 3) Filtros reconfigurados limpiamente a ESIOS (sin icono de pila), Proyecto y Runners. 4) Filtro Proyecto optimizado con detección dinámica de servicios online y ejecución activa del runner, mostrando el estado en la sub-barra contextual y opciones desplegables con indicadores de estado.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen y 02. Listado de Actividades)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 15:21:09] ✅ En la parte de arriba de Consola & Actividad hay unos botones
 
 - **ID Tarea:** `80`
