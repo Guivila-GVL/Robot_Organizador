@@ -1190,44 +1190,14 @@ async function createSmartTask() {
     return;
   }
 
+  // Se crea directamente como una sola tarea atómica y estructurada para todos los proyectos,
+  // sin proponer desglose automático de subtareas al crear nuevas tareas.
+  // La división en subtareas de tareas complejas se realiza bajo demanda mediante 'Desglosar'.
   try {
-    showToast('Analizando alcance y complejidad con IA...', 'info');
-    let analysis = null;
-    try {
-      const res = await fetch('/api/tasks/analyze-decomposition', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          project_id: state.activeProjectId,
-          prompt: prompt
-        })
-      });
-      if (res.ok) {
-        analysis = await res.json();
-      }
-    } catch (e) {
-      // Backend route not available, will fallback to client-side
-    }
-
-    if (!analysis || typeof analysis.is_complex === 'undefined') {
-      analysis = analyzeDecompositionInClient(prompt, false);
-    }
-
-    if (analysis && analysis.is_complex && analysis.subtasks && analysis.subtasks.length > 1) {
-      openDecompositionModal({
-        projectId: state.activeProjectId,
-        originalPrompt: prompt,
-        parentTaskId: null,
-        reason: analysis.reason,
-        subtasks: analysis.subtasks
-      });
-      return;
-    }
-
     await executeSingleSmartCreate(prompt);
   } catch (err) {
-    console.error('Error en análisis de tarea, creando directa:', err);
-    await executeSingleSmartCreate(prompt);
+    console.error('Error al crear tarea:', err);
+    showToast('Error al crear la tarea', 'error');
   }
 }
 
@@ -1628,6 +1598,15 @@ function openTaskModal(task = null) {
   document.getElementById('formMilestoneType').value = task ? task.milestone_type : 'manual';
   document.getElementById('formMilestoneTarget').value = task ? task.milestone_target : '';
   document.getElementById('formMilestoneDesc').value = task ? task.milestone_description : '';
+
+  const btnModalDecomp = document.getElementById('btnModalDecompose');
+  if (btnModalDecomp) {
+    btnModalDecomp.style.display = task ? 'inline-block' : 'none';
+    btnModalDecomp.onclick = () => {
+      closeModal('taskModal');
+      openDecomposeModalForTask(task.id);
+    };
+  }
 
   taskModal.classList.add('open');
 }

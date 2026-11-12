@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [12/11/2026 19:32:48] ✅ Permitir dividir tareas complejas en subtareas
+
+- **ID Tarea:** `142`
+- **Prioridad:** ALTA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Implementado y verificado: la creación de tareas genera directamente una sola tarea atómica y estructurada para todos los proyectos sin proponer desglose automático de subtareas al inicio. El desglose en subtareas queda habilitado bajo demanda (on-demand) para tareas complejas mediante el botón Desglosar en tarjetas y modal de tarea. 11 pruebas unitarias y de integración pasando exitosamente.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Actividades y 03. Siguientes Pasos)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [12/11/2026 18:54:00] ✅ Mejorar síntesis y análisis de títulos en botón «Crear con IA»
 
 - **ID Tarea:** `140`

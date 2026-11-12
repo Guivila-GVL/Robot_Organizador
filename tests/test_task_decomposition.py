@@ -117,6 +117,7 @@ class TestTaskDecomposition(unittest.TestCase):
             self.assertIn('id="decompSubtasksList"', html)
             self.assertIn('id="btnDecompCreateSubtasks"', html)
             self.assertIn('id="btnDecompSingleTask"', html)
+            self.assertIn('id="btnModalDecompose"', html)
 
         with urllib.request.urlopen("http://127.0.0.1:8002/static/js/app.js") as resp:
             js = resp.read().decode("utf-8")
@@ -124,6 +125,94 @@ class TestTaskDecomposition(unittest.TestCase):
             self.assertIn("submitDecompositionCreate", js)
             self.assertIn("openDecomposeModalForTask", js)
             self.assertIn("analyzeDecompositionInClient", js)
+            self.assertIn("executeSingleSmartCreate", js)
+            # Ensure createSmartTask delegates directly to executeSingleSmartCreate without proposing modal decomposition
+            self.assertIn("await executeSingleSmartCreate(prompt);", js)
+
+    def test_smart_create_endpoint_creates_single_task(self):
+        # Test that smart-create creates exactly one single task
+        payload = json.dumps({
+            "project_id": "gestion_proyectos",
+            "prompt": "1. Crear endpoint A. 2. Implementar servicio B. 3. Validar con tests."
+        }).encode("utf-8")
+        req = urllib.request.Request("http://127.0.0.1:8002/api/tasks/smart-create", data=payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(data.get("success"))
+            new_id = data.get("task_id")
+            self.assertIsNotNone(new_id)
+
+        # Verify in DB it is a single atomic task, not subtask
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("SELECT * FROM tasks WHERE id = ?", (new_id,))
+        task = c.fetchone()
+        self.assertIsNotNone(task)
+        self.assertEqual(task["is_subtask"], 0)
+        self.assertIsNone(task["parent_task_id"])
+
+        # Clean up
+        c.execute("DELETE FROM tasks WHERE id = ?", (new_id,))
+        conn.commit()
+        conn.close()
+
+    def test_decompose_existing_task_api(self):
+        # 1. Create a parent task
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO tasks (project_id, title, description, priority, status, created_at)
+            VALUES ('gestion_proyectos', 'Tarea Compleja Para Desglosar', 'Descripción amplia', 'alta', 'pending', '2026-11-12T19:00:00')
+        """)
+        parent_id = c.lastrowid
+        conn.commit()
+        conn.close()
+
+        # 2. Call analyze-breakdown endpoint for this task
+        req_an = urllib.request.Request(f"http://127.0.0.1:8002/api/tasks/{parent_id}/analyze-breakdown", data=b"{}", headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req_an) as resp:
+            an_data = json.loads(resp.read().decode("utf-8"))
+            self.assertEqual(an_data.get("task_id"), parent_id)
+            self.assertGreaterEqual(len(an_data.get("subtasks", [])), 1)
+
+        # 3. Call decompose endpoint
+        decompose_payload = json.dumps({
+            "project_id": "gestion_proyectos",
+            "parent_task_id": parent_id,
+            "original_prompt": "Tarea Compleja Para Desglosar",
+            "archive_parent": True,
+            "subtasks": [
+                {"title": "Subtarea Fase 1", "description": "Fase inicial", "priority": "alta", "milestone_type": "manual", "milestone_description": "Validar fase 1"},
+                {"title": "Subtarea Fase 2", "description": "Fase secundaria", "priority": "media", "milestone_type": "manual", "milestone_description": "Validar fase 2"}
+            ]
+        }).encode("utf-8")
+        req_dec = urllib.request.Request("http://127.0.0.1:8002/api/tasks/decompose", data=decompose_payload, headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req_dec) as resp:
+            dec_data = json.loads(resp.read().decode("utf-8"))
+            self.assertTrue(dec_data.get("success"))
+            self.assertEqual(dec_data.get("created_count"), 2)
+            sub_ids = dec_data.get("task_ids")
+
+        # 4. Verify parent is completed/archived and subtasks are linked
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("SELECT * FROM tasks WHERE id = ?", (parent_id,))
+        p = c.fetchone()
+        self.assertEqual(p["status"], "completed")
+        self.assertIn("Desglosada en 2 subtareas", p["current_step"])
+
+        c.execute("SELECT * FROM tasks WHERE parent_task_id = ?", (parent_id,))
+        subs = c.fetchall()
+        self.assertEqual(len(subs), 2)
+        for st in subs:
+            self.assertEqual(st["is_subtask"], 1)
+            self.assertEqual(st["parent_task_id"], parent_id)
+
+        # Cleanup
+        all_ids = [parent_id] + list(sub_ids)
+        c.execute(f"DELETE FROM tasks WHERE id IN ({','.join('?' for _ in all_ids)})", all_ids)
+        conn.commit()
+        conn.close()
 
 
 if __name__ == "__main__":
