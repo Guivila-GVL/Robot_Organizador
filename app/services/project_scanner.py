@@ -1020,7 +1020,8 @@ def _build_atomic_task(prompt: str) -> Dict[str, Any]:
         "priority": priority,
         "milestone_type": milestone_type,
         "milestone_target": milestone_target,
-        "milestone_description": milestone_desc
+        "milestone_description": milestone_desc,
+        "validation": milestone_desc
     }
 
 

@@ -88,12 +88,24 @@ def init_db():
         "launched_at TEXT DEFAULT NULL",
         "notified_stages TEXT DEFAULT ''",
         "parent_task_id INTEGER DEFAULT NULL",
-        "is_subtask BOOLEAN DEFAULT 0"
+        "is_subtask BOOLEAN DEFAULT 0",
+        "validation TEXT DEFAULT ''"
     ]:
         try:
             cursor.execute(f"ALTER TABLE tasks ADD COLUMN {col_def}")
         except sqlite3.OperationalError:
             pass
+
+    # Sincronizar campo validation con milestone_description para tareas existentes
+    try:
+        cursor.execute("""
+            UPDATE tasks 
+            SET validation = milestone_description 
+            WHERE (validation IS NULL OR validation = '') 
+              AND (milestone_description IS NOT NULL AND milestone_description != '')
+        """)
+    except sqlite3.OperationalError:
+        pass
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS comments (

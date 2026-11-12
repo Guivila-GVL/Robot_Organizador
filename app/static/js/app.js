@@ -136,6 +136,12 @@ function initEventListeners() {
   document.getElementById('btnNewTask').addEventListener('click', () => openTaskModal());
   document.getElementById('btnSaveTask').addEventListener('click', saveTask);
 
+  // Launch task modal
+  const btnConfirmLaunch = document.getElementById('btnConfirmLaunch');
+  if (btnConfirmLaunch) {
+    btnConfirmLaunch.addEventListener('click', confirmLaunchTask);
+  }
+
   // Smart Quick Task
   const smartInput = document.getElementById('smartTaskInput');
   const btnSmart = document.getElementById('btnSmartCreateTask');
@@ -749,17 +755,18 @@ function renderTasksList() {
       `;
     }
 
-    // Milestone details HTML
+    // Milestone & Validation details HTML
     let milestoneHtml = '';
-    if (task.milestone_description || task.milestone_result) {
+    const valText = task.validation || task.milestone_description || '';
+    if (valText || task.milestone_result) {
       milestoneHtml = `
         <div class="milestone-box">
           <div class="milestone-header">
-            <span style="font-weight: 600; color: var(--text-white);">🎯 Hito Esperado:</span>
-            <span class="milestone-type-pill">${task.milestone_type.toUpperCase()}</span>
+            <span style="font-weight: 600; color: var(--text-white);">🧪 Validación (Cómo se va a validar):</span>
+            <span class="milestone-type-pill">${(task.milestone_type || 'manual').toUpperCase()}</span>
           </div>
-          <div>${task.milestone_description || task.milestone_target || 'Validación manual'}</div>
-          ${task.milestone_result ? `<div class="milestone-result-text"><b>Resultado:</b> ${task.milestone_result}</div>` : ''}
+          <div class="milestone-val-text">${escapeHtml(valText || task.milestone_target || 'Validación manual')}</div>
+          ${task.milestone_result ? `<div class="milestone-result-text"><b>Resultado:</b> ${escapeHtml(task.milestone_result)}</div>` : ''}
           ${imagePreviewHtml}
         </div>
       `;
@@ -1329,13 +1336,15 @@ async function submitDecompositionCreate() {
       const descInput = document.getElementById(`decomp-desc-${idx}`);
       const prioSelect = document.getElementById(`decomp-prio-${idx}`);
 
+      const valText = st.validation || st.milestone_description || `Verificar que '${titleInput ? titleInput.value.trim() : st.title}' funciona correctamente.`;
       items.push({
         title: titleInput ? titleInput.value.trim() : st.title,
         description: descInput ? descInput.value.trim() : (st.description || ''),
+        validation: valText,
         priority: prioSelect ? prioSelect.value : (st.priority || 'media'),
         milestone_type: st.milestone_type || 'manual',
         milestone_target: st.milestone_target || '',
-        milestone_description: st.milestone_description || `Verificar que '${titleInput ? titleInput.value.trim() : st.title}' funciona correctamente.`
+        milestone_description: valText
       });
     }
   });
@@ -1497,8 +1506,12 @@ async function synthesizeTitleFromModalDesc() {
       if (data.milestone_target) {
         document.getElementById('formMilestoneTarget').value = data.milestone_target;
       }
-      if (data.milestone_description) {
-        document.getElementById('formMilestoneDesc').value = data.milestone_description;
+      if (data.validation || data.milestone_description) {
+        const valText = data.validation || data.milestone_description;
+        const vEl = document.getElementById('formValidation');
+        if (vEl) vEl.value = valText;
+        const mdEl = document.getElementById('formMilestoneDesc');
+        if (mdEl) mdEl.value = valText;
       }
       showToast(`Título sintetizado: "${data.title}"`, 'success');
     }
@@ -1597,7 +1610,10 @@ function openTaskModal(task = null) {
   document.getElementById('formPriority').value = task ? task.priority : 'media';
   document.getElementById('formMilestoneType').value = task ? task.milestone_type : 'manual';
   document.getElementById('formMilestoneTarget').value = task ? task.milestone_target : '';
-  document.getElementById('formMilestoneDesc').value = task ? task.milestone_description : '';
+  const valText = task ? (task.validation || task.milestone_description || '') : '';
+  const formValEl = document.getElementById('formValidation');
+  if (formValEl) formValEl.value = valText;
+  document.getElementById('formMilestoneDesc').value = valText;
 
   const btnModalDecomp = document.getElementById('btnModalDecompose');
   if (btnModalDecomp) {
@@ -1625,7 +1641,9 @@ async function saveTask() {
   const priority = document.getElementById('formPriority').value;
   const milestone_type = document.getElementById('formMilestoneType').value;
   const milestone_target = document.getElementById('formMilestoneTarget').value.trim();
-  const milestone_description = document.getElementById('formMilestoneDesc').value.trim();
+  const formValEl = document.getElementById('formValidation');
+  const validation = formValEl ? formValEl.value.trim() : document.getElementById('formMilestoneDesc').value.trim();
+  const milestone_description = validation;
 
   if (!title) {
     showToast('Por favor introduce un título para la tarea', 'error');
@@ -1636,6 +1654,7 @@ async function saveTask() {
     project_id: state.activeProjectId,
     title,
     description,
+    validation,
     priority,
     milestone_type,
     milestone_target,
@@ -1761,7 +1780,105 @@ function switchFilterTab(filterKey) {
   renderTasksList();
 }
 
-async function launchTask(taskId) {
+function launchTask(taskId, direct = false) {
+  if (direct) {
+    executeDirectLaunch(taskId);
+  } else {
+    openLaunchModal(taskId);
+  }
+}
+
+async function openLaunchModal(taskId) {
+  let task = state.tasks.find(t => t.id === taskId);
+  if (!task && state.activeProjectId) {
+    try {
+      const res = await fetch(`/api/projects/${state.activeProjectId}/tasks`);
+      if (res.ok) {
+        const tasks = await res.json();
+        task = tasks.find(t => t.id === taskId);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  if (!task) {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`);
+      if (res.ok) task = await res.json();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  if (!task) {
+    showToast('Tarea no encontrada', 'error');
+    return;
+  }
+
+  document.getElementById('launchTaskId').value = task.id;
+  document.getElementById('launchTaskTitle').value = task.title || '';
+  document.getElementById('launchTaskPrompt').value = task.description || task.title || '';
+  document.getElementById('launchTaskValidation').value = task.validation || task.milestone_description || '';
+  const prioEl = document.getElementById('launchTaskPriority');
+  if (prioEl) prioEl.value = task.priority || 'media';
+  const mTypeEl = document.getElementById('launchTaskMilestoneType');
+  if (mTypeEl) mTypeEl.value = task.milestone_type || 'manual';
+
+  const modal = document.getElementById('launchModal');
+  if (modal) modal.classList.add('open');
+}
+
+async function confirmLaunchTask() {
+  const taskId = document.getElementById('launchTaskId').value;
+  const title = document.getElementById('launchTaskTitle').value.trim();
+  const description = document.getElementById('launchTaskPrompt').value.trim();
+  const validation = document.getElementById('launchTaskValidation').value.trim();
+  const priority = document.getElementById('launchTaskPriority') ? document.getElementById('launchTaskPriority').value : 'media';
+  const milestone_type = document.getElementById('launchTaskMilestoneType') ? document.getElementById('launchTaskMilestoneType').value : 'manual';
+
+  if (!title) {
+    showToast('El título no puede estar vacío', 'error');
+    return;
+  }
+  if (!description) {
+    showToast('La descripción del prompt no puede estar vacía', 'error');
+    return;
+  }
+  if (!validation) {
+    showToast('Por favor define claramente cómo se va a validar la tarea', 'error');
+    return;
+  }
+
+  const payload = {
+    title,
+    description,
+    validation,
+    milestone_description: validation,
+    priority,
+    milestone_type
+  };
+
+  try {
+    const res = await fetch(`/api/tasks/${taskId}/launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeModal('launchModal');
+      showToast(`🚀 Tarea #${taskId} guardada y subida a la Cola Global (#${data.queue_order || 'en secuencia'})`, 'success');
+      await loadTasks(state.activeProjectId);
+      renderProjectsList(projectSearchEl.value.toLowerCase());
+      await refreshGlobalQueueBadge();
+    } else {
+      showToast(data.error || 'No se pudo lanzar la tarea', 'error');
+    }
+  } catch (err) {
+    showToast('Error al lanzar la tarea', 'error');
+  }
+}
+
+async function executeDirectLaunch(taskId) {
   try {
     const res = await fetch(`/api/tasks/${taskId}/launch`, { method: 'POST' });
     const data = await res.json();
@@ -2731,6 +2848,9 @@ window.handleCommentKey = handleCommentKey;
 window.addComment = addComment;
 window.switchFilterTab = switchFilterTab;
 window.launchTask = launchTask;
+window.openLaunchModal = openLaunchModal;
+window.confirmLaunchTask = confirmLaunchTask;
+window.executeDirectLaunch = executeDirectLaunch;
 window.pauseTask = pauseTask;
 window.openProgressModal = openProgressModal;
 window.setProgressPreset = setProgressPreset;

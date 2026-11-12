@@ -723,20 +723,22 @@ def build_agent_prompt_for_task(task_id: int) -> Dict[str, Any]:
         return {"success": False, "error": "Tarea no encontrada"}
 
     target_info = f"\n- Validación automática ({row['milestone_type']}): `{row['milestone_target']}`" if row["milestone_target"] else ""
-    milestone_desc = row["milestone_description"] or "Funcionamiento validado y sin errores."
+    validation_text = row["validation"] if ("validation" in row.keys() and row["validation"]) else (row["milestone_description"] or "Funcionamiento técnico validado y sin errores.")
 
     prompt = (
         f"Vamos a ejecutar la siguiente tarea del proyecto **{row['project_name']}** (`{row['folder_name']}`):\n\n"
         f"### 🎯 Tarea: {row['title']}\n"
-        f"- **Descripción:** {row['description'] or 'Implementar y verificar la funcionalidad indicada.'}\n"
+        f"- **Descripción / Prompt:** {row['description'] or 'Implementar y verificar la funcionalidad indicada.'}\n"
         f"- **Prioridad:** {row['priority'].upper()}\n"
-        f"- **Criterio de éxito esperado:** {milestone_desc}{target_info}\n\n"
-        f"Al terminar, verifica el funcionamiento técnico y actualiza el estado de la tarea (ID `{row['id']}`) en el Robot Organizador."
+        f"- **Validación (Cómo se va a validar):** {validation_text}{target_info}\n\n"
+        f"Al terminar, verifica el funcionamiento técnico siguiendo la validación definida y actualiza el estado de la tarea (ID `{row['id']}`) en el Robot Organizador."
     )
 
     return {
         "success": True,
         "task_id": row["id"],
         "title": row["title"],
+        "description": row["description"] or "",
+        "validation": validation_text,
         "prompt": prompt
     }

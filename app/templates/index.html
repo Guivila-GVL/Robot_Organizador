@@ -330,8 +330,12 @@
             <input type="text" id="formTitle" required placeholder="Ej: Integrar feedback de Telegram en el flujo">
           </div>
           <div class="form-group">
-            <label for="formDescription">Descripción / Instrucciones</label>
-            <textarea id="formDescription" rows="3" placeholder="Detalles de lo que debe realizarse o validarse..."></textarea>
+            <label for="formDescription">📝 Descripción / Prompt de lo que quiero hacer *</label>
+            <textarea id="formDescription" rows="3" placeholder="Detalles de lo que debe realizarse en el prompt..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="formValidation" style="font-weight:600; color:var(--text-white);">🧪 Validación (Cómo se va a validar) *</label>
+            <textarea id="formValidation" rows="2" placeholder="Especifica claramente cómo se va a validar: comandos reales, archivos, respuestas HTTP o criterios técnicos..."></textarea>
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -354,19 +358,76 @@
             </div>
           </div>
           <div class="form-group" id="milestoneTargetGroup">
-            <label for="formMilestoneTarget">Objetivo de Validación (URL / Archivo / Comando)</label>
+            <label for="formMilestoneTarget">Objetivo Técnico Específico (URL / Archivo / Comando)</label>
             <input type="text" id="formMilestoneTarget" placeholder="Ej: http://127.0.0.1:8001 o app/output.mp4">
           </div>
-          <div class="form-group">
-            <label for="formMilestoneDesc">Criterio de Éxito Esperado</label>
-            <input type="text" id="formMilestoneDesc" placeholder="Ej: El vídeo se reproduce correctamente y el guion tiene audio.">
-          </div>
+          <!-- Campo oculto para compatibilidad con código existente -->
+          <input type="hidden" id="formMilestoneDesc">
         </form>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('taskModal')">Cancelar</button>
         <button type="button" class="btn btn-secondary" id="btnModalDecompose" style="display:none;" title="Desglosar esta tarea compleja en subtareas autónomas">🧩 Desglosar en Subtareas</button>
         <button class="btn btn-primary" id="btnSaveTask">Guardar Tarea</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Preparar y Lanzar Tarea a Ejecución -->
+  <div class="modal-overlay" id="launchModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>🚀 Preparar y Lanzar a Ejecución</h3>
+        <button class="modal-close" onclick="closeModal('launchModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-callout" style="margin-bottom:0.9rem;">
+          <p style="margin:0; font-size:0.88rem; color:var(--text-secondary);">
+            Revisa y afina la estructura de la tarea antes de subirla a la Cola Global de ejecución autónoma:
+          </p>
+        </div>
+        <form id="launchTaskForm">
+          <input type="hidden" id="launchTaskId">
+          <div class="form-group">
+            <label for="launchTaskTitle">Título de la Tarea *</label>
+            <input type="text" id="launchTaskTitle" required placeholder="Ej: Integrar exportador de informes en PDF">
+          </div>
+          <div class="form-group">
+            <label for="launchTaskPrompt">📝 Descripción / Prompt a Ejecutar *</label>
+            <textarea id="launchTaskPrompt" rows="4" required placeholder="Describe con claridad lo que el agente autónomo debe implementar..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="launchTaskValidation" style="font-weight:600; color:var(--text-white);">🧪 Validación (Cómo se va a validar) *</label>
+            <textarea id="launchTaskValidation" rows="3" required placeholder="Define cómo se validará: comandos a ejecutar, tests unitarios, endpoints o archivos resultantes..."></textarea>
+            <p class="field-help" style="margin-top:0.3rem;">Este criterio se entregará explícitamente al agente para comprobar el éxito técnico antes de cerrar.</p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="launchTaskPriority">Prioridad</label>
+              <select id="launchTaskPriority">
+                <option value="baja">Baja</option>
+                <option value="media" selected>Media</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente 🔥</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="launchTaskMilestoneType">Tipo de Verificación</label>
+              <select id="launchTaskMilestoneType">
+                <option value="manual">Manual (Comprobación técnica)</option>
+                <option value="http_200">Servicio HTTP (200 OK)</option>
+                <option value="file_exists">Archivo existe en disco</option>
+                <option value="command_exit_0">Comando terminal (Código 0)</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('launchModal')">Cancelar</button>
+        <button class="btn btn-launch" id="btnConfirmLaunch">
+          <span class="btn-icon">🚀</span> Subir a Ejecución
+        </button>
       </div>
     </div>
   </div>

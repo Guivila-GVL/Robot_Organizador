@@ -88,23 +88,24 @@ def _pick_next_available_model(tried_models: List[str]) -> Optional[Dict[str, An
 
 def _build_headless_prompt(task: Dict[str, Any]) -> str:
     folder = task.get("folder_path") or WORKSPACE_ROOT
-    milestone_info = task.get("milestone_description") or task.get("milestone_target") or "Funcionamiento técnico validado"
+    val_text = task.get("validation") or task.get("milestone_description") or task.get("milestone_target") or "Funcionamiento técnico validado"
+    target_info = f" (Objetivo técnico: `{task['milestone_target']}`)" if task.get("milestone_target") else ""
     return (
         f"Ejecuta de principio a fin la siguiente tarea del proyecto '{task['project_name']}' "
         f"ubicado en `{folder}`:\n\n"
         f"- ID Tarea: {task['id']}\n"
         f"- Título: {task['title']}\n"
-        f"- Descripción: {task.get('description') or task['title']}\n"
-        f"- Criterio de éxito: {milestone_info}\n\n"
+        f"- Descripción / Prompt: {task.get('description') or task['title']}\n"
+        f"- Validación (Cómo se va a validar): {val_text}{target_info}\n\n"
         f"Reglas de ejecución obligatorias:\n"
-        f"1. Implementa los cambios necesarios en `{folder}` y pruébalos con comandos reales.\n"
+        f"1. Implementa los cambios necesarios en `{folder}` y valida el resultado ejecutando pruebas reales acordes a: `{val_text}`.\n"
         f"2. IMPORTANTE: NO detengas ni reinicies el servidor FastAPI del puerto 8002 (`pythonw.exe` / `uvicorn` de RobotOrganizador), "
         f"porque ese proceso aloja el ejecutor de la Cola Global que te está supervisando.\n"
         f"3. Durante la ejecución, reporta avances obligatorios por Telegram a `http://127.0.0.1:8002/api/tasks/{task['id']}/progress` (urllib PATCH):\n"
         f"   - Hito 1 (~20%): {{\"progress_pct\": 20, \"stage\": \"plan\", \"current_step\": \"Ya se ha pensado en cómo implementarlo: [diseño/estrategia]\"}}\n"
         f"   - Hito 2 (~50%): {{\"progress_pct\": 50, \"stage\": \"development\", \"current_step\": \"Comienza el desarrollo: [cambios en código]\"}}\n"
         f"   - Hito 3 (~80%): {{\"progress_pct\": 80, \"stage\": \"validation\", \"current_step\": \"Ha acabado el desarrollo y ahora comienza la validación: [pruebas]\"}}\n"
-        f"4. Al terminar y verificar que todo funciona, CIERRA la tarea llamando por HTTP POST a "
+        f"4. Al terminar y verificar que todo funciona según la validación definida, CIERRA la tarea llamando por HTTP POST a "
         f"`http://127.0.0.1:8002/api/tasks/{task['id']}/check` con JSON `{{\"force_status\": \"completed\", \"comment\": \"Resumen técnico de lo realizado y verificado\"}}` "
         f"y devuelve un resumen conciso."
     )

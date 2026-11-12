@@ -96,6 +96,7 @@ class TaskCreate(BaseModel):
     project_id: str
     title: str
     description: Optional[str] = ""
+    validation: Optional[str] = ""
     priority: Optional[str] = "media"
     milestone_type: Optional[str] = "manual"
     milestone_target: Optional[str] = ""
@@ -106,6 +107,7 @@ class TaskCreate(BaseModel):
 class TaskDecomposeItem(BaseModel):
     title: str
     description: Optional[str] = ""
+    validation: Optional[str] = ""
     priority: Optional[str] = "media"
     milestone_type: Optional[str] = "manual"
     milestone_target: Optional[str] = ""
@@ -125,12 +127,22 @@ class SmartTaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    validation: Optional[str] = None
     priority: Optional[str] = None
     status: Optional[str] = None
     milestone_type: Optional[str] = None
     milestone_target: Optional[str] = None
     milestone_description: Optional[str] = None
     milestone_result: Optional[str] = None
+
+class TaskLaunchRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    validation: Optional[str] = None
+    priority: Optional[str] = None
+    milestone_type: Optional[str] = None
+    milestone_target: Optional[str] = None
+    milestone_description: Optional[str] = None
 
 class CommentCreate(BaseModel):
     text: str
@@ -277,20 +289,24 @@ async def create_task(task_data: TaskCreate):
     cursor.execute("SELECT COALESCE(MAX(order_index), 0) + 1 as next_order FROM tasks WHERE project_id = ?", (task_data.project_id,))
     next_order = cursor.fetchone()["next_order"]
 
+    val_text = (task_data.validation or task_data.milestone_description or "").strip()
+    m_desc = val_text if val_text else (task_data.milestone_description or "")
+
     cursor.execute("""
         INSERT INTO tasks (
-            project_id, title, description, priority, status,
+            project_id, title, description, validation, priority, status,
             milestone_type, milestone_target, milestone_description,
             order_index, parent_task_id, is_subtask, created_at
-        ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)
     """, (
         task_data.project_id,
         task_data.title,
         task_data.description,
+        val_text,
         task_data.priority,
         task_data.milestone_type,
         task_data.milestone_target,
-        task_data.milestone_description,
+        m_desc,
         next_order,
         task_data.parent_task_id,
         1 if task_data.is_subtask else 0,
@@ -309,14 +325,16 @@ async def smart_create_task_endpoint(req: SmartTaskCreate):
     structured = ps.smart_breakdown_task(req.prompt)
     if not structured:
         raise HTTPException(status_code=400, detail="La descripción no puede estar vacía")
+    val_text = structured.get("validation") or structured.get("milestone_description") or ""
     task_obj = TaskCreate(
         project_id=req.project_id,
         title=structured["title"],
         description=structured["description"],
+        validation=val_text,
         priority=structured["priority"],
         milestone_type=structured["milestone_type"],
         milestone_target=structured["milestone_target"],
-        milestone_description=structured["milestone_description"]
+        milestone_description=val_text
     )
     res = await create_task(task_obj)
     if isinstance(res, dict) and res.get("success"):
@@ -365,21 +383,22 @@ async def decompose_task_endpoint(req: TaskDecomposeRequest):
     created_titles = []
     for idx, st in enumerate(req.subtasks):
         current_order += 1
-        m_desc = st.milestone_description or f"Verificar que '{st.title}' funciona correctamente y cumple con el objetivo descrito."
+        val_text = (st.validation or st.milestone_description or f"Verificar que '{st.title}' funciona correctamente y cumple con el objetivo descrito.").strip()
         cursor.execute("""
             INSERT INTO tasks (
-                project_id, title, description, priority, status,
+                project_id, title, description, validation, priority, status,
                 milestone_type, milestone_target, milestone_description,
                 order_index, parent_task_id, is_subtask, created_at
-            ) VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, 1, ?)
+            ) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, 1, ?)
         """, (
             req.project_id,
             st.title,
             st.description or "",
+            val_text,
             st.priority or "media",
             st.milestone_type or "manual",
             st.milestone_target or "",
-            m_desc,
+            val_text,
             current_order,
             req.parent_task_id,
             now
@@ -437,9 +456,15 @@ async def update_task(task_id: int, updates: TaskUpdate):
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    data = updates.dict(exclude_unset=True)
+    if "validation" in data and "milestone_description" not in data:
+        data["milestone_description"] = data["validation"]
+    elif "milestone_description" in data and "validation" not in data:
+        data["validation"] = data["milestone_description"]
+
     fields = []
     values = []
-    for k, v in updates.dict(exclude_unset=True).items():
+    for k, v in data.items():
         fields.append(f"{k} = ?")
         values.append(v)
 
@@ -551,13 +576,43 @@ async def reset_watchdog_model_endpoint(req: ModelMoveRequest):
     ws.clear_model_exhausted(req.model_name)
     return {"success": True, "status": ws.get_watchdog_status()}
 
+@app.get("/api/tasks/{task_id}")
+async def get_task_endpoint(task_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT t.*, p.name as project_name, p.folder_name, p.folder_path
+        FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        WHERE t.id = ?
+    """, (task_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    return dict(row)
+
 @app.get("/api/tasks/{task_id}/prompt")
 async def get_task_agent_prompt(task_id: int):
     return build_agent_prompt_for_task(task_id)
 
 @app.post("/api/tasks/{task_id}/launch")
-async def launch_task_endpoint(task_id: int):
-    return launch_task(task_id)
+async def launch_task_endpoint(task_id: int, req: Optional[TaskLaunchRequest] = None):
+    kwargs = {}
+    if req:
+        if req.title is not None and req.title.strip():
+            kwargs["title"] = req.title.strip()
+        if req.description is not None:
+            kwargs["description"] = req.description.strip()
+        if req.validation is not None:
+            kwargs["validation"] = req.validation.strip()
+        elif req.milestone_description is not None:
+            kwargs["validation"] = req.milestone_description.strip()
+        if req.milestone_type is not None:
+            kwargs["milestone_type"] = req.milestone_type
+        if req.milestone_target is not None:
+            kwargs["milestone_target"] = req.milestone_target.strip()
+    return launch_task(task_id, **kwargs)
 
 @app.post("/api/tasks/{task_id}/pause")
 async def pause_task_endpoint(task_id: int):

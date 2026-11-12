@@ -95,7 +95,14 @@ def sync_execution_queue_file() -> str:
     return QUEUE_FILE
 
 
-def launch_task(task_id: int) -> Dict[str, Any]:
+def launch_task(
+    task_id: int,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+    validation: Optional[str] = None,
+    milestone_type: Optional[str] = None,
+    milestone_target: Optional[str] = None
+) -> Dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM tasks WHERE id = ?", (task_id,))
@@ -115,15 +122,28 @@ def launch_task(task_id: int) -> Dict[str, Any]:
     existing_q = task["queue_order"] if "queue_order" in task.keys() and task["queue_order"] else 0
     final_q = existing_q if (task["status"] == "in_progress" and existing_q > 0) else next_q
 
+    # Actualizar campos editados antes de subir a ejecución (título, prompt/descripción, validación)
+    update_title = title.strip() if title and title.strip() else task["title"]
+    update_desc = description.strip() if description is not None else task["description"]
+    update_val = validation.strip() if validation is not None else (task["validation"] if "validation" in task.keys() and task["validation"] else (task["milestone_description"] or ""))
+    update_mtype = milestone_type if milestone_type else (task["milestone_type"] or "manual")
+    update_mtarget = milestone_target.strip() if milestone_target is not None else (task["milestone_target"] or "")
+
     cursor.execute("""
         UPDATE tasks
-        SET status = 'in_progress',
+        SET title = ?,
+            description = ?,
+            validation = ?,
+            milestone_description = ?,
+            milestone_type = ?,
+            milestone_target = ?,
+            status = 'in_progress',
             progress_pct = ?,
             current_step = ?,
             queue_order = ?,
             launched_at = COALESCE(launched_at, ?)
         WHERE id = ?
-    """, (new_pct, step_text, final_q, now, task_id))
+    """, (update_title, update_desc, update_val, update_val, update_mtype, update_mtarget, new_pct, step_text, final_q, now, task_id))
 
     cursor.execute("""
         INSERT INTO comments (task_id, author, text, created_at)
@@ -133,11 +153,14 @@ def launch_task(task_id: int) -> Dict[str, Any]:
     conn.commit()
     conn.close()
 
-    log_activity("TAREA", f"🚀 #{task_id} lanzada a En Progreso: {task['title'][:70]}")
+    log_activity("TAREA", f"🚀 #{task_id} lanzada a En Progreso: {update_title[:70]}")
     queue_path = sync_execution_queue_file()
     return {
         "success": True,
         "task_id": task_id,
+        "title": update_title,
+        "description": update_desc,
+        "validation": update_val,
         "status": "in_progress",
         "progress_pct": new_pct,
         "queue_order": final_q,

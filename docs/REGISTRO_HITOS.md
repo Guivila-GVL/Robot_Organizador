@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [12/11/2026 21:10:55] ✅ Crear una tarea general para todos los proyectos, para el sistema
+
+- **ID Tarea:** `170`
+- **Prioridad:** ALTA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Implementada de principio a fin la estructura universal de tareas para todos los proyectos con campo de validación técnica dedicado y editable antes de subir a ejecución: 1) Columna validation en base de datos SQLite y sincronización bidireccional retrocompatible con milestone_description; 2) Nuevos modelos y endpoints en FastAPI (TaskLaunchRequest, actualización en create/update/launch y soporte en GET de tareas); 3) Nuevo modal interactivo de preparación de lanzamiento (launchModal) en frontend que permite revisar y editar Título, Prompt a ejecutar y Validación (cómo validar) antes de enviar a la Cola Global; 4) Visualización explícita del bloque de validación técnica en tarjetas de tarea y formulario principal; 5) Formateo estructurado del prompt headless para agentes con instrucción de validación obligatoria; 6) Suite completa de 8 pruebas unitarias y de integración superada exitosamente en tests/test_task_validation_structure.py.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Actividades y 03. Siguientes Pasos)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [12/11/2026 19:32:48] ✅ Permitir dividir tareas complejas en subtareas
 
 - **ID Tarea:** `142`
