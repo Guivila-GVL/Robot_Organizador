@@ -1056,7 +1056,23 @@ function analyzeDecompositionInClient(prompt, forceSplitPhases = false) {
   function synthesizeSubtaskTitle(text) {
     let t = text.replace(prefixCleaner, '').trim();
     if (!t) return 'Subtarea';
-    if (t.length > 80) t = t.substring(0, 80) + '...';
+    // Limpieza de muletillas y rodeos conversacionales
+    const conversationalCleaners = [
+      /^(?:me gustaría que|me gustaria que|quisiera que|necesito que|quiero que)\s+/i,
+      /^(?:cuando vamos a [^,]+,\s*|al darle a [^,]+,\s*)/i,
+      /^(?:por favor,?\s*|oye mira,?\s*|buenas tardes,?\s*)/i,
+      /^(?:crear una tarea para|hacer una tarea para)\s+/i
+    ];
+    for (const pat of conversationalCleaners) {
+      t = t.replace(pat, '').trim();
+    }
+    // Si excede 75 caracteres, cortar en espacio limpio sin '...' roto
+    if (t.length > 75) {
+      const cut = t.substring(0, 72).lastIndexOf(' ');
+      t = cut > 20 ? t.substring(0, cut).trim() : t.substring(0, 72).trim();
+    }
+    // Quitar puntuación terminal o conectores colgados
+    t = t.replace(/[\.,;:!\-]+$/, '').trim();
     return t.charAt(0).toUpperCase() + t.slice(1);
   }
 

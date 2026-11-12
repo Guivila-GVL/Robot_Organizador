@@ -95,6 +95,67 @@ def test_suite():
             "prompt": "Crear exportador de resúmenes en PDF y comprobar que se guarde en /docs.",
             "expected_contains": ["Crear exportador de resúmenes en PDF"],
             "max_len": 72
+        },
+        {
+            "id": "TASK_140_PROMPT",
+            "prompt": (
+                "Cuando vamos a lanzar una tarea, me gustaría que el título fuera un resumen de la descripción que se ha puesto aquí, "
+                "pero que no cogiera las primeras palabras. Eso es una cosa que hay que cambiar, además, para todos los proyectos.  "
+                "Siempre que le dé al botón de crear con IA, que me crea el prompt para hacer toda la tarea y todo esto, el título "
+                "debería analizarse y crearse a partir de un resumen de todo lo que he pedido que se haga."
+            ),
+            "expected_contains": ["Crear con IA", "título"],
+            "max_len": 72
+        },
+        {
+            "id": "TASK_106_PROMPT",
+            "prompt": (
+                "Me gustaría que me abrieras en OneNote un resumen de los paneles que tenemos y las gráficas que tenemos y el detalle "
+                "de cada una de esas gráficas, que me lo listaras un poco para tener claro qué es lo que tenemos en Grafana.  Y luego "
+                "también tenemos un gran trabajo hecho en Power BI. Me gustaría que hicieras lo mismo: tener un listado con una pequeña "
+                "descripción y qué hay dentro de cada uno de los gráficos, tanto de Grafana como de Power BI."
+            ),
+            "expected_contains": ["OneNote", "paneles", "Grafana"],
+            "max_len": 72
+        },
+        {
+            "id": "TASK_105_PROMPT",
+            "prompt": (
+                "Me da la impresión de que aquí en el Watchdog que tenemos de Antigravity no se actualiza perfectamente el tema del "
+                "modelo, del porcentaje que le queda y de cómo están los otros. Lo digo porque me ha llegado varias veces un mensaje "
+                "de que se ha agotado el motor y cambiamos a otro, y sin embargo la página de aquí de seguimiento no refleja que ese "
+                "motor ha disminuido o que ya prácticamente no queda."
+            ),
+            "expected_contains": ["Watchdog", "modelo", "porcentaje"],
+            "max_len": 72
+        },
+        {
+            "id": "TASK_104_PROMPT",
+            "prompt": (
+                "Quiero crear una tarea que sea: debería existir la opción de que, si se pide hacer una tarea que sea extremadamente "
+                "grande, poder dividirla en subtareas y que sean las que realmente aparezcan aquí en el seguimiento.  Es decir, yo puedo "
+                "hacer una frase aquí, crear aquí un esto, pero quizá al dar al botón «Crear con IA» me debería proponer de alguna forma "
+                "dividirlo en subtareas y crear varias si es el caso de que es algo complejo. No sé cómo podríamos plantear eso, pero me "
+                "interesaría pensarlo. No sé cómo lo podrías poner. Quizá hazme una hoja en OneNote con la estrategia de cómo podríamos "
+                "hacerlo, porque por ahora no lo veo.  Entonces, aquí en Robot de Gestión de Proyectos ábreme una hoja en OneNote y "
+                "proponme una estrategia de cómo dividirlo en subtareas cuando yo aquí pida una tarea que quiero hacer, y al comenzarla "
+                "se analice si tiene sentido o no que se divida en varias tareas."
+            ),
+            "expected_contains": ["subtareas"],
+            "max_len": 72
+        },
+        {
+            "id": "TASK_93_PROMPT",
+            "prompt": (
+                "Me gustaría cambiar el nombre de esta aplicación, que se llama Robot de Gestión de Proyectos. Me gustaría ponerle algún "
+                "tipo de nombre a este robot. No sé qué propuesta de nombres podemos hacer. Iron Man usa uno que se llama JARVIS. Otra "
+                "idea, no sé, sería como ponerle un nombre de persona. Pues esta idea.  Al final, es simplemente cambiarle el nombre y el "
+                "iconito de gestión de proyectos de un robot, pues sí, algo más profesional. No sé, ponerle algo. Va a ser una IA, pero "
+                "me gustaría ponerle nombre. Me gustaría que me hicieras una propuesta o cambiar, pensar cómo es cuál y cambiar un poquito "
+                "el icono a algo más, no de gestión. No sé, un pro, no sé qué imagen puedo poner de un robot."
+            ),
+            "expected_contains": ["Robot de Gestión de Proyectos", "nombre"],
+            "max_len": 72
         }
     ]
 

@@ -430,7 +430,7 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
             if e.get("type") == "USER_INPUT":
                 content = e.get("content", "")
                 m = re.search(
-                    r"changed setting [`']?Model Selection[`']? from (.*?) to ([^\n]+?)(?:\.\s+No need|\.$|$)",
+                    r"changed setting [`']?Model Selection[`']?\s+from\s+(.*?)\s+to\s+([^\n\r]+?)(?:\.\s+No need|\.$|$)",
                     content
                 )
                 if m:
@@ -500,6 +500,9 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
                 # Si ha superado el presupuesto empírico pero aún no reporta 429: cuota mínima crítica
                 remaining_pct = 1
                 color = "red"
+                # El motor volverá a estar bajo presupuesto cuando los pasos sobrantes salgan de la ventana rodante de 5h
+                freeing_idx = min(len(ts_list) - 1, len(ts_list) - budget)
+                reset_dt = ts_list[freeing_idx] + timedelta(hours=QUOTA_WINDOW_HOURS)
             else:
                 remaining_pct = min(100, max(1, raw_pct))
                 if remaining_pct < 20:
@@ -508,9 +511,9 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
                     color = "orange"
                 else:
                     color = "green"
-            reset_dt = ts_list[0] + timedelta(hours=QUOTA_WINDOW_HOURS)
+                reset_dt = ts_list[0] + timedelta(hours=QUOTA_WINDOW_HOURS)
 
-        if reset_dt:
+        if reset_dt and reset_dt > now_utc:
             remaining_secs = max(0, int((reset_dt - now_utc).total_seconds()))
             days = remaining_secs // 86400
             hours = (remaining_secs % 86400) // 3600
@@ -523,6 +526,9 @@ def _compute_all_models_metrics(transcripts: List[str], quota_error_active: bool
                 reset_text = f"Renueva en {hours}h {mins:02d}m ({reset_clock})"
             else:
                 reset_text = f"Renueva en {mins}m ({reset_clock})"
+        elif steps_used > 0 and (not reset_dt or reset_dt <= now_utc):
+            remaining_secs = 0
+            reset_text = "Renovando ahora · Ciclo cumplido"
         else:
             remaining_secs = 0
             reset_text = "100% libre · Sin espera"

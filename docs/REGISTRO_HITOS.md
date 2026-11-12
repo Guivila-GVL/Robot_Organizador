@@ -1,5 +1,20 @@
 # Registro Histórico de Hitos y Tareas — Robot de Gestión de Proyectos
 
+### [12/11/2026 18:54:00] ✅ Mejorar síntesis y análisis de títulos en botón «Crear con IA»
+
+- **ID Tarea:** `140`
+- **Prioridad:** ALTA
+- **Tipo de Hito:** `manual`
+- **Objetivo / Target:** ``
+- **Resultado Técnico:** Mejora integral en la síntesis y análisis semántico de títulos para el botón «Crear con IA» y la creación de tareas en todos los proyectos. Se eliminó la dependencia de truncar las primeras palabras o cortar con puntos suspensivos frágiles. Se implementó un motor semántico multi-patrón en synthesize_smart_title (app/services/project_scanner.py) que detecta intenciones complejas (OneNote, Watchdog, división de subtareas, creación con IA, bugs, cambios de interfaz) y analiza oraciones completas suprimiendo preámbulos conversacionales, normalizando verbos a infinitivo y extrayendo el objeto nuclear con su contexto técnico. Se adaptó la lógica client-side en app.js y se amplió la suite tests/test_smart_title.py cubriendo 17 casos reales e históricos con 100% de éxito y validación 200 OK en la API REST viva.
+- **Checklist de Protocolo General:**
+  - [x] Documentación en `/docs` registrada
+  - [x] Bitácora en OneNote sincronizada (01. Resumen, 02. Actividades y 03. Siguientes Pasos)
+  - [x] Git Snapshot y Push a repositorio remoto procesado
+  - [x] Conformidad con Skills y Patrones de `0000_Utilidades/01_Skills`
+
+---
+
 ### [11/11/2026 20:28:00] ✅ Me da la impresión de que aquí en el Watchdog que tenemos
 
 - **ID Tarea:** `105`

@@ -695,7 +695,15 @@ VERB_CONJUGATIONS = {
     "mejoro": "mejorar", "corrijo": "corregir", "arreglo": "arreglar", "soluciono": "solucionar",
     "optimizo": "optimizar", "actualizo": "actualizar", "modifico": "modificar", "cambio": "cambiar",
     "reviso": "revisar", "verifico": "verificar", "compruebo": "comprobar", "muestro": "mostrar",
-    "limpio": "limpiar", "exporto": "exportar", "importo": "importar", "simplifico": "simplificar"
+    "limpio": "limpiar", "exporto": "exportar", "importo": "importar", "simplifico": "simplificar",
+    # Subjuntivo / peticiones / dictado
+    "abrieras": "abrir", "abriera": "abrir", "ábreme": "abrir", "abrirme": "abrir", "abre": "abrir",
+    "hicieras": "hacer", "hiciera": "hacer", "hazme": "hacer", "hacerme": "hacer",
+    "listaras": "listar", "listara": "listar", "lístame": "listar", "listarme": "listar",
+    "pusieras": "poner", "pusiera": "poner", "ponme": "poner", "pónmelo": "poner",
+    "propusieras": "proponer", "proponme": "proponer", "propón": "proponer",
+    "analizaras": "analizar", "analizara": "analizar",
+    "dividiera": "dividir", "dividieras": "dividir", "dividirlo": "dividir"
 }
 
 ACTION_NOUNS = {
@@ -729,6 +737,20 @@ def clean_fillers_recursively(text: str) -> str:
         r"^(?:a ver\s+si\s+(?:podemos|podéis|podés|se puede)|si\s+(?:podemos|podéis|podés|se puede))\s+",
         r"^(?:a ver)[,\s]+",
         r"^(?:en la parte (?:de|del|de la|de los|de las|de arriba de|superior de)|en la sección (?:de|del)|en la pestaña (?:de|del)|en el área (?:de|del)|en la pantalla (?:de|del|principal)?|en el dashboard|en el frontend|en el backend|en el modal|en el inicio|en la interfaz)[,\s]+",
+        r"^(?:dentro de la parte de [^,]+)[,\s]+",
+        r"^(?:cuando vamos a lanzar una tarea|cuando vamos a [^,]+)[,\s]+(?:me gustaría que|quisiera que|sería bueno que)?\s*",
+        r"^(?:cuando das al botón de [^,]+|al darle a [^,]+)[,\s]+",
+        r"^(?:otra cosa que me gustaría (?:hacer|comentar|pedir) es\s+)",
+        r"^(?:me da la impresión de que\s+)",
+        r"^(?:quiero crear una tarea que sea:?\s*)",
+        r"^(?:debería existir la opción de que\s*)",
+        r"^(?:es decir,?\s*)",
+        r"^(?:¿puedes abrirme [^?]+\?\s*)",
+        r"^(?:¿cómo podemos hacer [^?]+\?\s*)",
+        r"^(?:¿qué es lo que deberíamos plantear ahí\?\s*)",
+        r"^(?:entonces,?\s*(?:aquí en [^,]+,?\s*)?)",
+        r"^(?:me gustaría que me abrieras en onenote|ábreme en onenote|abrirme en onenote)\s+",
+        r"^(?:me gustaría crear en todos los proyectos,?\s*)",
         r"^(?:me gustaría que|me gustaria que|quisiera que|querría que|querria que|necesito que|necesitamos que|quiero que|queremos que)\s+",
         r"^(?:me gustaría|me gustaria|quisiera|querría|querria|necesito|necesitamos|quiero|queremos|deseo|deseamos)\s+",
         r"^(?:hacer una pequeña modificación sobre|hacer una modificacion sobre|hacer un pequeño cambio en|hacer un cambio en|hacer una modificación en|hacer un cambio de)\s+",
@@ -758,9 +780,37 @@ def synthesize_smart_title(prompt: str) -> str:
 
     lower_full = clean.lower()
 
-    # Patrón especial 1: "Crear con IA" y títulos / síntesis / análisis
-    if ("crear con ia" in lower_full or "crear ia" in lower_full or "smart" in lower_full) and any(w in lower_full for w in ["título", "titulo"]) and any(w in lower_full for w in ["resumen", "resumido", "análisis", "analisis", "primeras palabras", "exhaustivo", "síntesis", "sintesis", "adecuado", "generación", "generar"]):
+    # Patrón 1: 'Crear con IA' y análisis/síntesis de títulos
+    if ("crear con ia" in lower_full or "crear ia" in lower_full or "smart" in lower_full or "lanzar una tarea" in lower_full or "botón de la creación" in lower_full) and any(w in lower_full for w in ["título", "titulo", "primeras palabras", "resumen", "resumido", "síntesis", "sintesis"]):
         return "Mejorar síntesis y análisis de títulos en botón «Crear con IA»"
+
+    # Patrón 2: Subtareas / División de tareas complejas
+    if any(w in lower_full for w in ["subtarea", "subtareas", "dividirla en subtareas", "dividir en subtareas", "desglose en subtareas", "desglosar"]):
+        if any(w in lower_full for w in ["crear con ia", "crear ia", "creación", "lanzar"]):
+            return "Dividir tareas complejas en subtareas al «Crear con IA»"
+        elif "onenote" in lower_full:
+            return "Estrategia en OneNote para división de tareas en subtareas"
+        else:
+            return "Permitir dividir tareas complejas en subtareas"
+
+    # Patrón 3: OneNote análisis / resúmenes específicos
+    if "onenote" in lower_full:
+        if any(w in lower_full for w in ["panel", "paneles", "grafana", "power bi", "gráficas", "graficas"]):
+            return "Crear en OneNote resumen de paneles y gráficas de Grafana y Power BI"
+        elif any(w in lower_full for w in ["siguientes pasos", "evolución", "evolucion"]):
+            return "Crear hoja de siguientes pasos y evolución en OneNote para todos los proyectos"
+        elif any(w in lower_full for w in ["voz", "voces", "narración", "narracion", "narrador", "personajes", "acento"]):
+            return "Estrategia en OneNote para selección de voces de narración en español"
+        elif any(w in lower_full for w in ["mcp", "certificado humano", "validación humana", "validacion humana"]):
+            return "Estrategia de integración MCP en OneNote para Certificado Humano"
+
+    # Patrón 4: Watchdog / Telemetría de modelos / Porcentaje
+    if "watchdog" in lower_full and any(w in lower_full for w in ["modelo", "porcentaje", "actualiza", "motor"]):
+        return "Corregir actualización de modelo y porcentaje en Watchdog"
+
+    # Patrón 5: Nombre e icono de la aplicación / JARVIS
+    if any(w in lower_full for w in ["nombre de esta aplicación", "nombre de este robot", "llamar a este robot", "jarvis"]) and any(w in lower_full for w in ["cambiar", "propuesta", "renombrar", "icono"]):
+        return "Cambiar nombre e icono del Robot de Gestión de Proyectos"
 
     # Patrón especial 2: Deseado tras fallo u observación ("debería mantenerse fija...")
     m_should = re.search(r"\b(?:debería|deberia|tendría que|tendria que)\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+){1,4})", clean, re.IGNORECASE)
